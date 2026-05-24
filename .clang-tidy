@@ -1,0 +1,93 @@
+---
+Checks: >
+  -*,
+
+  bugprone-*,
+  performance-*,
+  readability-*,
+  portability-*,
+  cppcoreguidelines-*,
+
+  -bugprone-assignment-in-if-condition,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -readability-function-cognitive-complexity,
+  -readability-magic-numbers,
+  -readability-redundant-access-specifiers,
+  -readability-use-anyofallof,
+  -readability-named-parameter,
+  -performance-enum-size,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-owning-memory
+
+WarningsAsErrors: "*"
+
+HeaderFilterRegex: ".*"
+
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 3
+
+  - key: readability-identifier-length.MinimumParameterNameLength
+    value: 2
+
+  - key: readability-identifier-length.MinimumVariableNameLength
+    value: 2
+
+  # Namespaces
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # Types
+  - key: readability-identifier-naming.StructCase
+    value: snake_case
+  - key: readability-identifier-naming.ClassCase
+    value: snake_case
+  - key: readability-identifier-naming.EnumCase
+    value: snake_case
+  # - key: readability-identifier-naming.AbstractClassPrefix
+  #   value: I
+
+  # Functions
+  - key: readability-identifier-naming.FunctionCase
+    value: snake_case
+
+  # Variables
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+
+  # Public members
+  - key: readability-identifier-naming.PublicMemberCase
+    value: camelBack
+
+  # Static members
+  - key: readability-identifier-naming.StaticVariableCase
+    value: camelBack
+  - key: readability-identifier-naming.StaticVariablePrefix
+    value: s_
+  - key: readability-identifier-naming.ClassMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: s_
+
+  # Static constexpr
+  - key: readability-identifier-naming.StaticConstexprVariableCase
+    value: aNy_CaSe
+
+  # Constants
+  - key: readability-identifier-naming.ConstantCase
+    value: aNy_CaSe
+  - key: readability-identifier-naming.StaticConstantCase
+    value: aNy_CaSe
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ScopedEnumConstantCase
+    value: CamelCase

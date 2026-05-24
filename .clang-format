@@ -1,0 +1,67 @@
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+ColumnLimit: 120
+
+BreakBeforeBraces: Attach
+BraceWrapping:
+  BeforeCatch: true
+  BeforeElse: false
+  BeforeWhile: false
+  BeforeLambdaBody: false
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+AllowShortCompoundRequirementOnASingleLine: true
+
+NamespaceIndentation: None
+AccessModifierOffset: -4
+EmptyLineBeforeAccessModifier: Never
+
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpaceBeforeInheritanceColon: true
+SpacesBeforeTrailingComments: 1
+
+AlignTrailingComments: true
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AlignCompound: true
+  PadOperators: false
+
+AlignConsecutiveDeclarations: Consecutive
+AlignAfterOpenBracket: DontAlign
+
+ConstructorInitializerIndentWidth: 2
+PackConstructorInitializers: NextLineOnly
+BreakConstructorInitializers: BeforeColon
+
+BinPackParameters: false
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: false
+
+AlwaysBreakTemplateDeclarations: Yes
+BreakAfterReturnType: None
+
+Cpp11BracedListStyle: false
+BreakArrays: false
+
+IncludeBlocks: Regroup
+SortIncludes: true
+
+ReflowComments: false
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+AllowAllParametersOfDeclarationOnNextLine: false
+
+PenaltyReturnTypeOnItsOwnLine: 1000

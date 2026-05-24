@@ -1,0 +1,25 @@
+CompileFlags:
+  Add: [-std=c11, -Wall, -Werror, -Wpedantic]
+
+InlayHints:
+  BlockEnd: true
+  Designators: false
+  Enabled: true
+  ParameterNames: true
+  DeducedTypes: true
+  TypeNameLimit: 24
+
+Completion:
+  HeaderInsertion: IWYU
+
+Hover:
+  ShowAKA: true
+
+If:
+  PathMatch: (./.*\.c|./.*\.h)
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+
+Documentation:
+  CommentFormat: Doxygen
