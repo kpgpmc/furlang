@@ -8,6 +8,7 @@ using namespace furc::front;
 using namespace std::string_view_literals;
 
 #define EXPECT_TOKEN(lexer, t) EXPECT_EQ((lexer).next_token(), (t));
+#define EXPECT_EMPTY_TOKEN(lexer) EXPECT_EQ((lexer).next_token(), (token{}));
 
 TEST(Lexer, Tokens) {
     lexer lexer("<TEMP>", "()\n\t\t{\n}[];    :,.main return func");
@@ -24,6 +25,16 @@ TEST(Lexer, Tokens) {
     EXPECT_TOKEN(lexer, (token{ token_t::Identifier, "main"sv }));
     EXPECT_TOKEN(lexer, (token{ keyword_token::Return }));
     EXPECT_TOKEN(lexer, (token{ keyword_token::Func }));
+    EXPECT_EMPTY_TOKEN(lexer);
+}
+
+TEST(Lexer, Comments) {
+    lexer lexer("<TEMP>", "(/** skibidi **/func{//)\n}");
+    EXPECT_TOKEN(lexer, (token{ token_t::Lparen, "("sv }));
+    EXPECT_TOKEN(lexer, (token{ keyword_token::Func }));
+    EXPECT_TOKEN(lexer, (token{ token_t::Lbrace, "{"sv }));
+    EXPECT_TOKEN(lexer, (token{ token_t::Rbrace, "}"sv }));
+    EXPECT_EMPTY_TOKEN(lexer);
 }
 
 } // namespace

@@ -103,10 +103,10 @@ struct token {
     bool operator==(const token& rhs) const {
         if (type != rhs.type) return false;
         switch (type) {
-        case token_t::None:
         case token_t::Identifier: return value == rhs.value;
         case token_t::Keyword: return keyword == rhs.keyword;
         case token_t::Integer: return value == rhs.value;
+        case token_t::None:
         case token_t::Lparen:
         case token_t::Rparen:
         case token_t::Lbrace:

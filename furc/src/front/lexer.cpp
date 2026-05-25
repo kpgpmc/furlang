@@ -13,6 +13,32 @@ lexer::lexer(std::string_view filename, std::string_view content)
 
 token_handle<> lexer::next_token() {
     skip_spaces();
+    while (m_cursor + 2 <= m_content.size() && m_content[m_cursor] == '/') {
+        if (m_content[m_cursor + 1] == '/') {
+            m_cursor += 2;
+            while (m_content[m_cursor] != '\n') {
+                next();
+            }
+        } else if (m_content[m_cursor + 1] == '*') {
+            m_cursor += 2;
+            while (m_cursor + 2 < m_content.size()) {
+                if (m_content[m_cursor + 1] == '*') {
+                    next();
+                } else if (m_content[m_cursor + 0] != '*' || m_content[m_cursor + 1] != '/') {
+                    next();
+                    next();
+                } else {
+                    break;
+                }
+            }
+            if (m_cursor + 2 >= m_content.size()) {
+                next();
+                return { current_location(), "unexpected end of file before enclosing `*/`" };
+            }
+            m_cursor += 2;
+        }
+        skip_spaces();
+    }
 
     location location = current_location();
 
