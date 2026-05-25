@@ -8,22 +8,24 @@ namespace furc::front {
 lexer::lexer(std::string_view filename, std::string_view content)
   : m_filename(filename), m_content(content) {}
 
-token lexer::next_token() {
+token_handle<> lexer::next_token() {
     skip_spaces();
 
     location location = current_location();
 
     char ch = get();
     switch (ch) {
-    case '(': return create_token(location, token_t::Lparen, m_content.substr(m_cursor++, 1));
-    case ')': return create_token(location, token_t::Rparen, m_content.substr(m_cursor++, 1));
-    case '{': return create_token(location, token_t::Lbrace, m_content.substr(m_cursor++, 1));
-    case '}': return create_token(location, token_t::Rbrace, m_content.substr(m_cursor++, 1));
-    case '[': return create_token(location, token_t::Lbracket, m_content.substr(m_cursor++, 1));
-    case ']': return create_token(location, token_t::Rbracket, m_content.substr(m_cursor++, 1));
-    case ';': return create_token(location, token_t::Semicolon, m_content.substr(m_cursor++, 1));
-    case ':': return create_token(location, token_t::Colon, m_content.substr(m_cursor++, 1));
-    case std::char_traits<char>::eof(): return create_token(location, token_t::None);
+    case '(': return { location, token_t::Lparen, m_content.substr(m_cursor++, 1) };
+    case ')': return { location, token_t::Rparen, m_content.substr(m_cursor++, 1) };
+    case '{': return { location, token_t::Lbrace, m_content.substr(m_cursor++, 1) };
+    case '}': return { location, token_t::Rbrace, m_content.substr(m_cursor++, 1) };
+    case '[': return { location, token_t::Lbracket, m_content.substr(m_cursor++, 1) };
+    case ']': return { location, token_t::Rbracket, m_content.substr(m_cursor++, 1) };
+    case ';': return { location, token_t::Semicolon, m_content.substr(m_cursor++, 1) };
+    case ':': return { location, token_t::Colon, m_content.substr(m_cursor++, 1) };
+    case ',': return { location, token_t::Comma, m_content.substr(m_cursor++, 1) };
+    case '.': return { location, token_t::Dot, m_content.substr(m_cursor++, 1) };
+    case std::char_traits<char>::eof(): return { location, token_t::None };
     default: {
         if (std::isdigit(ch) != 0) {}
 
@@ -39,12 +41,11 @@ token lexer::next_token() {
                 { "return", keyword_token::Return },
             };
 
-            if (auto it = s_keywords.find(value); it != s_keywords.end())
-                return create_token(location, it->second, value);
-            return create_token(location, token_t::Identifier, value);
+            if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second, value };
+            return { location, token_t::Identifier, value };
         }
 
-        return create_token(location, error_token::UnexpectedCharacter, m_content.substr(m_cursor, 1));
+        return { location, error_token::UnexpectedCharacter, m_content.substr(m_cursor, 1) };
     }
     }
 }

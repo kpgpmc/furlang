@@ -8,6 +8,7 @@ namespace front {
 
 class lexer {
 public:
+    lexer() = default;
     lexer(std::string_view filename, std::string_view content);
     ~lexer() = default;
 
@@ -16,19 +17,14 @@ public:
     lexer& operator=(lexer&&)      = default;
     lexer& operator=(const lexer&) = delete;
 public:
-    token next_token();
+    token_handle<> next_token();
+
+    bool empty() const { return m_cursor >= m_content.size(); }
 private:
-    void next();
-    char get(std::size_t offset = 0) const;
-    void skip_spaces();
+    void     next();
+    char     get(std::size_t offset = 0) const;
+    void     skip_spaces();
     location current_location();
-private:
-    template <typename... Args>
-    token create_token(location location, Args&&... args) {
-        token tok(std::forward<Args>(args)...);
-        tok.location = location;
-        return tok;
-    }
 private:
     std::string_view m_filename;
     std::string_view m_content;

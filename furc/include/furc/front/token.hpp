@@ -1,7 +1,7 @@
 #ifndef FURC_FRONT_TOKEN_HPP
 #define FURC_FRONT_TOKEN_HPP
 
-#include "furc/diag.hpp"
+#include "furc/handle.hpp"
 
 #include <cassert>
 #include <ostream>
@@ -24,6 +24,8 @@ enum class token_t {
     Rbracket,
     Semicolon,
     Colon,
+    Comma,
+    Dot,
 };
 
 static inline bool is_token_type_empty(token_t type) {
@@ -45,6 +47,28 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::Rbracket: return os << "']'";
     case token_t::Semicolon: return os << "';'";
     case token_t::Colon: return os << "':'";
+    case token_t::Comma: return os << "','";
+    case token_t::Dot: return os << "'.'";
+    }
+}
+
+static inline std::string operator+(const std::string& str, token_t type) {
+    switch (type) {
+    case token_t::None: return str + "none";
+    case token_t::Error: return str + "error";
+    case token_t::Identifier: return str + "identifier";
+    case token_t::Keyword: return str + "keyword";
+    case token_t::Integer: return str + "integer";
+    case token_t::Lparen: return str + "'('";
+    case token_t::Rparen: return str + "')'";
+    case token_t::Lbrace: return str + "'{'";
+    case token_t::Rbrace: return str + "'}'";
+    case token_t::Lbracket: return str + "'['";
+    case token_t::Rbracket: return str + "']'";
+    case token_t::Semicolon: return str + "';'";
+    case token_t::Colon: return str + "':'";
+    case token_t::Comma: return str + "','";
+    case token_t::Dot: return str + "'.'";
     }
 }
 
@@ -66,12 +90,27 @@ enum class keyword_token {
     Return,
 };
 
+static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) {
+    switch (keyword) {
+    case keyword_token::None: return os << "none";
+    case keyword_token::Func: return os << "func";
+    case keyword_token::Return: return os << "return";
+    }
+}
+
+static inline std::string operator+(const std::string& str, keyword_token keyword) {
+    switch (keyword) {
+    case keyword_token::None: return str + "none";
+    case keyword_token::Func: return str + "func";
+    case keyword_token::Return: return str + "return";
+    }
+}
+
 struct token {
     token_t          type    = token_t::None;
     error_token      error   = error_token::None;
     keyword_token    keyword = keyword_token::None;
     std::string_view value;
-    location         location;
 
     token() = default;
 
@@ -86,7 +125,7 @@ struct token {
 };
 
 static inline std::ostream& operator<<(std::ostream& os, const token& token) {
-    os << token.location << ": " << token.type;
+    os << token.type;
     switch (token.type) {
     case token_t::Error: {
         os << ": " << token.error;
@@ -99,6 +138,9 @@ static inline std::ostream& operator<<(std::ostream& os, const token& token) {
     default: return os;
     }
 }
+
+template <typename Error = std::string>
+using token_handle = handle<token, Error>;
 
 } // namespace front
 } // namespace furc
