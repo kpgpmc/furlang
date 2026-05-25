@@ -25,8 +25,8 @@ parser::parser(std::string_view filename)
     m_lexer = { filename, m_content };
 }
 
-ast::node_handle<ast::program_node> parser::parse() {
-    auto program = std::make_shared<ast::program_node>();
+ast::node_handle<ast::program_node> parser::parse() & {
+    auto program = m_arena.allocate_shared<ast::program_node>();
 
     while (!m_lexer.empty()) {
         program->push(std::move(parse_declaration()));
@@ -55,11 +55,14 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
             case token_t::Lbrace: {
                 ast::function_body_handle body = parse_body();
                 if (body.error()) return body;
-                return ast::node_handle<ast::function_definition_node>{ first.location(), name, std::move(body) };
+                return ast::node_handle<ast::function_definition_node>{ first.location(),
+                    m_arena,
+                    name,
+                    std::move(body) };
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return ast::node_handle<ast::function_declarartion_node>{ first.location(), name };
+                return ast::node_handle<ast::function_declarartion_node>{ first.location(), m_arena, name };
             }
             case token_t::None:
             case token_t::Identifier:
@@ -106,7 +109,7 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
         auto err = eat_token(token_t::Semicolon);
         if (err.error()) return err;
 
-        return ast::node_handle<ast::return_statement_node>{ tok.location() };
+        return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena };
     }
     default: break;
     }
@@ -114,7 +117,7 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
     auto declaration = parse_declaration();
     if (declaration.error())
         return { declaration.location(), "unexpected token "s + tok->type + ", expected statement" };
-    return ast::node_handle<ast::declaration_statement_node>{ declaration.location(), declaration };
+    return ast::node_handle<ast::declaration_statement_node>{ declaration.location(), m_arena, std::move(declaration) };
 }
 
 ast::function_body_handle parser::parse_body() {

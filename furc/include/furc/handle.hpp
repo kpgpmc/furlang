@@ -2,6 +2,7 @@
 #define FURC_HANDLE_HPP
 
 #include "furc/diag.hpp"
+#include "furlang/arena.hpp"
 
 #include <memory>
 #include <optional>
@@ -122,6 +123,10 @@ public:
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args...>>>
     handle(location location, Args&&... args)
       : m_location(location), m_value(std::make_shared<value_type>(std::forward<Args>(args)...)) {}
+
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args...>>>
+    handle(location location, furlang::arena& arena, Args&&... args)
+      : m_location(location), m_value(arena.allocate_shared<value_type>(std::forward<Args>(args)...)) {}
 
     handle(location location, Error&& error)
       : m_location(location), m_error(std::move(error)) {}

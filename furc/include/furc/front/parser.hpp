@@ -5,6 +5,7 @@
 #include "furc/ast/node.hpp"
 #include "furc/ast/program.hpp"
 #include "furc/front/lexer.hpp"
+#include "furlang/arena.hpp"
 
 #include <vector>
 
@@ -22,7 +23,8 @@ public:
     parser& operator=(parser&&)      = default;
     parser& operator=(const parser&) = delete;
 public:
-    ast::node_handle<ast::program_node> parse();
+    // parser owns the arena :3c
+    ast::node_handle<ast::program_node> parse() &;
 private:
     ast::node_handle<ast::declaration_node> parse_declaration();
     ast::node_handle<ast::statement_node>   parse_statement();
@@ -36,6 +38,7 @@ private:
     std::string                 m_filename;
     std::string                 m_content;
     lexer                       m_lexer;
+    furlang::arena              m_arena;
     std::vector<token_handle<>> m_peekBuffer;
 };
 

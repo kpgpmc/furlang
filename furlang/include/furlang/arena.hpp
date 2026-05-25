@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <type_traits>
 
 namespace furlang {
 
@@ -29,9 +31,26 @@ public:
     arena& operator=(arena&& other) noexcept;
     arena& operator=(const arena&) = delete;
 public:
-    template <typename T>
-    T* allocate(std::size_t count = 1) {
-        return reinterpret_cast<T*>(allocate(sizeof(T), count));
+    template <typename T, typename = std::enable_if_t<std::is_default_constructible_v<T>>>
+    T* allocate(std::size_t count) {
+        T* allocated = reinterpret_cast<T*>(allocate(sizeof(T), count));
+        for (std::size_t i = 0; i < count; ++i) {
+            new (&allocated[i]) T();
+        }
+        return allocated;
+    }
+
+    template <typename T, typename... Args, typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
+    T* allocate(Args&&... args) {
+        T* allocated = reinterpret_cast<T*>(allocate(sizeof(T), 1));
+        new (allocated) T(std::forward<Args>(args)...);
+        return allocated;
+    }
+
+    template <typename T, typename... Args>
+    std::shared_ptr<T> allocate_shared(Args&&... args) {
+        T* allocated = allocate<T>(std::forward<Args>(args)...);
+        return std::shared_ptr<T>(allocated, [](T* object) { object->~T(); });
     }
 
     void reset();

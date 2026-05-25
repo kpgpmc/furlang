@@ -62,6 +62,23 @@ class function_definition_node : public function_declarartion_node {
 public:
     function_definition_node(front::token name, function_body_handle&& body)
       : function_declarartion_node(name), m_body(std::move(body)) {}
+
+    ~function_definition_node() override = default;
+
+    function_definition_node(function_definition_node&& other) noexcept
+      : function_declarartion_node(std::move(other)), m_name(other.m_name), m_body(std::move(other.m_body)) {}
+
+    function_definition_node(const function_definition_node&) = delete;
+
+    function_definition_node& operator=(function_definition_node&& other) noexcept {
+        if (this == &other) return *this;
+        function_declarartion_node::operator=(std::move(other));
+        m_name = other.m_name;
+        m_body = std::move(other.m_body);
+        return *this;
+    }
+
+    function_definition_node& operator=(const function_definition_node&) = delete;
 public:
     declaration_node_t type() const override { return declaration_node_t::FunctionDefinition; }
 

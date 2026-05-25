@@ -35,14 +35,14 @@ public:
 class declaration_node;
 class declaration_statement_node : public statement_node {
 public:
-    declaration_statement_node(declaration_node* declaration)
-      : m_declaration(declaration) {}
+    declaration_statement_node(node_handle<declaration_node>&& declaration)
+      : m_declaration(std::move(declaration)) {}
 public:
     statement_node_t type() const override { return statement_node_t::Declaration; }
 
     std::ostream& print(std::ostream& os) const override { return os; }
 private:
-    declaration_node* m_declaration = nullptr;
+    node_handle<declaration_node> m_declaration;
 };
 
 class return_statement_node : public statement_node {
