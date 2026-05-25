@@ -10,17 +10,19 @@
 namespace furc {
 namespace ast {
 
-class program_node : public abstract_node<node_t::Program> {
+class program_node : public node {
 public:
-    program_node() {}
+    program_node() = default;
+
+    node_t category() const override { return node_t::Program; }
 public:
     void push(node_handle<declaration_node>&& declaration) { m_declarations.push_back(std::move(declaration)); }
 
     const std::vector<node_handle<declaration_node>>& declarations() const { return m_declarations; }
 public:
-    friend std::ostream& operator<<(std::ostream& os, const program_node& node) {
-        os << "program";
-        for (const auto& handle : node.m_declarations) {
+    std::ostream& print(std::ostream& os) const override {
+        os << "program:";
+        for (const auto& handle : m_declarations) {
             os << '\n' << handle;
         }
         return os;

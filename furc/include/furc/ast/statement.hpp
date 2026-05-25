@@ -9,49 +9,25 @@ namespace furc {
 namespace ast {
 
 enum class statement_node_t {
+    Expression,
     Declaration,
     Return,
 };
 
-static inline std::ostream& operator<<(std::ostream& os, statement_node_t type) {
-    switch (type) {
-    case statement_node_t::Declaration: return os << "declaration";
-    case statement_node_t::Return: return os << "return";
-    }
-}
-
-class statement_node : public abstract_node<node_t::Statement> {
+class statement_node : public node {
 public:
-    virtual statement_node_t type() const = 0;
-public:
-    virtual std::ostream& print(std::ostream& os) const = 0;
+    node_t category() const override { return node_t::Statement; }
 
-    friend std::ostream& operator<<(std::ostream& os, const statement_node& node) {
-        os << node.type() << " statement";
-        return node.print(os);
-    }
-};
-
-class declaration_node;
-class declaration_statement_node : public statement_node {
-public:
-    declaration_statement_node(node_handle<declaration_node>&& declaration)
-      : m_declaration(std::move(declaration)) {}
-public:
-    statement_node_t type() const override { return statement_node_t::Declaration; }
-
-    std::ostream& print(std::ostream& os) const override { return os; }
-private:
-    node_handle<declaration_node> m_declaration;
+    virtual statement_node_t statement_type() const = 0;
 };
 
 class return_statement_node : public statement_node {
 public:
     return_statement_node() = default;
 public:
-    statement_node_t type() const override { return statement_node_t::Return; }
+    statement_node_t statement_type() const override { return statement_node_t::Return; }
 
-    std::ostream& print(std::ostream& os) const override { return os; }
+    std::ostream& print(std::ostream& os) const override { return os << "return statement"; }
 };
 
 } // namespace ast

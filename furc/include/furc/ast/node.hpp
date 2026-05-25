@@ -16,6 +16,16 @@ enum class node_t {
     Program,
 };
 
+static inline std::ostream& operator<<(std::ostream& os, node_t type) {
+    switch (type) {
+    case node_t::Literal: return os << "literal";
+    case node_t::Expression: return os << "expression";
+    case node_t::Statement: return os << "statement";
+    case node_t::Declaration: return os << "declaration";
+    case node_t::Program: return os << "program";
+    }
+}
+
 class node {
 public:
     node()          = default;
@@ -27,12 +37,10 @@ public:
     node& operator=(const node&) = delete;
 public:
     virtual node_t category() const = 0;
-};
 
-template <node_t Category>
-class abstract_node : public node {
-public:
-    node_t category() const override { return Category; }
+    virtual std::ostream& print(std::ostream& os) const = 0;
+
+    friend std::ostream& operator<<(std::ostream& os, const node& node) { return node.print(os); }
 };
 
 template <typename T, typename Error = std::string>

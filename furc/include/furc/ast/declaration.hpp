@@ -17,24 +17,13 @@ enum class declaration_node_t {
     Variable,
 };
 
-static inline std::ostream& operator<<(std::ostream& os, declaration_node_t type) {
-    switch (type) {
-    case declaration_node_t::FunctionDeclaration: return os << "function declaration";
-    case declaration_node_t::FunctionDefinition: return os << "function definition";
-    case declaration_node_t::Variable: return os << "variable";
-    }
-}
-
-class declaration_node : public abstract_node<node_t::Declaration> {
+class declaration_node : public statement_node {
 public:
-    virtual declaration_node_t type() const = 0;
-public:
-    virtual std::ostream& print(std::ostream& os) const = 0;
+    node_t category() const override { return node_t::Declaration; }
 
-    friend std::ostream& operator<<(std::ostream& os, const declaration_node& node) {
-        os << node.type();
-        return node.print(os);
-    }
+    statement_node_t statement_type() const override { return statement_node_t::Declaration; }
+
+    virtual declaration_node_t declaration_type() const = 0;
 };
 
 struct function_body {
@@ -49,11 +38,11 @@ public:
     function_declarartion_node(front::token name)
       : m_name(name) {}
 public:
-    declaration_node_t type() const override { return declaration_node_t::FunctionDeclaration; }
+    declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDeclaration; }
 
     front::token name() const { return m_name; }
 public:
-    std::ostream& print(std::ostream& os) const override { return os << ": " << m_name; }
+    std::ostream& print(std::ostream& os) const override { return os << "function " << m_name.value << " declaration"; }
 protected:
     front::token m_name;
 };
@@ -66,37 +55,33 @@ public:
     ~function_definition_node() override = default;
 
     function_definition_node(function_definition_node&& other) noexcept
-      : function_declarartion_node(std::move(other)), m_name(other.m_name), m_body(std::move(other.m_body)) {}
+      : function_declarartion_node(std::move(other)), m_body(std::move(other.m_body)) {}
 
     function_definition_node(const function_definition_node&) = delete;
 
     function_definition_node& operator=(function_definition_node&& other) noexcept {
         if (this == &other) return *this;
         function_declarartion_node::operator=(std::move(other));
-        m_name = other.m_name;
         m_body = std::move(other.m_body);
         return *this;
     }
 
     function_definition_node& operator=(const function_definition_node&) = delete;
 public:
-    declaration_node_t type() const override { return declaration_node_t::FunctionDefinition; }
+    declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDefinition; }
 
     const function_body_handle& body() const { return m_body; }
 public:
     std::ostream& print(std::ostream& os) const override {
-        os << ": " << m_name.value;
+        os << "function " << m_name.value << " definition:";
         if (m_body.present()) {
-            os << '\n' << m_body->begin << ": begin:";
-            for (const auto& entry : m_body->statements) {
+            for (const auto& entry : m_body->statements)
                 os << '\n' << entry;
-            }
-            os << '\n' << m_body->end << ": end";
+            return os << '\n' << m_body->end << ": " << m_name.value << " end";
         }
-        return os;
+        return os << (std::string)m_body; // error
     }
 private:
-    front::token         m_name;
     function_body_handle m_body;
 };
 

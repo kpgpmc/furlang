@@ -36,9 +36,10 @@ ast::node_handle<ast::program_node> parser::parse() & {
 }
 
 ast::node_handle<ast::declaration_node> parser::parse_declaration() {
-    token_handle<> first = next_token();
+    const auto& first = peek_token();
     switch (first->type) {
     case token_t::Keyword: {
+        auto first = next_token();
         switch (first->keyword) {
         case keyword_token::Func: {
             token_handle<> name = eat_token(token_t::Identifier);
@@ -64,22 +65,9 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
                 m_peekBuffer.clear();
                 return ast::node_handle<ast::function_declarartion_node>{ first.location(), m_arena, name };
             }
-            case token_t::None:
-            case token_t::Identifier:
-            case token_t::Keyword:
-            case token_t::Integer:
-            case token_t::Lparen:
-            case token_t::Rparen:
-            case token_t::Rbrace:
-            case token_t::Lbracket:
-            case token_t::Rbracket:
-            case token_t::Colon:
-            case token_t::Comma:
-            case token_t::Dot: return { tok.location(), "unexpected token "s + tok->type };
+            default: return { tok.location(), "unexpected token "s + tok->type };
             }
         }
-        case keyword_token::Return:
-        case keyword_token::None:
         default: return { first.location(), "unexpected keyword "s + first->keyword };
         }
     }
@@ -115,9 +103,46 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
     }
 
     auto declaration = parse_declaration();
-    if (declaration.error())
-        return { declaration.location(), "unexpected token "s + tok->type + ", expected statement" };
-    return ast::node_handle<ast::declaration_statement_node>{ declaration.location(), m_arena, std::move(declaration) };
+    if (declaration.present()) return std::move(declaration);
+    auto expression = parse_expression();
+    if (expression.present()) {
+        auto semi = eat_token(token_t::Semicolon);
+        if (semi.error()) return semi;
+        return std::move(expression);
+    }
+
+    auto token = next_token();
+    return { token.location(), "unexpected token "s + token->type + ", expected statement, declaration or expression" };
+}
+
+ast::node_handle<ast::expression_node> parser::parse_expression() {
+    const auto& tok = peek_token();
+
+    auto literal = parse_literal();
+    if (literal.present()) return std::move(literal);
+    return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
+}
+
+ast::node_handle<ast::literal_node> parser::parse_literal() {
+    const auto& tok = peek_token();
+    switch (tok->type) {
+    case token_t::String: {
+        auto tok = next_token();
+        return ast::node_handle<ast::string_literal_node>{ tok.location(),
+            m_arena,
+            handle<std::string_view>{ tok.location(), tok->value } };
+    }
+    case token_t::Integer: {
+        auto tok = next_token();
+        // return ast::node_handle<ast::integer_literal_node>{ tok.location(),
+        //     m_arena,
+        //     handle<std::uint64_t>{ tok.location(), tok->value } };
+        return { tok.location(), "unimplemented parse_literal() for token_t::Integer" };
+    }
+    default: break;
+    }
+
+    return { tok.location(), "unexpected token "s + tok->type + ", expected literal" };
 }
 
 ast::function_body_handle parser::parse_body() {
@@ -127,7 +152,7 @@ ast::function_body_handle parser::parse_body() {
     if (begin.error()) return begin;
     body.begin = begin.location();
 
-    while (!peek_token().error() && peek_token()->type != token_t::Rbrace) {
+    while (!peek_token().error() && peek_token()->type != token_t::None && peek_token()->type != token_t::Rbrace) {
         body.statements.push_back(parse_statement());
     }
 
@@ -158,7 +183,10 @@ const token_handle<>& parser::peek_token() {
 token_handle<> parser::eat_token(token_t type) {
     token_handle<> token = next_token();
     if (!token.present()) return token;
-    if (token->type != type) return { token.location(), "unexpected token "s + token->type + ", expected " + type };
+    if (token->type != type) {
+        if (token->type == token_t::None) return { token.location(), "unexpected end of file, expected " + type };
+        return { token.location(), "unexpected token "s + token->type + ", expected " + type };
+    }
     return token;
 }
 

@@ -2,6 +2,8 @@
 #define FURC_FRONT_PARSER_HPP
 
 #include "furc/ast/declaration.hpp"
+#include "furc/ast/expression.hpp"
+#include "furc/ast/literal.hpp"
 #include "furc/ast/node.hpp"
 #include "furc/ast/program.hpp"
 #include "furc/front/lexer.hpp"
@@ -28,6 +30,8 @@ public:
 private:
     ast::node_handle<ast::declaration_node> parse_declaration();
     ast::node_handle<ast::statement_node>   parse_statement();
+    ast::node_handle<ast::expression_node>  parse_expression();
+    ast::node_handle<ast::literal_node>     parse_literal();
 
     ast::function_body_handle parse_body();
 private:

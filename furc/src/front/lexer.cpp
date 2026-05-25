@@ -54,6 +54,15 @@ token_handle<> lexer::next_token() {
     case ':': return { location, token_t::Colon, m_content.substr(m_cursor++, 1) };
     case ',': return { location, token_t::Comma, m_content.substr(m_cursor++, 1) };
     case '.': return { location, token_t::Dot, m_content.substr(m_cursor++, 1) };
+    case '"': {
+        std::size_t begin = ++m_cursor;
+        while (m_cursor < m_content.size() && m_content[m_cursor] != '"')
+            ++m_cursor;
+        if (m_cursor >= m_content.size()) return { current_location(), "unexpected end of file before enclosing '\"'" };
+        ++m_cursor;
+
+        return { location, token_t::String, m_content.substr(begin, m_cursor - begin - 1) };
+    }
     case std::char_traits<char>::eof(): return { location, token_t::None };
     default: {
         if (std::isdigit(ch) != 0) {}
