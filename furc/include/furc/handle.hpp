@@ -115,6 +115,10 @@ public:
     handle(location location, std::shared_ptr<U> value)
       : m_location(location), m_value(value) {}
 
+    template <typename U, typename = std::enable_if_t<std::is_base_of_v<U, value_type>>>
+    handle(const handle<U*, Error>& other)
+      : m_location(other.m_location), m_value(std::dynamic_pointer_cast<value_type>(other.m_value)) {}
+
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args...>>>
     handle(location location, Args&&... args)
       : m_location(location), m_value(std::make_shared<value_type>(std::forward<Args>(args)...)) {}
@@ -133,7 +137,8 @@ public:
         other.m_value = nullptr;
     }
 
-    template <typename U = value_type, typename = std::enable_if_t<std::is_base_of_v<value_type, U>>>
+    template <typename U = value_type,
+        typename         = std::enable_if_t<std::is_base_of_v<value_type, U> || std::is_base_of_v<U, value_type>>>
     handle(handle<U*, Error>&& other) noexcept // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
       : m_location(other.m_location), m_value(std::move(other.m_value)), m_error(std::move(other.m_error)) {
         other.m_value = nullptr;
@@ -172,8 +177,8 @@ public:
 
     reference       operator*() { return *m_value; }
     const_reference operator*() const { return *m_value; }
-    pointer         operator->() { return m_value; }
-    const_pointer   operator->() const { return m_value; }
+    pointer         operator->() { return m_value.get(); }
+    const_pointer   operator->() const { return m_value.get(); }
 public:
     friend std::ostream& operator<<(std::ostream& os, const handle& result) {
         os << result.m_location << ": ";

@@ -55,9 +55,7 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
             case token_t::Lbrace: {
                 ast::function_body_handle body = parse_body();
                 if (body.error()) return body;
-                return ast::node_handle<ast::function_declarartion_node>{ first.location(),
-                    name,
-                    std::move(body.move()) };
+                return ast::node_handle<ast::function_definition_node>{ first.location(), name, std::move(body) };
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();

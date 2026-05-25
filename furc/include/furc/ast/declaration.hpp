@@ -12,13 +12,15 @@ namespace furc {
 namespace ast {
 
 enum class declaration_node_t {
-    Function,
+    FunctionDeclaration,
+    FunctionDefinition,
     Variable,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, declaration_node_t type) {
     switch (type) {
-    case declaration_node_t::Function: return os << "function";
+    case declaration_node_t::FunctionDeclaration: return os << "function declaration";
+    case declaration_node_t::FunctionDefinition: return os << "function definition";
     case declaration_node_t::Variable: return os << "variable";
     }
 }
@@ -30,7 +32,7 @@ public:
     virtual std::ostream& print(std::ostream& os) const = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const declaration_node& node) {
-        os << node.type() << " declaration";
+        os << node.type();
         return node.print(os);
     }
 };
@@ -46,15 +48,28 @@ class function_declarartion_node : public declaration_node {
 public:
     function_declarartion_node(front::token name)
       : m_name(name) {}
-
-    function_declarartion_node(front::token name, function_body&& body)
-      : m_name(name), m_body(std::move(body)) {}
 public:
-    declaration_node_t type() const override { return declaration_node_t::Function; }
+    declaration_node_t type() const override { return declaration_node_t::FunctionDeclaration; }
+
+    front::token name() const { return m_name; }
+public:
+    std::ostream& print(std::ostream& os) const override { return os << ": " << m_name; }
+protected:
+    front::token m_name;
+};
+
+class function_definition_node : public function_declarartion_node {
+public:
+    function_definition_node(front::token name, function_body_handle&& body)
+      : function_declarartion_node(name), m_body(std::move(body)) {}
+public:
+    declaration_node_t type() const override { return declaration_node_t::FunctionDefinition; }
+
+    const function_body_handle& body() const { return m_body; }
 public:
     std::ostream& print(std::ostream& os) const override {
-        os << ": " << m_name;
-        if (m_body.has_value()) {
+        os << ": " << m_name.value;
+        if (m_body.present()) {
             os << '\n' << m_body->begin << ": begin:";
             for (const auto& entry : m_body->statements) {
                 os << '\n' << entry;
@@ -64,8 +79,8 @@ public:
         return os;
     }
 private:
-    front::token                 m_name;
-    std::optional<function_body> m_body;
+    front::token         m_name;
+    function_body_handle m_body;
 };
 
 } // namespace ast
