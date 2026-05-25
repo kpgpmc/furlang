@@ -1,9 +1,12 @@
 #include "furc/front/lexer.hpp"
 
 #include <cctype>
+#include <string>
 #include <unordered_map>
 
 namespace furc::front {
+
+using namespace std::string_literals;
 
 lexer::lexer(std::string_view filename, std::string_view content)
   : m_filename(filename), m_content(content) {}
@@ -45,7 +48,7 @@ token_handle<> lexer::next_token() {
             return { location, token_t::Identifier, value };
         }
 
-        return { location, error_token::UnexpectedCharacter, m_content.substr(m_cursor, 1) };
+        return { location, "unexpected character '"s.append(m_content.substr(m_cursor, 1)) + "'" };
     }
     }
 }

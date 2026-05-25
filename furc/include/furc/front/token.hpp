@@ -12,7 +12,6 @@ namespace front {
 
 enum class token_t {
     None,
-    Error,
     Identifier,
     Keyword,
     Integer,
@@ -28,14 +27,9 @@ enum class token_t {
     Dot,
 };
 
-static inline bool is_token_type_empty(token_t type) {
-    return type == token_t::None || type == token_t::Error;
-}
-
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     switch (type) {
     case token_t::None: return os << "none";
-    case token_t::Error: return os << "error";
     case token_t::Identifier: return os << "identifier";
     case token_t::Keyword: return os << "keyword";
     case token_t::Integer: return os << "integer";
@@ -55,7 +49,6 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
 static inline std::string operator+(const std::string& str, token_t type) {
     switch (type) {
     case token_t::None: return str + "none";
-    case token_t::Error: return str + "error";
     case token_t::Identifier: return str + "identifier";
     case token_t::Keyword: return str + "keyword";
     case token_t::Integer: return str + "integer";
@@ -69,18 +62,6 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::Colon: return str + "':'";
     case token_t::Comma: return str + "','";
     case token_t::Dot: return str + "'.'";
-    }
-}
-
-enum class error_token {
-    None,
-    UnexpectedCharacter,
-};
-
-static inline std::ostream& operator<<(std::ostream& os, error_token error) {
-    switch (error) {
-    case error_token::None: return os << "none";
-    case error_token::UnexpectedCharacter: return os << "unexpected character";
     }
 }
 
@@ -108,7 +89,6 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
 
 struct token {
     token_t          type    = token_t::None;
-    error_token      error   = error_token::None;
     keyword_token    keyword = keyword_token::None;
     std::string_view value;
 
@@ -117,25 +97,36 @@ struct token {
     token(token_t type, std::string_view value = {})
       : type(type), value(value) {}
 
-    token(error_token error, std::string_view value = {})
-      : type(token_t::Error), error(error), value(value) {}
-
     token(keyword_token keyword, std::string_view value = {})
       : type(token_t::Keyword), keyword(keyword), value(value) {}
+
+    bool operator==(const token& rhs) const {
+        if (type != rhs.type) return false;
+        switch (type) {
+        case token_t::None:
+        case token_t::Identifier: return value == rhs.value;
+        case token_t::Keyword: return keyword == rhs.keyword;
+        case token_t::Integer: return value == rhs.value;
+        case token_t::Lparen:
+        case token_t::Rparen:
+        case token_t::Lbrace:
+        case token_t::Rbrace:
+        case token_t::Lbracket:
+        case token_t::Rbracket:
+        case token_t::Semicolon:
+        case token_t::Colon:
+        case token_t::Comma:
+        case token_t::Dot: return true;
+        }
+    }
 };
 
 static inline std::ostream& operator<<(std::ostream& os, const token& token) {
-    os << token.type;
     switch (token.type) {
-    case token_t::Error: {
-        os << ": " << token.error;
-        if (!token.value.empty()) os << " \"" << token.value << '"';
-        return os;
-    }
     case token_t::Identifier:
-    case token_t::Keyword:
-    case token_t::Integer: return os << ": " << token.value;
-    default: return os;
+    case token_t::Integer: return os << token.value;
+    case token_t::Keyword: return os << token.keyword;
+    default: return os << token.type;
     }
 }
 

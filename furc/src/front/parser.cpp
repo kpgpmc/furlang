@@ -64,7 +64,6 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
                 return ast::node_handle<ast::function_declarartion_node>{ first.location(), name };
             }
             case token_t::None:
-            case token_t::Error:
             case token_t::Identifier:
             case token_t::Keyword:
             case token_t::Integer:
@@ -84,7 +83,6 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
         }
     }
     case token_t::None:
-    case token_t::Error:
     case token_t::Identifier:
     case token_t::Integer:
     case token_t::Lparen:

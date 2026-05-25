@@ -1,3 +1,5 @@
+#ifndef LIBFURC
+
 #include "furc/front/parser.hpp"
 
 #include <iostream>
@@ -8,3 +10,5 @@ int main(void) {
 
     return 0;
 }
+
+#endif // LIBFURC

@@ -76,10 +76,12 @@ public:
     operator const_reference() const { return *m_value; }
     operator Error() const { return m_error; }
 
-    reference       operator*() { return m_value; }
-    const_reference operator*() const { return m_value; }
+    reference       operator*() { return *m_value; }
+    const_reference operator*() const { return *m_value; }
     pointer         operator->() { return &*m_value; }
     const_pointer   operator->() const { return &*m_value; }
+public:
+    bool operator==(const T& rhs) const { return m_value.has_value() && *m_value == rhs; }
 public:
     friend std::ostream& operator<<(std::ostream& os, const handle& result) {
         os << result.m_location << ": ";

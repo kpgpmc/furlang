@@ -1,4 +1,15 @@
 file(GLOB_RECURSE FURC_SRCS "src/**.cpp")
-file(GLOB_RECURSE FURC_HDRS "src/**.cpp")
-add_executable(furc ${FURC_SRCS} ${FURC_HDRS})
-target_include_directories(furc PRIVATE include/)
+file(GLOB_RECURSE FURC_HDRS "include/**.hpp")
+add_library(libfurc ${FURC_SRCS} ${FURC_HDRS})
+target_include_directories(libfurc PUBLIC include/)
+target_compile_definitions(libfurc PRIVATE LIBFURC)
+set_target_properties(libfurc PROPERTIES PREFIX "")
+add_executable(furc src/main.cpp)
+target_link_libraries(furc PRIVATE libfurc)
+
+include(GoogleTest)
+
+file(GLOB_RECURSE FURC_TESTS "test/**.cpp")
+add_executable(furc_tests ${FURC_TESTS})
+target_link_libraries(furc_tests PRIVATE libfurc GTest::gtest_main)
+gtest_discover_tests(furc_tests)
