@@ -27,22 +27,11 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-struct function_body {
-    location                                 begin, end;
-    std::vector<node_handle<statement_node>> statements;
+using declaration_node_h = node_handle<declaration_node>;
 
-    bool operator==(const function_body& rhs) const {
-        return begin == rhs.begin && end == rhs.end && statements == rhs.statements;
-    }
-
-    bool operator!=(const function_body& rhs) const { return !this->operator==(rhs); }
-};
-
-using function_body_handle = handle<ast::function_body>;
-
-class function_declarartion_node : public declaration_node {
+class function_declaration_node : public declaration_node {
 public:
-    function_declarartion_node(front::token name)
+    function_declaration_node(front::token name)
       : m_name(name) {}
 public:
     declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDeclaration; }
@@ -56,21 +45,38 @@ protected:
     front::token m_name;
 };
 
-class function_definition_node : public function_declarartion_node {
+using function_declaration_node_h = node_handle<function_declaration_node>;
+
+struct function_body {
+    location                                 begin, end;
+    std::vector<node_handle<statement_node>> statements;
+
+    bool operator==(const function_body& rhs) const {
+        return begin == rhs.begin && end == rhs.end && statements == rhs.statements;
+    }
+
+    bool operator!=(const function_body& rhs) const { return !this->operator==(rhs); }
+};
+
+using function_body_h = handle<ast::function_body>;
+
+class function_definition_node : public function_declaration_node {
 public:
-    function_definition_node(front::token name, function_body_handle&& body)
-      : function_declarartion_node(name), m_body(std::move(body)) {}
+    function_definition_node(front::token name, function_body_h&& body)
+      : function_declaration_node(name), m_body(std::move(body)) {}
 public:
     declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDefinition; }
 
-    const function_body_handle& body() const { return m_body; }
+    const function_body_h& body() const { return m_body; }
 public:
     std::ostream& print(std::ostream& os) const override;
 protected:
     bool equal(const node& rhs) const override;
 private:
-    function_body_handle m_body;
+    function_body_h m_body;
 };
+
+using function_definition_node_h = node_handle<function_definition_node>;
 
 } // namespace ast
 } // namespace furc

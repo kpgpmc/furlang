@@ -17,7 +17,7 @@ TEST(Parser, EmptyFunctions) {
         auto first = program->declarations()[0];
         EXPECT_TRUE(first.present());
         EXPECT_EQ(first->declaration_type(), declaration_node_t::FunctionDefinition);
-        node_handle<function_definition_node> funcDef = first;
+        function_definition_node_h funcDef = first;
         EXPECT_EQ(funcDef->name()->string, "main");
         EXPECT_EQ(funcDef->body()->statements.size(), 0);
     }
@@ -25,7 +25,7 @@ TEST(Parser, EmptyFunctions) {
         auto second = program->declarations()[1];
         EXPECT_TRUE(second.present());
         EXPECT_EQ(second->declaration_type(), declaration_node_t::FunctionDeclaration);
-        node_handle<function_declarartion_node> funcDecl = second;
+        function_declaration_node_h funcDecl = second;
         EXPECT_EQ(funcDecl->name()->string, "foo");
     }
 }
@@ -42,17 +42,17 @@ TEST(Parser, Literals) {
         auto test1 = program->declarations()[0];
         EXPECT_TRUE(test1.present());
         EXPECT_EQ(test1->declaration_type(), declaration_node_t::FunctionDefinition);
-        node_handle<function_definition_node> funcDef = test1;
+        function_definition_node_h funcDef = test1;
         EXPECT_EQ(funcDef->name()->string, "test1");
         EXPECT_EQ(funcDef->body()->statements.size(), 1);
-        node_handle<return_statement_node> ret = funcDef->body()->statements[0];
+        return_statement_node_h ret = funcDef->body()->statements[0];
         EXPECT_EQ(ret->value(), integer_literal_node({ furc::location{ "<TEMP>", 1, 26 }, 67 }));
     }
     {
         auto test2 = program->declarations()[1];
         EXPECT_TRUE(test2.present());
         EXPECT_EQ(test2->declaration_type(), declaration_node_t::FunctionDefinition);
-        node_handle<function_definition_node> funcDecl = test2;
+        function_definition_node_h funcDecl = test2;
         EXPECT_EQ(funcDecl->name()->string, "test2");
     }
 }
@@ -60,9 +60,9 @@ TEST(Parser, Literals) {
 #define EXPECT_INTLIT(expr, integer)                                                                                   \
     do {                                                                                                               \
         EXPECT_EQ((expr)->expression_type(), expression_node_t::Literal);                                              \
-        node_handle<literal_node> literal = (expr);                                                                    \
+        literal_node_h literal = (expr);                                                                               \
         EXPECT_EQ(literal->literal_type(), literal_node_t::Integer);                                                   \
-        node_handle<integer_literal_node> intLit = literal;                                                            \
+        integer_literal_node_h intLit = literal;                                                                       \
         EXPECT_EQ(*intLit, (integer));                                                                                 \
     } while (0);
 
@@ -75,10 +75,10 @@ TEST(Parser, OperatorPrecedence_AddMul) {
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
     EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
-    node_handle<function_definition_node> funcDef = func;
+    function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
-    node_handle<return_statement_node> ret = funcDef->body()->statements[0];
+    return_statement_node_h ret = funcDef->body()->statements[0];
 
     auto retVal = ret->value();
     EXPECT_TRUE(retVal.present());
@@ -103,10 +103,10 @@ TEST(Parser, OperatorPrecedence_Complex) {
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
     EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
-    node_handle<function_definition_node> funcDef = func;
+    function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
-    node_handle<return_statement_node> ret = funcDef->body()->statements[0];
+    return_statement_node_h ret = funcDef->body()->statements[0];
 
     auto retVal = ret->value();
     EXPECT_TRUE(retVal.present());

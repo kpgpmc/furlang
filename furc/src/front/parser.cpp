@@ -26,7 +26,7 @@ parser::parser(std::string_view filename)
     m_lexer = { filename, m_content };
 }
 
-ast::node_handle<ast::program_node> parser::parse() & {
+ast::program_node_h parser::parse() & {
     auto program = m_arena.allocate_shared<ast::program_node>();
 
     while (peek_token()->type != token_t::None && !m_lexer.empty()) {
@@ -36,7 +36,7 @@ ast::node_handle<ast::program_node> parser::parse() & {
     return { location{ m_filename, 0, 0 }, program };
 }
 
-ast::node_handle<ast::declaration_node> parser::parse_declaration() {
+ast::declaration_node_h parser::parse_declaration() {
     const auto& first = peek_token();
     switch (first->type) {
     case token_t::Keyword: {
@@ -55,16 +55,13 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
             if (peek.has_error()) return peek;
             switch (peek->type) {
             case token_t::Lbrace: {
-                ast::function_body_handle body = parse_body();
+                ast::function_body_h body = parse_body();
                 if (body.has_error()) return body;
-                return ast::node_handle<ast::function_definition_node>{ first.location(),
-                    m_arena,
-                    *name,
-                    std::move(body) };
+                return ast::function_definition_node_h{ first.location(), m_arena, *name, std::move(body) };
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return ast::node_handle<ast::function_declarartion_node>{ first.location(), m_arena, *name };
+                return ast::function_declaration_node_h{ first.location(), m_arena, *name };
             }
             default: return { tok.location(), "unexpected token "s + tok->type };
             }
@@ -89,7 +86,7 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
     }
 }
 
-ast::node_handle<ast::statement_node> parser::parse_statement() {
+ast::statement_node_h parser::parse_statement() {
     const auto& tok = peek_token();
     if (tok.has_error()) return tok;
     switch (tok->type) {
@@ -97,13 +94,13 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
         auto tok = next_token();
         if (peek_token()->type == token_t::Semicolon) {
             next_token();
-            return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena };
+            return ast::return_statement_node_h{ tok.location(), m_arena };
         }
 
         auto value = parse_expression();
         auto err   = eat_token(token_t::Semicolon);
         if (err.has_error()) return err;
-        return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena, std::move(value) };
+        return ast::return_statement_node_h{ tok.location(), m_arena, std::move(value) };
     }
     default: break;
     }
@@ -121,22 +118,22 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
     return { token.location(), "unexpected token "s + token->type + ", expected statement, declaration or expression" };
 }
 
-ast::node_handle<ast::expression_node> parser::parse_expression() {
+ast::expression_node_h parser::parse_expression() {
     return parse_expression_rhs(parse_expression_primary(), 16);
 }
 
-ast::node_handle<ast::literal_node> parser::parse_literal() {
+ast::literal_node_h parser::parse_literal() {
     const auto& tok = peek_token();
     switch (tok->type) {
     case token_t::String: {
         auto tok = next_token();
-        return ast::node_handle<ast::string_literal_node>{ tok.location(),
+        return ast::string_literal_node_h{ tok.location(),
             m_arena,
             handle<std::string_view>{ tok.location(), (*tok)->string } };
     }
     case token_t::Integer: {
         auto tok = next_token();
-        return ast::node_handle<ast::integer_literal_node>{ tok.location(),
+        return ast::integer_literal_node_h{ tok.location(),
             m_arena,
             handle<integer_token>{ tok.location(), (*tok)->integer } };
     }
@@ -204,7 +201,7 @@ ast::expression_node_h parser::parse_expression_rhs(const ast::expression_node_h
     }
 }
 
-ast::function_body_handle parser::parse_body() {
+ast::function_body_h parser::parse_body() {
     ast::function_body body;
 
     token_handle<> begin = eat_token(token_t::Lbrace);

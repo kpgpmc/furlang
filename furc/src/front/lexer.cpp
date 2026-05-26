@@ -37,6 +37,8 @@ token_handle<> lexer::next_token() {
                 return { current_location(), "unexpected end of file before enclosing `*/`" };
             }
             m_cursor += 2;
+        } else {
+            break;
         }
         skip_spaces();
     }

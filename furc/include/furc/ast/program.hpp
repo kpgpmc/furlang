@@ -26,6 +26,8 @@ private:
     std::vector<node_handle<declaration_node>> m_declarations;
 };
 
+using program_node_h = node_handle<program_node>;
+
 } // namespace ast
 } // namespace furc
 

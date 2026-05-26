@@ -57,16 +57,16 @@ bool declaration_node::equal(const node& rhs) const {
     return declaration_type() == reinterpret_cast<const declaration_node&>(rhs).declaration_type();
 }
 
-std::ostream& function_declarartion_node::print(std::ostream& os) const {
+std::ostream& function_declaration_node::print(std::ostream& os) const {
     return os << "function " << m_name->string << " declaration";
 }
 
-bool function_declarartion_node::equal(const node& rhs) const {
-    return declaration_node::equal(rhs) && m_name == reinterpret_cast<const function_declarartion_node&>(rhs).m_name;
+bool function_declaration_node::equal(const node& rhs) const {
+    return declaration_node::equal(rhs) && m_name == reinterpret_cast<const function_declaration_node&>(rhs).m_name;
 }
 
 std::ostream& function_definition_node::print(std::ostream& os) const {
-    function_declarartion_node::print(os);
+    function_declaration_node::print(os);
     os << ':';
     if (m_body.present()) {
         for (const auto& entry : m_body->statements)
@@ -77,7 +77,7 @@ std::ostream& function_definition_node::print(std::ostream& os) const {
 }
 
 bool function_definition_node::equal(const node& rhs) const {
-    return function_declarartion_node::equal(rhs) &&
+    return function_declaration_node::equal(rhs) &&
            m_body == reinterpret_cast<const function_definition_node&>(rhs).m_body;
 }
 
