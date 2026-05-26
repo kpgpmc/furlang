@@ -93,11 +93,16 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
     if (tok.has_error()) return tok;
     switch (tok->type) {
     case token_t::Keyword: {
-        next_token();
-        auto err = eat_token(token_t::Semicolon);
-        if (err.has_error()) return err;
+        auto tok = next_token();
+        if (peek_token()->type == token_t::Semicolon) {
+            next_token();
+            return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena };
+        }
 
-        return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena };
+        auto value = parse_expression();
+        auto err   = eat_token(token_t::Semicolon);
+        if (err.has_error()) return err;
+        return ast::node_handle<ast::return_statement_node>{ tok.location(), m_arena, std::move(value) };
     }
     default: break;
     }

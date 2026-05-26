@@ -5,8 +5,6 @@
 #include "furc/ast/node.hpp"
 #include "furc/front/token.hpp"
 
-#include <ostream>
-
 namespace furc {
 namespace ast {
 
@@ -50,10 +48,7 @@ public:
 
     const handle<front::integer_token>& value() const { return m_value; }
 public:
-    std::ostream& print(std::ostream& os) const override {
-        if (m_value.has_error()) return os << m_value.error();
-        return os << "integer literal (" << *m_value << ")";
-    }
+    std::ostream& print(std::ostream& os) const override;
 private:
     handle<front::integer_token> m_value;
 };

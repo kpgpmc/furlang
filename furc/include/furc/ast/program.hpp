@@ -4,7 +4,6 @@
 #include "furc/ast/declaration.hpp"
 #include "furc/ast/node.hpp"
 
-#include <ostream>
 #include <vector>
 
 namespace furc {
@@ -20,13 +19,7 @@ public:
 
     const std::vector<node_handle<declaration_node>>& declarations() const { return m_declarations; }
 public:
-    std::ostream& print(std::ostream& os) const override {
-        os << "program:";
-        for (const auto& handle : m_declarations) {
-            os << '\n' << handle;
-        }
-        return os;
-    }
+    std::ostream& print(std::ostream& os) const override;
 private:
     std::vector<node_handle<declaration_node>> m_declarations;
 };

@@ -3,8 +3,6 @@
 
 #include "furc/ast/node.hpp"
 
-#include <ostream>
-
 namespace furc {
 namespace ast {
 
@@ -21,13 +19,19 @@ public:
     virtual statement_node_t statement_type() const = 0;
 };
 
+class expression_node;
 class return_statement_node : public statement_node {
 public:
     return_statement_node() = default;
+
+    return_statement_node(node_handle<expression_node>&& value)
+      : m_value(std::move(value)) {}
 public:
     statement_node_t statement_type() const override { return statement_node_t::Return; }
 
-    std::ostream& print(std::ostream& os) const override { return os << "return statement"; }
+    std::ostream& print(std::ostream& os) const override;
+private:
+    node_handle<expression_node> m_value;
 };
 
 } // namespace ast

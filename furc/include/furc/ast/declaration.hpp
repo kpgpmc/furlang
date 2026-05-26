@@ -5,7 +5,6 @@
 #include "furc/ast/statement.hpp"
 #include "furc/front/token.hpp"
 
-#include <ostream>
 #include <vector>
 
 namespace furc {
@@ -42,9 +41,7 @@ public:
 
     front::token name() const { return m_name; }
 public:
-    std::ostream& print(std::ostream& os) const override {
-        return os << "function " << m_name->string << " declaration";
-    }
+    std::ostream& print(std::ostream& os) const override;
 protected:
     front::token m_name;
 };
@@ -74,16 +71,7 @@ public:
 
     const function_body_handle& body() const { return m_body; }
 public:
-    std::ostream& print(std::ostream& os) const override {
-        function_declarartion_node::print(os);
-        os << ':';
-        if (m_body.present()) {
-            for (const auto& entry : m_body->statements)
-                os << '\n' << entry;
-            return os << '\n' << m_body->end << ": " << m_name->string << " end";
-        }
-        return os << m_body.error(); // error
-    }
+    std::ostream& print(std::ostream& os) const override;
 private:
     function_body_handle m_body;
 };
