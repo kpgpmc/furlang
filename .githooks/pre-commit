@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+BUILD_DIR="build"
+
+echo "Running clang-format..."
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(cpp|hpp)$' || true)
+
+if [ -z "$FILES" ]; then
+    echo "No C/C++ files to check"
+    exit 0
+fi
+
+for file in $FILES; do
+    clang-format -i "$file"
+    git add "$file"
+done
+
+echo "Running clang-tidy..."
+
+for file in $FILES; do
+    clang-tidy \
+        "$file" \
+        -p "$BUILD_DIR"
+done
+
+echo "pre-commit checks passed"

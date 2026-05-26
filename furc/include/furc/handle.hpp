@@ -75,13 +75,10 @@ public:
 
     Error error() const { return m_error; }
 
-    operator reference() { return *m_value; }
-    operator const_reference() const { return *m_value; }
-
-    reference       operator*() { return *m_value; }
-    const_reference operator*() const { return *m_value; }
-    pointer         operator->() { return &*m_value; }
-    const_pointer   operator->() const { return &*m_value; }
+    reference       operator*() { return m_value.value(); }         // NOLINT(bugprone-unchecked-optional-access)
+    const_reference operator*() const { return m_value.value(); }   // NOLINT(bugprone-unchecked-optional-access)
+    pointer         operator->() { return &m_value.value(); }       // NOLINT(bugprone-unchecked-optional-access)
+    const_pointer   operator->() const { return &m_value.value(); } // NOLINT(bugprone-unchecked-optional-access)
 public:
     bool operator==(const T& rhs) const { return m_value.has_value() && *m_value == rhs; }
 public:
@@ -119,7 +116,7 @@ public:
 
     template <typename U, typename = std::enable_if_t<std::is_base_of_v<value_type, U>>>
     handle(location location, std::shared_ptr<U> value)
-      : m_data(data(location, value)) {}
+      : m_data(data(location, std::move(value))) {}
 
     template <typename U,
         typename = std::enable_if_t<std::is_base_of_v<value_type, U> || std::is_base_of_v<U, value_type>>>
@@ -196,16 +193,18 @@ private:
 
         template <typename U, typename = std::enable_if_t<std::is_base_of_v<value_type, U>>>
         data(struct location location, std::shared_ptr<U> value)
-          : location(location), value(value) {}
+          : location(location), value(std::move(value)) {}
 
         template <typename U,
             typename = std::enable_if_t<std::is_base_of_v<value_type, U> || std::is_base_of_v<U, value_type>>>
-        data(handle<U*, Error>&& other) // NOLINT
-          : location(other.m_data->location) {
+        data(handle<U*, Error>&& other)        // NOLINT
+          : location(other.m_data->location) { // NOLINT(bugprone-unchecked-optional-access)
             if constexpr (std::is_base_of_v<value_type, U>) {
-                value = std::static_pointer_cast<value_type>(std::move(other.m_data->value));
+                value = std::static_pointer_cast<value_type>(
+                    std::move(other.m_data->value)); // NOLINT(bugprone-unchecked-optional-access)
             } else {
-                value = std::dynamic_pointer_cast<value_type>(std::move(other.m_data->value));
+                value = std::dynamic_pointer_cast<value_type>(
+                    std::move(other.m_data->value)); // NOLINT(bugprone-unchecked-optional-access)
             }
         }
 

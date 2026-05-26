@@ -1,5 +1,5 @@
 CompileFlags:
-  Add: [-std=c11, -Wall, -Werror, -Wpedantic]
+  Add: [-std=c++17, -Wall, -Werror, -Wpedantic]
 
 InlayHints:
   BlockEnd: true
@@ -16,7 +16,7 @@ Hover:
   ShowAKA: true
 
 If:
-  PathMatch: (./.*\.c|./.*\.h)
+  PathMatch: (./.*\.cpp|./.*\.hpp)
 Diagnostics:
   UnusedIncludes: Strict
   MissingIncludes: Strict

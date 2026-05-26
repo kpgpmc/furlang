@@ -58,12 +58,12 @@ ast::node_handle<ast::declaration_node> parser::parse_declaration() {
                 if (body.has_error()) return body;
                 return ast::node_handle<ast::function_definition_node>{ first.location(),
                     m_arena,
-                    name,
+                    *name,
                     std::move(body) };
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return ast::node_handle<ast::function_declarartion_node>{ first.location(), m_arena, name };
+                return ast::node_handle<ast::function_declarartion_node>{ first.location(), m_arena, *name };
             }
             default: return { tok.location(), "unexpected token "s + tok->type };
             }

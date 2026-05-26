@@ -8,8 +8,8 @@ namespace furc {
 
 struct location {
     std::string_view filename;
-    std::size_t      line;
-    std::size_t      column;
+    std::size_t      line   = 0;
+    std::size_t      column = 0;
 };
 
 static inline std::ostream& operator<<(std::ostream& os, const location& location) {

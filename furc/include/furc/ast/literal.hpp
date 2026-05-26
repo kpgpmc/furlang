@@ -32,7 +32,7 @@ public:
     const handle<std::string_view>& value() const { return m_value; }
 public:
     std::ostream& print(std::ostream& os) const override {
-        if (m_value.has_error()) return os << (std::string)m_value;
+        if (m_value.has_error()) return os << m_value.error();
         return os << "string literal (" << *m_value << ")";
     }
 private:
