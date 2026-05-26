@@ -28,7 +28,7 @@ parser::parser(std::string_view filename)
 ast::node_handle<ast::program_node> parser::parse() & {
     auto program = m_arena.allocate_shared<ast::program_node>();
 
-    while (!m_lexer.empty()) {
+    while (peek_token()->type != token_t::None && !m_lexer.empty()) {
         program->push(std::move(parse_declaration()));
     }
 

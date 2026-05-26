@@ -20,6 +20,8 @@ public:
     expression_node_t expression_type() const override { return expression_node_t::Literal; }
 
     virtual literal_node_t literal_type() const = 0;
+protected:
+    bool equal(const node& rhs) const override;
 };
 
 class string_literal_node : public literal_node {
@@ -31,10 +33,9 @@ public:
 
     const handle<std::string_view>& value() const { return m_value; }
 public:
-    std::ostream& print(std::ostream& os) const override {
-        if (m_value.has_error()) return os << m_value.error();
-        return os << "string literal (" << *m_value << ")";
-    }
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     handle<std::string_view> m_value;
 };
@@ -49,6 +50,8 @@ public:
     const handle<front::integer_token>& value() const { return m_value; }
 public:
     std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     handle<front::integer_token> m_value;
 };

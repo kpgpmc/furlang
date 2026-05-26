@@ -18,6 +18,8 @@ public:
     statement_node_t statement_type() const override { return statement_node_t::Expression; }
 
     virtual expression_node_t expression_type() const = 0;
+protected:
+    bool equal(const node& rhs) const override;
 };
 
 } // namespace ast

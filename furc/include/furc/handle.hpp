@@ -80,7 +80,16 @@ public:
     pointer         operator->() { return &m_value.value(); }       // NOLINT(bugprone-unchecked-optional-access)
     const_pointer   operator->() const { return &m_value.value(); } // NOLINT(bugprone-unchecked-optional-access)
 public:
-    bool operator==(const T& rhs) const { return m_value.has_value() && *m_value == rhs; }
+    bool operator==(const handle<T, Error>& rhs) const {
+        if (present() != rhs.present() || error() != rhs.error()) return false;
+        if (m_value.has_value() && m_value.value() != rhs.m_value.value()) // NOLINT(bugprone-unchecked-optional-access)
+            return false;
+        return true;
+    }
+
+    bool operator==(const T& rhs) const {
+        return m_value.has_value() && *m_value == rhs; // NOLINT(bugprone-unchecked-optional-access)
+    }
 public:
     friend std::ostream& operator<<(std::ostream& os, const handle& result) {
         os << result.m_location << ": ";
@@ -167,13 +176,23 @@ public:
     bool present() const { return m_data.has_value() && m_data->value != nullptr; }
     bool has_error() const { return m_data.has_value() && m_data->value == nullptr; }
 
-    std::shared_ptr<value_type> shared() const { return m_data->value; }
-    Error                       error() const { return m_data->error; }
+    std::shared_ptr<value_type> shared() const { return m_data->value; } // NOLINT(bugprone-unchecked-optional-access)
+    Error                       error() const { return m_data->error; }  // NOLINT(bugprone-unchecked-optional-access)
 
-    reference       operator*() { return *m_data->value; }
-    const_reference operator*() const { return *m_data->value; }
-    pointer         operator->() { return m_data->value.get(); }
-    const_pointer   operator->() const { return m_data->value.get(); }
+    reference       operator*() { return *m_data->value; }             // NOLINT(bugprone-unchecked-optional-access)
+    const_reference operator*() const { return *m_data->value; }       // NOLINT(bugprone-unchecked-optional-access)
+    pointer         operator->() { return m_data->value.get(); }       // NOLINT(bugprone-unchecked-optional-access)
+    const_pointer   operator->() const { return m_data->value.get(); } // NOLINT(bugprone-unchecked-optional-access)
+public:
+    bool operator==(const handle<T*, Error>& rhs) const {
+        if (present() != rhs.present() || error() != rhs.error()) return false;
+        if (present() && m_data->value != rhs.m_data->value) return false; // NOLINT(bugprone-unchecked-optional-access)
+        return true;
+    }
+
+    bool operator==(const value_type& rhs) const {
+        return present() && *m_data->value == rhs; // NOLINT(bugprone-unchecked-optional-access)
+    }
 public:
     friend std::ostream& operator<<(std::ostream& os, const handle& result) {
         if (!result.m_data.has_value()) return os << "handle empty";
@@ -211,11 +230,13 @@ private:
         template <typename U,
             typename = std::enable_if_t<std::is_base_of_v<value_type, U> || std::is_base_of_v<U, value_type>>>
         data(const handle<U*, Error>& other)
-          : location(other.m_data->location) {
+          : location(other.m_data->location) { // NOLINT(bugprone-unchecked-optional-access)
             if constexpr (std::is_base_of_v<value_type, U>) {
-                value = std::static_pointer_cast<value_type>(std::move(other.m_data->value));
+                value = std::static_pointer_cast<value_type>(
+                    std::move(other.m_data->value)); // NOLINT(bugprone-unchecked-optional-access)
             } else {
-                value = std::dynamic_pointer_cast<value_type>(std::move(other.m_data->value));
+                value = std::dynamic_pointer_cast<value_type>(
+                    std::move(other.m_data->value)); // NOLINT(bugprone-unchecked-optional-access)
             }
         }
 

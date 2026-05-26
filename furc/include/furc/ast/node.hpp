@@ -37,10 +37,15 @@ public:
     node& operator=(const node&) = delete;
 public:
     virtual node_t category() const = 0;
-
+public:
+    bool operator==(const node& rhs) const { return category() == rhs.category() && equal(rhs); }
+    bool operator!=(const node& rhs) const { return !this->operator==(rhs); }
+public:
     virtual std::ostream& print(std::ostream& os) const = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const node& node) { return node.print(os); }
+protected:
+    virtual bool equal(const node& rhs) const = 0;
 };
 
 template <typename T, typename Error = std::string>

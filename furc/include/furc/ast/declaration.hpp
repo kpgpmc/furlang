@@ -23,11 +23,19 @@ public:
     statement_node_t statement_type() const override { return statement_node_t::Declaration; }
 
     virtual declaration_node_t declaration_type() const = 0;
+protected:
+    bool equal(const node& rhs) const override;
 };
 
 struct function_body {
     location                                 begin, end;
     std::vector<node_handle<statement_node>> statements;
+
+    bool operator==(const function_body& rhs) const {
+        return begin == rhs.begin && end == rhs.end && statements == rhs.statements;
+    }
+
+    bool operator!=(const function_body& rhs) const { return !this->operator==(rhs); }
 };
 
 using function_body_handle = handle<ast::function_body>;
@@ -43,6 +51,8 @@ public:
 public:
     std::ostream& print(std::ostream& os) const override;
 protected:
+    bool equal(const node& rhs) const override;
+protected:
     front::token m_name;
 };
 
@@ -56,6 +66,8 @@ public:
     const function_body_handle& body() const { return m_body; }
 public:
     std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     function_body_handle m_body;
 };

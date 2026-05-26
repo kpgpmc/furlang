@@ -20,6 +20,8 @@ public:
     const std::vector<node_handle<declaration_node>>& declarations() const { return m_declarations; }
 public:
     std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     std::vector<node_handle<declaration_node>> m_declarations;
 };

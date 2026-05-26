@@ -17,6 +17,8 @@ public:
     node_t category() const override { return node_t::Statement; }
 
     virtual statement_node_t statement_type() const = 0;
+protected:
+    bool equal(const node& rhs) const override;
 };
 
 class expression_node;
@@ -27,9 +29,13 @@ public:
     return_statement_node(node_handle<expression_node>&& value)
       : m_value(std::move(value)) {}
 public:
+    node_handle<expression_node> value() const { return m_value; }
+public:
     statement_node_t statement_type() const override { return statement_node_t::Return; }
 
     std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     node_handle<expression_node> m_value;
 };
