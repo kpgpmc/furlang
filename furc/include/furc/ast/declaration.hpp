@@ -42,7 +42,9 @@ public:
 
     front::token name() const { return m_name; }
 public:
-    std::ostream& print(std::ostream& os) const override { return os << "function " << m_name.value << " declaration"; }
+    std::ostream& print(std::ostream& os) const override {
+        return os << "function " << m_name->string << " declaration";
+    }
 protected:
     front::token m_name;
 };
@@ -73,13 +75,14 @@ public:
     const function_body_handle& body() const { return m_body; }
 public:
     std::ostream& print(std::ostream& os) const override {
-        os << "function " << m_name.value << " definition:";
+        function_declarartion_node::print(os);
+        os << ':';
         if (m_body.present()) {
             for (const auto& entry : m_body->statements)
                 os << '\n' << entry;
-            return os << '\n' << m_body->end << ": " << m_name.value << " end";
+            return os << '\n' << m_body->end << ": " << m_name->string << " end";
         }
-        return os << (std::string)m_body; // error
+        return os << m_body.error(); // error
     }
 private:
     function_body_handle m_body;

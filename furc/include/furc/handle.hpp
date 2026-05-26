@@ -40,7 +40,7 @@ public:
 
     template <typename U>
     handle(const handle<U, Error>& error)
-      : m_location(error.location()), m_error(error) {}
+      : m_location(error.location()), m_error(error.error()) {}
 
     ~handle() = default;
 
@@ -65,17 +65,18 @@ public:
     location location() const { return m_location; }
 
     bool present() const { return m_value.has_value(); }
-    bool error() const { return !m_value.has_value(); }
+    bool has_error() const { return !m_value.has_value(); }
 
     value_type move() {
-        value_type value = *m_value;
+        value_type value = std::move(*m_value);
         m_value.reset();
         return value;
     }
 
+    Error error() const { return m_error; }
+
     operator reference() { return *m_value; }
     operator const_reference() const { return *m_value; }
-    operator Error() const { return m_error; }
 
     reference       operator*() { return *m_value; }
     const_reference operator*() const { return *m_value; }
@@ -133,7 +134,7 @@ public:
 
     template <typename U>
     handle(const handle<U, Error>& error)
-      : m_location(error.location()), m_error(error) {}
+      : m_location(error.location()), m_error(error.error()) {}
 
     ~handle() = default;
 
@@ -172,13 +173,13 @@ public:
     location location() const { return m_location; }
 
     bool present() const { return m_value != nullptr; }
-    bool error() const { return m_value == nullptr; }
+    bool has_error() const { return m_value == nullptr; }
 
     std::shared_ptr<value_type> shared() { return m_value; }
+    Error                       error() const { return m_error; }
 
     operator reference() { return *m_value; }
     operator const_reference() const { return *m_value; }
-    operator Error() const { return m_error; }
 
     reference       operator*() { return *m_value; }
     const_reference operator*() const { return *m_value; }

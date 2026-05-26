@@ -1,6 +1,7 @@
 #include "furc/front/lexer.hpp"
 
 #include <cctype>
+#include <limits>
 #include <string>
 #include <unordered_map>
 
@@ -65,7 +66,27 @@ token_handle<> lexer::next_token() {
     }
     case std::char_traits<char>::eof(): return { location, token_t::None };
     default: {
-        if (std::isdigit(ch) != 0) {}
+        if (std::isdigit(ch) != 0) {
+            integer_token integer    = 0;
+            integer_token max        = std::numeric_limits<integer_token>::max();
+            integer_token upperBound = max / 10;
+
+            std::size_t start = m_cursor;
+            while (std::isdigit(get()) != 0) {
+                integer_token digit = get() - '0';
+
+                if (integer > upperBound || integer == upperBound && (integer - upperBound + digit) > (max % 10)) {
+                    while (std::isdigit(get()) != 0)
+                        ++m_cursor;
+                    return { location, "integer "s.append(m_content.substr(start, m_cursor - start)) + " is too big" };
+                }
+                integer *= 10;
+                integer += digit;
+                ++m_cursor;
+            }
+
+            return { location, integer };
+        }
 
         if (std::isalnum(ch) != 0 || ch == '_') {
             std::size_t start = m_cursor++;

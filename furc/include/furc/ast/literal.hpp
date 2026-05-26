@@ -3,6 +3,7 @@
 
 #include "furc/ast/expression.hpp"
 #include "furc/ast/node.hpp"
+#include "furc/front/token.hpp"
 
 #include <ostream>
 
@@ -13,13 +14,6 @@ enum class literal_node_t {
     String,
     Integer
 };
-
-static inline std::ostream& operator<<(std::ostream& os, literal_node_t type) {
-    switch (type) {
-    case literal_node_t::String: return os << "string";
-    case literal_node_t::Integer: return os << "integer";
-    }
-}
 
 class literal_node : public expression_node {
 public:
@@ -40,8 +34,8 @@ public:
     const handle<std::string_view>& value() const { return m_value; }
 public:
     std::ostream& print(std::ostream& os) const override {
-        if (m_value.error()) return os << (std::string)m_value;
-        return os << '"' << *m_value << '"';
+        if (m_value.has_error()) return os << (std::string)m_value;
+        return os << "string literal (" << *m_value << ")";
     }
 private:
     handle<std::string_view> m_value;
@@ -49,14 +43,19 @@ private:
 
 class integer_literal_node : public literal_node {
 public:
-    integer_literal_node(handle<std::uint64_t>&& value)
+    integer_literal_node(handle<front::integer_token>&& value)
       : m_value(std::move(value)) {}
 public:
     literal_node_t literal_type() const override { return literal_node_t::Integer; }
 
-    const handle<std::uint64_t>& value() const { return m_value; }
+    const handle<front::integer_token>& value() const { return m_value; }
+public:
+    std::ostream& print(std::ostream& os) const override {
+        if (m_value.has_error()) return os << m_value.error();
+        return os << "integer literal (" << *m_value << ")";
+    }
 private:
-    handle<std::uint64_t> m_value;
+    handle<front::integer_token> m_value;
 };
 
 } // namespace ast

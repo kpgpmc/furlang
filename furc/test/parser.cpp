@@ -18,7 +18,7 @@ TEST(Parser, EmptyFunctions) {
         EXPECT_TRUE(first.present());
         EXPECT_EQ(first->declaration_type(), declaration_node_t::FunctionDefinition);
         node_handle<function_definition_node> funcDef = first;
-        EXPECT_EQ(funcDef->name().value, "main");
+        EXPECT_EQ(funcDef->name()->string, "main");
         EXPECT_EQ(funcDef->body()->statements.size(), 0);
     }
     {
@@ -26,7 +26,7 @@ TEST(Parser, EmptyFunctions) {
         EXPECT_TRUE(second.present());
         EXPECT_EQ(second->declaration_type(), declaration_node_t::FunctionDeclaration);
         node_handle<function_declarartion_node> funcDecl = second;
-        EXPECT_EQ(funcDecl->name().value, "foo");
+        EXPECT_EQ(funcDecl->name()->string, "foo");
     }
 }
 
