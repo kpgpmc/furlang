@@ -48,6 +48,8 @@ public:
     literal_node_t literal_type() const override { return literal_node_t::Integer; }
 
     const handle<front::integer_token>& value() const { return m_value; }
+
+    bool operator==(front::integer_token integer) const { return m_value == integer; }
 public:
     std::ostream& print(std::ostream& os) const override;
 protected:

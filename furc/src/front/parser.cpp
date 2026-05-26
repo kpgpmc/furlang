@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 namespace furc::front {
 
@@ -121,11 +122,7 @@ ast::node_handle<ast::statement_node> parser::parse_statement() {
 }
 
 ast::node_handle<ast::expression_node> parser::parse_expression() {
-    const auto& tok = peek_token();
-
-    auto literal = parse_literal();
-    if (literal.present()) return std::move(literal);
-    return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
+    return parse_expression_rhs(parse_expression_primary(), 16);
 }
 
 ast::node_handle<ast::literal_node> parser::parse_literal() {
@@ -147,6 +144,64 @@ ast::node_handle<ast::literal_node> parser::parse_literal() {
     }
 
     return { tok.location(), "unexpected token "s + tok->type + ", expected literal" };
+}
+
+enum class binop_associativity {
+    Left,
+    Right,
+};
+
+struct binop_info {
+    ast::binop_expression_node_t type;
+    std::uint32_t                precedence;
+    binop_associativity          associativity;
+
+    static binop_info left(ast::binop_expression_node_t type, std::uint32_t precedence) {
+        return { type, precedence, binop_associativity::Left };
+    }
+
+    static binop_info right(ast::binop_expression_node_t type, std::uint32_t precedence) {
+        return { type, precedence, binop_associativity::Right };
+    }
+};
+
+ast::expression_node_h parser::parse_expression_primary() {
+    const auto& tok = peek_token();
+
+    auto literal = parse_literal();
+    if (literal.present()) return std::move(literal);
+    return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
+}
+
+ast::expression_node_h parser::parse_expression_rhs(const ast::expression_node_h& init, std::uint32_t precedence) {
+    static std::unordered_map<token_t, binop_info> s_binops = {
+        { token_t::Plus, binop_info::left(ast::binop_expression_node_t::Add, 5) },
+        { token_t::Minus, binop_info::left(ast::binop_expression_node_t::Sub, 5) },
+        { token_t::Star, binop_info::left(ast::binop_expression_node_t::Mul, 4) },
+        { token_t::Slash, binop_info::left(ast::binop_expression_node_t::Div, 4) },
+        { token_t::Percent, binop_info::left(ast::binop_expression_node_t::Mod, 5) },
+    };
+
+    ast::expression_node_h lhs = init;
+    while (true) {
+        auto it = s_binops.find(peek_token()->type);
+        if (it == s_binops.end()) return lhs;
+        binop_info current = it->second;
+        if (current.precedence >= precedence) return lhs;
+        auto opToken = next_token();
+
+        auto rhs = parse_expression_primary();
+
+        auto nextIt = s_binops.find(peek_token()->type);
+        if (nextIt != s_binops.end()) {
+            binop_info next = nextIt->second;
+
+            rhs = std::move(parse_expression_rhs(rhs,
+                current.precedence + static_cast<std::uint32_t>(current.associativity == binop_associativity::Right)));
+        }
+
+        lhs = ast::binop_expression_node_h{ opToken.location(), m_arena, current.type, std::move(lhs), std::move(rhs) };
+    }
 }
 
 ast::function_body_handle parser::parse_body() {

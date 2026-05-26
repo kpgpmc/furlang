@@ -45,16 +45,21 @@ token_handle<> lexer::next_token() {
 
     char ch = get();
     switch (ch) {
-    case '(': return { location, token_t::Lparen, m_content.substr(m_cursor++, 1) };
-    case ')': return { location, token_t::Rparen, m_content.substr(m_cursor++, 1) };
-    case '{': return { location, token_t::Lbrace, m_content.substr(m_cursor++, 1) };
-    case '}': return { location, token_t::Rbrace, m_content.substr(m_cursor++, 1) };
-    case '[': return { location, token_t::Lbracket, m_content.substr(m_cursor++, 1) };
-    case ']': return { location, token_t::Rbracket, m_content.substr(m_cursor++, 1) };
-    case ';': return { location, token_t::Semicolon, m_content.substr(m_cursor++, 1) };
-    case ':': return { location, token_t::Colon, m_content.substr(m_cursor++, 1) };
-    case ',': return { location, token_t::Comma, m_content.substr(m_cursor++, 1) };
-    case '.': return { location, token_t::Dot, m_content.substr(m_cursor++, 1) };
+    case '(': ++m_cursor; return { location, token_t::Lparen };
+    case ')': ++m_cursor; return { location, token_t::Rparen };
+    case '{': ++m_cursor; return { location, token_t::Lbrace };
+    case '}': ++m_cursor; return { location, token_t::Rbrace };
+    case '[': ++m_cursor; return { location, token_t::Lbracket };
+    case ']': ++m_cursor; return { location, token_t::Rbracket };
+    case ';': ++m_cursor; return { location, token_t::Semicolon };
+    case ':': ++m_cursor; return { location, token_t::Colon };
+    case ',': ++m_cursor; return { location, token_t::Comma };
+    case '.': ++m_cursor; return { location, token_t::Dot };
+    case '+': ++m_cursor; return { location, token_t::Plus };
+    case '-': ++m_cursor; return { location, token_t::Minus };
+    case '*': ++m_cursor; return { location, token_t::Star };
+    case '/': ++m_cursor; return { location, token_t::Slash };
+    case '%': ++m_cursor; return { location, token_t::Percent };
     case '"': {
         std::size_t begin = ++m_cursor;
         while (m_cursor < m_content.size() && m_content[m_cursor] != '"')

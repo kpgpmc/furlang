@@ -33,6 +33,9 @@ private:
     ast::node_handle<ast::expression_node>  parse_expression();
     ast::node_handle<ast::literal_node>     parse_literal();
 
+    ast::expression_node_h parse_expression_primary();
+    ast::expression_node_h parse_expression_rhs(const ast::expression_node_h& init, std::uint32_t precedence);
+
     ast::function_body_handle parse_body();
 private:
     token_handle<>        next_token();

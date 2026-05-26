@@ -26,6 +26,12 @@ enum class token_t {
     Colon,
     Comma,
     Dot,
+
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -45,7 +51,13 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::Colon: return os << "':'";
     case token_t::Comma: return os << "','";
     case token_t::Dot: return os << "'.'";
+    case token_t::Plus: return os << "'+'";
+    case token_t::Minus: return os << "'-'";
+    case token_t::Star: return os << "'*'";
+    case token_t::Slash: return os << "'/'";
+    case token_t::Percent: return os << "'%'";
     }
+    return os;
 }
 
 static inline std::string operator+(const std::string& str, token_t type) {
@@ -65,7 +77,13 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::Colon: return str + "':'";
     case token_t::Comma: return str + "','";
     case token_t::Dot: return str + "'.'";
+    case token_t::Plus: return str + "'+'";
+    case token_t::Minus: return str + "'-'";
+    case token_t::Star: return str + "'*'";
+    case token_t::Slash: return str + "'/'";
+    case token_t::Percent: return str + "'%'";
     }
+    return str;
 }
 
 enum class keyword_token {
@@ -144,7 +162,12 @@ struct token {
         case token_t::Semicolon:
         case token_t::Colon:
         case token_t::Comma:
-        case token_t::Dot: return true;
+        case token_t::Dot:
+        case token_t::Plus:
+        case token_t::Minus:
+        case token_t::Star:
+        case token_t::Slash:
+        case token_t::Percent: return true;
         }
     }
 };

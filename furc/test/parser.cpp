@@ -57,4 +57,80 @@ TEST(Parser, Literals) {
     }
 }
 
+#define EXPECT_INTLIT(expr, integer)                                                                                   \
+    do {                                                                                                               \
+        EXPECT_EQ((expr)->expression_type(), expression_node_t::Literal);                                              \
+        node_handle<literal_node> literal = (expr);                                                                    \
+        EXPECT_EQ(literal->literal_type(), literal_node_t::Integer);                                                   \
+        node_handle<integer_literal_node> intLit = literal;                                                            \
+        EXPECT_EQ(*intLit, (integer));                                                                                 \
+    } while (0);
+
+// TODO: Use arena (I am too exhausted rn to do it)
+TEST(Parser, OperatorPrecedence_AddMul) {
+    parser parser("<TEMP>", "func main() { return 1 + 2 * 3; }");
+    auto   program = parser.parse();
+    EXPECT_TRUE(program.present());
+    EXPECT_EQ(program->declarations().size(), 1);
+    auto func = program->declarations()[0];
+    EXPECT_TRUE(func.present());
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    node_handle<function_definition_node> funcDef = func;
+    EXPECT_EQ(funcDef->name()->string, "main");
+    EXPECT_EQ(funcDef->body()->statements.size(), 1);
+    node_handle<return_statement_node> ret = funcDef->body()->statements[0];
+
+    auto retVal = ret->value();
+    EXPECT_TRUE(retVal.present());
+
+    EXPECT_EQ(retVal->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h add = retVal;
+    EXPECT_EQ(add->type(), binop_expression_node_t::Add);
+    EXPECT_INTLIT(add->lhs(), 1);
+
+    EXPECT_EQ(add->rhs()->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h mul = add->rhs();
+    EXPECT_EQ(mul->type(), binop_expression_node_t::Mul);
+    EXPECT_INTLIT(mul->lhs(), 2);
+    EXPECT_INTLIT(mul->rhs(), 3);
+}
+
+TEST(Parser, OperatorPrecedence_Complex) {
+    parser parser("<TEMP>", "func main() { return 1 + 2 * 3 - 4 / 2; }");
+    auto   program = parser.parse();
+    EXPECT_TRUE(program.present());
+    EXPECT_EQ(program->declarations().size(), 1);
+    auto func = program->declarations()[0];
+    EXPECT_TRUE(func.present());
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    node_handle<function_definition_node> funcDef = func;
+    EXPECT_EQ(funcDef->name()->string, "main");
+    EXPECT_EQ(funcDef->body()->statements.size(), 1);
+    node_handle<return_statement_node> ret = funcDef->body()->statements[0];
+
+    auto retVal = ret->value();
+    EXPECT_TRUE(retVal.present());
+
+    EXPECT_EQ(retVal->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h sub = retVal;
+    EXPECT_EQ(sub->type(), binop_expression_node_t::Sub);
+
+    EXPECT_EQ(sub->lhs()->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h add = sub->lhs();
+    EXPECT_EQ(add->type(), binop_expression_node_t::Add);
+    EXPECT_INTLIT(add->lhs(), 1);
+
+    EXPECT_EQ(add->rhs()->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h mul = add->rhs();
+    EXPECT_EQ(mul->type(), binop_expression_node_t::Mul);
+    EXPECT_INTLIT(mul->lhs(), 2);
+    EXPECT_INTLIT(mul->rhs(), 3);
+
+    EXPECT_EQ(sub->rhs()->expression_type(), expression_node_t::Binop);
+    binop_expression_node_h div = sub->rhs();
+    EXPECT_EQ(div->type(), binop_expression_node_t::Div);
+    EXPECT_INTLIT(div->lhs(), 4);
+    EXPECT_INTLIT(div->rhs(), 2);
+}
+
 } // namespace
