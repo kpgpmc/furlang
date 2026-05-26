@@ -34,6 +34,25 @@ bool expression_node::equal(const node& rhs) const {
     return expression_type() == reinterpret_cast<const expression_node&>(rhs).expression_type();
 }
 
+std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
+    switch (type) {
+    case binop_expression_node_t::Add: return os << '+';
+    case binop_expression_node_t::Sub: return os << '-';
+    case binop_expression_node_t::Mul: return os << '*';
+    case binop_expression_node_t::Div: return os << '/';
+    case binop_expression_node_t::Mod: return os << '%';
+    }
+}
+
+std::ostream& binop_expression_node::print(std::ostream& os) const {
+    return os << *m_lhs << ' ' << m_type << ' ' << *m_rhs;
+}
+
+bool binop_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = reinterpret_cast<const binop_expression_node&>(rhsNode);
+    return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
+}
+
 bool declaration_node::equal(const node& rhs) const {
     return declaration_type() == reinterpret_cast<const declaration_node&>(rhs).declaration_type();
 }
