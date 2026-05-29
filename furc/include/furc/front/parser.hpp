@@ -33,7 +33,8 @@ private:
     ast::literal_node_h     parse_literal();
 
     ast::expression_node_h parse_expression_primary();
-    ast::expression_node_h parse_expression_rhs(const ast::expression_node_h& init, std::uint32_t precedence);
+    ast::expression_node_h parse_expression_unary(std::uint32_t precedence);
+    ast::expression_node_h parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence);
 
     ast::function_body_h parse_body();
 private:

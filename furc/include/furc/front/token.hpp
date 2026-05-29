@@ -32,6 +32,8 @@ enum class token_t {
     Star,
     Slash,
     Percent,
+    DPlus,
+    DMinus,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -56,6 +58,8 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::Star: return os << "'*'";
     case token_t::Slash: return os << "'/'";
     case token_t::Percent: return os << "'%'";
+    case token_t::DPlus: return os << "++";
+    case token_t::DMinus: return os << "--";
     }
     return os;
 }
@@ -82,6 +86,8 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::Star: return str + "'*'";
     case token_t::Slash: return str + "'/'";
     case token_t::Percent: return str + "'%'";
+    case token_t::DPlus: return str + "++";
+    case token_t::DMinus: return str + "--";
     }
     return str;
 }
@@ -167,7 +173,9 @@ struct token {
         case token_t::Minus:
         case token_t::Star:
         case token_t::Slash:
-        case token_t::Percent: return true;
+        case token_t::Percent:
+        case token_t::DPlus:
+        case token_t::DMinus: return true;
         }
     }
 };

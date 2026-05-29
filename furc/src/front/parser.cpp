@@ -29,7 +29,7 @@ parser::parser(std::string_view filename)
 ast::program_node_h parser::parse() & {
     auto program = m_arena.allocate_shared<ast::program_node>();
 
-    while (peek_token()->type != token_t::None && !m_lexer.empty()) {
+    while (peek_token().present() && peek_token()->type != token_t::None && !m_lexer.empty()) {
         program->push(std::move(parse_declaration()));
     }
 
@@ -119,7 +119,7 @@ ast::statement_node_h parser::parse_statement() {
 }
 
 ast::expression_node_h parser::parse_expression() {
-    return parse_expression_rhs(parse_expression_primary(), 16);
+    return parse_expression_rhs(parse_expression_unary(16), 16);
 }
 
 ast::literal_node_h parser::parse_literal() {
@@ -143,25 +143,6 @@ ast::literal_node_h parser::parse_literal() {
     return { tok.location(), "unexpected token "s + tok->type + ", expected literal" };
 }
 
-enum class binop_associativity {
-    Left,
-    Right,
-};
-
-struct binop_info {
-    ast::binop_expression_node_t type;
-    std::uint32_t                precedence;
-    binop_associativity          associativity;
-
-    static binop_info left(ast::binop_expression_node_t type, std::uint32_t precedence) {
-        return { type, precedence, binop_associativity::Left };
-    }
-
-    static binop_info right(ast::binop_expression_node_t type, std::uint32_t precedence) {
-        return { type, precedence, binop_associativity::Right };
-    }
-};
-
 ast::expression_node_h parser::parse_expression_primary() {
     const auto& tok = peek_token();
 
@@ -170,35 +151,130 @@ ast::expression_node_h parser::parse_expression_primary() {
     return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
 }
 
-ast::expression_node_h parser::parse_expression_rhs(const ast::expression_node_h& init, std::uint32_t precedence) {
-    static std::unordered_map<token_t, binop_info> s_binops = {
-        { token_t::Plus, binop_info::left(ast::binop_expression_node_t::Add, 5) },
-        { token_t::Minus, binop_info::left(ast::binop_expression_node_t::Sub, 5) },
-        { token_t::Star, binop_info::left(ast::binop_expression_node_t::Mul, 4) },
-        { token_t::Slash, binop_info::left(ast::binop_expression_node_t::Div, 4) },
-        { token_t::Percent, binop_info::left(ast::binop_expression_node_t::Mod, 5) },
+struct unaryop_info {
+    ast::unaryop_expression_node_t type;
+    std::uint32_t                  precedence;
+};
+
+ast::expression_node_h parser::parse_expression_unary(std::uint32_t precedence) {
+    static std::unordered_map<token_t, unaryop_info> s_prefixes = {
+        { token_t::Plus, unaryop_info{ ast::unaryop_expression_node_t::Positive, 3 } },
+        { token_t::Minus, unaryop_info{ ast::unaryop_expression_node_t::Negative, 3 } },
+        { token_t::DPlus, unaryop_info{ ast::unaryop_expression_node_t::PrefixIncrement, 2 } },
+        { token_t::DMinus, unaryop_info{ ast::unaryop_expression_node_t::PrefixDecrement, 2 } },
     };
 
-    ast::expression_node_h lhs = init;
+    ast::unaryop_expression_node_h result;
     while (true) {
-        auto it = s_binops.find(peek_token()->type);
-        if (it == s_binops.end()) return lhs;
-        binop_info current = it->second;
+        auto it = s_prefixes.find(peek_token()->type);
+        if (it == s_prefixes.end()) break;
+        auto current = it->second;
+        if (current.precedence >= precedence) break;
+        auto token = next_token();
+
+        ast::expression_node_h expression;
+
+        auto nextIt = s_prefixes.find(peek_token()->type);
+        if (nextIt != s_prefixes.end()) {
+            auto next  = nextIt->second;
+            expression = parse_expression_unary(current.precedence + 1);
+        }
+
+        result = { token.location(), m_arena, current.type, std::move(expression) };
+    }
+
+    if (!result.present()) return parse_expression_primary();
+    if (!result->get_node().present()) result->set_node(parse_expression_primary());
+    return result;
+}
+
+enum class associativity {
+    Left,
+    Right,
+};
+
+enum class rhsop_info_t {
+    Unaryop,
+    Binop,
+};
+
+struct rhsop_info {
+    rhsop_info_t  type;
+    std::uint32_t precedence;
+    associativity associativity;
+    union {
+        ast::unaryop_expression_node_t unary;
+        ast::binop_expression_node_t   binary;
+    };
+
+    static rhsop_info create(ast::unaryop_expression_node_t type, std::uint32_t precedence) {
+        rhsop_info info{};
+        info.type          = rhsop_info_t::Unaryop;
+        info.precedence    = precedence;
+        info.associativity = associativity::Left;
+        info.unary         = type;
+        return info;
+    }
+
+    static rhsop_info create(ast::binop_expression_node_t type,
+        std::uint32_t                                     precedence,
+        enum associativity                                associativity) {
+        rhsop_info info{};
+        info.type          = rhsop_info_t::Binop;
+        info.precedence    = precedence;
+        info.associativity = associativity;
+        info.binary        = type;
+        return info;
+    }
+};
+
+ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence) {
+    static std::unordered_map<token_t, rhsop_info> s_rhsops = {
+        { token_t::Plus, rhsop_info::create(ast::binop_expression_node_t::Add, 5, associativity::Left) },
+        { token_t::Minus, rhsop_info::create(ast::binop_expression_node_t::Sub, 5, associativity::Left) },
+        { token_t::Star, rhsop_info::create(ast::binop_expression_node_t::Mul, 4, associativity::Left) },
+        { token_t::Slash, rhsop_info::create(ast::binop_expression_node_t::Div, 4, associativity::Left) },
+        { token_t::Percent, rhsop_info::create(ast::binop_expression_node_t::Mod, 5, associativity::Left) },
+        { token_t::DPlus, rhsop_info::create(ast::unaryop_expression_node_t::PostfixIncrement, 1) },
+        { token_t::DMinus, rhsop_info::create(ast::unaryop_expression_node_t::PostfixDecrement, 1) },
+    };
+
+    ast::expression_node_h lhs = std::move(init);
+    while (peek_token().present()) {
+        auto it = s_rhsops.find(peek_token()->type);
+        if (it == s_rhsops.end()) return lhs;
+
+        rhsop_info current = it->second;
         if (current.precedence >= precedence) return lhs;
         auto opToken = next_token();
 
-        auto rhs = parse_expression_primary();
-
-        auto nextIt = s_binops.find(peek_token()->type);
-        if (nextIt != s_binops.end()) {
-            binop_info next = nextIt->second;
-
-            rhs = std::move(parse_expression_rhs(rhs,
-                current.precedence + static_cast<std::uint32_t>(current.associativity == binop_associativity::Right)));
+        ast::expression_node_h rhs;
+        if (current.type == rhsop_info_t::Binop) {
+            rhs = parse_expression_unary(current.precedence + 1); // unary prefix is always right-associative
         }
 
-        lhs = ast::binop_expression_node_h{ opToken.location(), m_arena, current.type, std::move(lhs), std::move(rhs) };
+        auto nextIt = s_rhsops.find(peek_token()->type);
+        if (nextIt != s_rhsops.end()) {
+            rhsop_info next = nextIt->second;
+
+            if (current.type == rhsop_info_t::Binop) {
+                rhs = std::move(parse_expression_rhs(std::move(rhs),
+                    current.precedence + static_cast<std::uint32_t>(current.associativity == associativity::Right)));
+            } else {
+                lhs = std::move(parse_expression_rhs(std::move(lhs), current.precedence));
+            }
+        }
+
+        lhs = current.type == rhsop_info_t::Binop
+                  ? ast::expression_node_h(ast::binop_expression_node_h{ opToken.location(),
+                        m_arena,
+                        current.binary,
+                        std::move(lhs),
+                        std::move(rhs) })
+                  : ast::expression_node_h(
+                        ast::unaryop_expression_node_h{ opToken.location(), m_arena, current.unary, std::move(lhs) });
     }
+    return lhs;
 }
 
 ast::function_body_h parser::parse_body() {

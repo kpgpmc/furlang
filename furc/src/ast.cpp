@@ -14,7 +14,7 @@ bool literal_node::equal(const node& rhs) const {
 
 std::ostream& integer_literal_node::print(std::ostream& os) const {
     if (m_value.has_error()) return os << m_value.error();
-    return os << "integer literal (" << *m_value << ")";
+    return os << *m_value;
 }
 
 bool integer_literal_node::equal(const node& rhs) const {
@@ -23,7 +23,7 @@ bool integer_literal_node::equal(const node& rhs) const {
 
 std::ostream& string_literal_node::print(std::ostream& os) const {
     if (m_value.has_error()) return os << m_value.error();
-    return os << "string literal (" << *m_value << ")";
+    return os << '"' << *m_value << '"';
 }
 
 bool string_literal_node::equal(const node& rhs) const {
@@ -32,6 +32,30 @@ bool string_literal_node::equal(const node& rhs) const {
 
 bool expression_node::equal(const node& rhs) const {
     return expression_type() == reinterpret_cast<const expression_node&>(rhs).expression_type();
+}
+
+std::ostream& operator<<(std::ostream& os, unaryop_expression_node_t type) {
+    switch (type) {
+    case unaryop_expression_node_t::Positive: return os << "+";
+    case unaryop_expression_node_t::Negative: return os << "-";
+    case unaryop_expression_node_t::PrefixIncrement:
+    case unaryop_expression_node_t::PostfixIncrement: return os << "++";
+    case unaryop_expression_node_t::PrefixDecrement:
+    case unaryop_expression_node_t::PostfixDecrement: return os << "--";
+    }
+    return os;
+}
+
+std::ostream& unaryop_expression_node::print(std::ostream& os) const {
+    switch (m_type) {
+    case unaryop_expression_node_t::Positive:
+    case unaryop_expression_node_t::Negative:
+    case unaryop_expression_node_t::PrefixIncrement:
+    case unaryop_expression_node_t::PrefixDecrement: return os << '(' << m_type << *m_node << ')';
+    case unaryop_expression_node_t::PostfixIncrement:
+    case unaryop_expression_node_t::PostfixDecrement: return os << '(' << *m_node << m_type << ')';
+    }
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
@@ -45,7 +69,7 @@ std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
 }
 
 std::ostream& binop_expression_node::print(std::ostream& os) const {
-    return os << *m_lhs << ' ' << m_type << ' ' << *m_rhs;
+    return os << '(' << *m_lhs << ' ' << m_type << ' ' << *m_rhs << ')';
 }
 
 bool binop_expression_node::equal(const node& rhsNode) const {
@@ -87,7 +111,7 @@ bool statement_node::equal(const node& rhs) const {
 
 std::ostream& return_statement_node::print(std::ostream& os) const {
     os << "return statement";
-    if (m_value.present()) return os << " (" << *m_value << ')';
+    if (m_value.present()) return os << ' ' << *m_value;
     return os;
 }
 

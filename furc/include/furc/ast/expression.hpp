@@ -9,7 +9,8 @@ namespace ast {
 
 enum class expression_node_t {
     Literal,
-    Binop
+    Unaryop,
+    Binop,
 };
 
 class expression_node : public statement_node {
@@ -24,6 +25,37 @@ protected:
 };
 
 using expression_node_h = node_handle<expression_node>;
+
+enum class unaryop_expression_node_t {
+    Positive,
+    Negative,
+    PrefixIncrement,
+    PostfixIncrement,
+    PrefixDecrement,
+    PostfixDecrement,
+};
+
+class unaryop_expression_node : public expression_node {
+public:
+    unaryop_expression_node(unaryop_expression_node_t type, expression_node_h&& node)
+      : m_type(type), m_node(std::move(node)) {}
+
+    void set_node(expression_node_h&& node) { m_node = std::move(node); }
+
+    unaryop_expression_node_t type() const { return m_type; }
+    const expression_node_h&  get_node() const { return m_node; }
+    expression_node_h&        get_node() { return m_node; }
+    expression_node_h&&       move_node() { return std::move(m_node); }
+public:
+    expression_node_t expression_type() const override { return expression_node_t::Unaryop; }
+
+    std::ostream& print(std::ostream& os) const override;
+private:
+    unaryop_expression_node_t m_type;
+    expression_node_h         m_node;
+};
+
+using unaryop_expression_node_h = node_handle<unaryop_expression_node>;
 
 enum class binop_expression_node_t {
     Add,
@@ -40,7 +72,11 @@ public:
 
     binop_expression_node_t  type() const { return m_type; };
     const expression_node_h& lhs() const { return m_lhs; };
+    expression_node_h&       lhs() { return m_lhs; };
+    expression_node_h&&      move_lhs() { return std::move(m_lhs); };
     const expression_node_h& rhs() const { return m_rhs; };
+    expression_node_h&       rhs() { return m_rhs; };
+    expression_node_h&&      move_rhs() { return std::move(m_rhs); };
 public:
     expression_node_t expression_type() const override { return expression_node_t::Binop; }
 

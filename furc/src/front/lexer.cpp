@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <limits>
+#include <map>
 #include <string>
 #include <unordered_map>
 
@@ -45,23 +46,7 @@ token_handle<> lexer::next_token() {
 
     location location = current_location();
 
-    char ch = get();
-    switch (ch) {
-    case '(': ++m_cursor; return { location, token_t::Lparen };
-    case ')': ++m_cursor; return { location, token_t::Rparen };
-    case '{': ++m_cursor; return { location, token_t::Lbrace };
-    case '}': ++m_cursor; return { location, token_t::Rbrace };
-    case '[': ++m_cursor; return { location, token_t::Lbracket };
-    case ']': ++m_cursor; return { location, token_t::Rbracket };
-    case ';': ++m_cursor; return { location, token_t::Semicolon };
-    case ':': ++m_cursor; return { location, token_t::Colon };
-    case ',': ++m_cursor; return { location, token_t::Comma };
-    case '.': ++m_cursor; return { location, token_t::Dot };
-    case '+': ++m_cursor; return { location, token_t::Plus };
-    case '-': ++m_cursor; return { location, token_t::Minus };
-    case '*': ++m_cursor; return { location, token_t::Star };
-    case '/': ++m_cursor; return { location, token_t::Slash };
-    case '%': ++m_cursor; return { location, token_t::Percent };
+    switch (get()) {
     case '"': {
         std::size_t begin = ++m_cursor;
         while (m_cursor < m_content.size() && m_content[m_cursor] != '"')
@@ -73,7 +58,7 @@ token_handle<> lexer::next_token() {
     }
     case std::char_traits<char>::eof(): return { location, token_t::None };
     default: {
-        if (std::isdigit(ch) != 0) {
+        if (std::isdigit(get()) != 0) {
             integer_token integer    = 0;
             integer_token max        = std::numeric_limits<integer_token>::max();
             integer_token upperBound = max / 10;
@@ -95,7 +80,7 @@ token_handle<> lexer::next_token() {
             return { location, integer };
         }
 
-        if (std::isalnum(ch) != 0 || ch == '_') {
+        if (std::isalnum(get()) != 0 || get() == '_') {
             std::size_t start = m_cursor++;
             while (std::isalnum(get()) != 0 || get() == '_')
                 next();
@@ -111,7 +96,47 @@ token_handle<> lexer::next_token() {
             return { location, token_t::Identifier, value };
         }
 
-        return { location, "unexpected character '"s.append(m_content.substr(m_cursor, 1)) + "'" };
+        struct compare {
+            bool operator()(const std::string_view& lhs, const std::string_view& rhs) const {
+                if (lhs.size() != rhs.size()) return lhs.size() > rhs.size();
+                return lhs < rhs;
+            }
+        };
+
+        static std::map<std::string_view, token_t, compare> s_tokens = {
+            { "(", token_t::Lparen },
+            { ")", token_t::Rparen },
+            { "{", token_t::Lbrace },
+            { "}", token_t::Rbrace },
+            { "[", token_t::Lbracket },
+            { "]", token_t::Rbracket },
+            { ";", token_t::Semicolon },
+            { ":", token_t::Colon },
+            { ",", token_t::Comma },
+            { ".", token_t::Dot },
+            { "+", token_t::Plus },
+            { "-", token_t::Minus },
+            { "*", token_t::Star },
+            { "/", token_t::Slash },
+            { "%", token_t::Percent },
+            { "++", token_t::DPlus },
+            { "--", token_t::DMinus },
+        };
+
+        token_t     type   = token_t::None;
+        std::size_t length = 1;
+        while (m_cursor + length <= m_content.size()) {
+            auto it = s_tokens.find(m_content.substr(m_cursor, length));
+            if (it == s_tokens.end()) break;
+            type = it->second;
+            ++length;
+        }
+        if (type != token_t::None) {
+            m_cursor += length - 1;
+            return { location, type };
+        }
+
+        return { location, "unexpected character '"s.append(m_content.substr(m_cursor, length)) + "'" };
     }
     }
 }
