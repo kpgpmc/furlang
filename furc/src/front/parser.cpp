@@ -151,7 +151,7 @@ ast::expression_node_h parser::parse_expression_primary() {
         auto node = parse_expression();
         auto err  = eat_token(token_t::Rparen);
         if (err.has_error()) return err;
-        return ast::paren_expression_node_h{ tok.location(), m_arena, std::move(node) };
+        return node;
     }
     default: {
         auto literal = parse_literal();

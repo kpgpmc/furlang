@@ -200,11 +200,8 @@ TEST(Parser, Paren) {
     unaryop_expression_node_h dec = retVal;
     EXPECT_EQ(dec->type(), unaryop_expression_node_t::PrefixDecrement);
 
-    EXPECT_EQ(dec->get_node()->expression_type(), expression_node_t::Paren);
-    paren_expression_node_h paren = dec->get_node();
-
-    EXPECT_EQ(paren->get_node()->expression_type(), expression_node_t::Unaryop);
-    unaryop_expression_node_h inc = paren->get_node();
+    EXPECT_EQ(dec->get_node()->expression_type(), expression_node_t::Unaryop);
+    unaryop_expression_node_h inc = dec->get_node();
     EXPECT_EQ(inc->type(), unaryop_expression_node_t::PostfixIncrement);
     EXPECT_INTLIT(inc->get_node(), 5);
 }
