@@ -34,6 +34,16 @@ bool expression_node::equal(const node& rhs) const {
     return expression_type() == reinterpret_cast<const expression_node&>(rhs).expression_type();
 }
 
+std::ostream& var_read_expression_node::print(std::ostream& os) const {
+    if (m_name.present()) return os << *m_name;
+    return os << m_name.error();
+}
+
+bool var_read_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = reinterpret_cast<const var_read_expression_node&>(rhsNode);
+    return expression_node::equal(rhsNode) && m_name == rhs.m_name;
+}
+
 std::ostream& operator<<(std::ostream& os, unaryop_expression_node_t type) {
     switch (type) {
     case unaryop_expression_node_t::Positive: return os << "+";

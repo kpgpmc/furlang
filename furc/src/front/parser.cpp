@@ -146,6 +146,12 @@ ast::literal_node_h parser::parse_literal() {
 ast::expression_node_h parser::parse_expression_primary() {
     const auto& tok = peek_token();
     switch (tok->type) {
+    case token_t::Identifier: {
+        auto tok = next_token();
+        return ast::var_read_expression_node_h{ tok.location(),
+            m_arena,
+            handle<std::string_view>{ tok.location(), (*tok)->string } };
+    }
     case token_t::Lparen: {
         auto tok  = next_token();
         auto node = parse_expression();

@@ -64,7 +64,14 @@ TEST(Parser, Literals) {
         EXPECT_EQ(literal->literal_type(), literal_node_t::Integer);                                                   \
         integer_literal_node_h intLit = literal;                                                                       \
         EXPECT_EQ(*intLit, (integer));                                                                                 \
-    } while (0);
+    } while (0)
+
+#define EXPECT_VARREAD(expr, varname)                                                                                  \
+    do {                                                                                                               \
+        EXPECT_EQ((expr)->expression_type(), expression_node_t::VarRead);                                              \
+        var_read_expression_node_h varRead = (expr);                                                                   \
+        EXPECT_EQ(varRead->get_name(), (varname));                                                                     \
+    } while (0)
 
 // TODO: Use arena (I am too exhausted rn to do it)
 TEST(Parser, OperatorPrecedence_AddMul) {
@@ -181,7 +188,7 @@ TEST(Parser, UnaryOperator_PrePost) {
 }
 
 TEST(Parser, Paren) {
-    parser parser("<TEMP>", "func main() { return --(5++); }");
+    parser parser("<TEMP>", "func main() { return --(x++); }");
     auto   program = parser.parse();
     EXPECT_TRUE(program.present());
     EXPECT_EQ(program->declarations().size(), 1);
@@ -203,7 +210,7 @@ TEST(Parser, Paren) {
     EXPECT_EQ(dec->get_node()->expression_type(), expression_node_t::Unaryop);
     unaryop_expression_node_h inc = dec->get_node();
     EXPECT_EQ(inc->type(), unaryop_expression_node_t::PostfixIncrement);
-    EXPECT_INTLIT(inc->get_node(), 5);
+    EXPECT_VARREAD(inc->get_node(), "x");
 }
 
 } // namespace

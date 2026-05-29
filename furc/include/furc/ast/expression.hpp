@@ -9,6 +9,7 @@ namespace ast {
 
 enum class expression_node_t {
     Literal,
+    VarRead,
     Unaryop,
     Binop,
     Paren,
@@ -26,6 +27,25 @@ protected:
 };
 
 using expression_node_h = node_handle<expression_node>;
+
+class var_read_expression_node : public expression_node {
+public:
+    var_read_expression_node(handle<std::string_view>&& name)
+      : m_name(std::move(name)) {}
+
+    const handle<std::string_view>& get_name() const { return m_name; }
+    handle<std::string_view>&&      move_name() { return std::move(m_name); }
+public:
+    expression_node_t expression_type() const override { return expression_node_t::VarRead; }
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    handle<std::string_view> m_name;
+};
+
+using var_read_expression_node_h = node_handle<var_read_expression_node>;
 
 enum class unaryop_expression_node_t {
     Positive,
