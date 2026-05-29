@@ -11,6 +11,7 @@ enum class expression_node_t {
     Literal,
     Unaryop,
     Binop,
+    Paren,
 };
 
 class expression_node : public statement_node {
@@ -50,6 +51,8 @@ public:
     expression_node_t expression_type() const override { return expression_node_t::Unaryop; }
 
     std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
 private:
     unaryop_expression_node_t m_type;
     expression_node_h         m_node;
@@ -90,6 +93,26 @@ private:
 };
 
 using binop_expression_node_h = node_handle<binop_expression_node>;
+
+class paren_expression_node : public expression_node {
+public:
+    paren_expression_node(expression_node_h&& node)
+      : m_node(std::move(node)) {}
+
+    const expression_node_h& get_node() const { return m_node; }
+    expression_node_h&       get_node() { return m_node; }
+    expression_node_h&&      move_node() { return std::move(m_node); }
+public:
+    expression_node_t expression_type() const override { return expression_node_t::Paren; }
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    expression_node_h m_node;
+};
+
+using paren_expression_node_h = node_handle<paren_expression_node>;
 
 } // namespace ast
 } // namespace furc

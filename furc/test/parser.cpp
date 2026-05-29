@@ -180,4 +180,33 @@ TEST(Parser, UnaryOperator_PrePost) {
     EXPECT_INTLIT(dec->get_node(), 5);
 }
 
+TEST(Parser, Paren) {
+    parser parser("<TEMP>", "func main() { return --(5++); }");
+    auto   program = parser.parse();
+    EXPECT_TRUE(program.present());
+    EXPECT_EQ(program->declarations().size(), 1);
+    auto func = program->declarations()[0];
+    EXPECT_TRUE(func.present());
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    function_definition_node_h funcDef = func;
+    EXPECT_EQ(funcDef->name()->string, "main");
+    EXPECT_EQ(funcDef->body()->statements.size(), 1);
+    return_statement_node_h ret = funcDef->body()->statements[0];
+
+    auto retVal = ret->value();
+    EXPECT_TRUE(retVal.present());
+
+    EXPECT_EQ(retVal->expression_type(), expression_node_t::Unaryop);
+    unaryop_expression_node_h dec = retVal;
+    EXPECT_EQ(dec->type(), unaryop_expression_node_t::PrefixDecrement);
+
+    EXPECT_EQ(dec->get_node()->expression_type(), expression_node_t::Paren);
+    paren_expression_node_h paren = dec->get_node();
+
+    EXPECT_EQ(paren->get_node()->expression_type(), expression_node_t::Unaryop);
+    unaryop_expression_node_h inc = paren->get_node();
+    EXPECT_EQ(inc->type(), unaryop_expression_node_t::PostfixIncrement);
+    EXPECT_INTLIT(inc->get_node(), 5);
+}
+
 } // namespace

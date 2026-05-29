@@ -118,8 +118,8 @@ ast::statement_node_h parser::parse_statement() {
     return { token.location(), "unexpected token "s + token->type + ", expected statement, declaration or expression" };
 }
 
-ast::expression_node_h parser::parse_expression() {
-    return parse_expression_rhs(parse_expression_unary(16), 16);
+ast::expression_node_h parser::parse_expression(std::uint32_t precedence) {
+    return parse_expression_rhs(parse_expression_unary(precedence), precedence);
 }
 
 ast::literal_node_h parser::parse_literal() {
@@ -145,10 +145,20 @@ ast::literal_node_h parser::parse_literal() {
 
 ast::expression_node_h parser::parse_expression_primary() {
     const auto& tok = peek_token();
-
-    auto literal = parse_literal();
-    if (literal.present()) return std::move(literal);
-    return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
+    switch (tok->type) {
+    case token_t::Lparen: {
+        auto tok  = next_token();
+        auto node = parse_expression();
+        auto err  = eat_token(token_t::Rparen);
+        if (err.has_error()) return err;
+        return ast::paren_expression_node_h{ tok.location(), m_arena, std::move(node) };
+    }
+    default: {
+        auto literal = parse_literal();
+        if (literal.present()) return std::move(literal);
+        return { tok.location(), "unexpected token"s + tok->type + ", expected expression or literal" };
+    }
+    }
 }
 
 struct unaryop_info {

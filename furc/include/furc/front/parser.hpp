@@ -29,7 +29,7 @@ public:
 private:
     ast::declaration_node_h parse_declaration();
     ast::statement_node_h   parse_statement();
-    ast::expression_node_h  parse_expression();
+    ast::expression_node_h  parse_expression(std::uint32_t precedence = 16);
     ast::literal_node_h     parse_literal();
 
     ast::expression_node_h parse_expression_primary();
