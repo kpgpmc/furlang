@@ -41,6 +41,13 @@ enum class token_t {
     StarEq,
     SlashEq,
     PercentEq,
+
+    DEq,
+    NotEq,
+    LessThan,
+    GreaterThan,
+    LessEq,
+    GreaterEq,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -73,6 +80,12 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::StarEq: return os << "*=";
     case token_t::SlashEq: return os << "/=";
     case token_t::PercentEq: return os << "%=";
+    case token_t::DEq: return os << "==";
+    case token_t::NotEq: return os << "!=";
+    case token_t::LessThan: return os << "<";
+    case token_t::GreaterThan: return os << ">";
+    case token_t::LessEq: return os << "<=";
+    case token_t::GreaterEq: return os << ">=";
     }
     return os;
 }
@@ -107,6 +120,12 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::StarEq: return str + "*=";
     case token_t::SlashEq: return str + "/=";
     case token_t::PercentEq: return str + "%=";
+    case token_t::DEq: return str + "==";
+    case token_t::NotEq: return str + "!=";
+    case token_t::LessThan: return str + "<";
+    case token_t::GreaterThan: return str + ">";
+    case token_t::LessEq: return str + "<=";
+    case token_t::GreaterEq: return str + ">=";
     }
     return str;
 }

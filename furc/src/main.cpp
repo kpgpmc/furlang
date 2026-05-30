@@ -5,7 +5,7 @@
 #include <iostream>
 
 int main(void) {
-    furc::front::parser parser("<TEMP>", "func main() {\n    return (x - -y) * z++;\n}");
+    furc::front::parser parser("<TEMP>", "func main() {\n    return x = y;\n}");
     std::cout << parser.parse() << '\n';
 
     return 0;

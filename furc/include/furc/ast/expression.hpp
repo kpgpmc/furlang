@@ -88,6 +88,13 @@ enum class binop_expression_node_t {
     Mul,
     Div,
     Mod,
+
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+    LessEqual,
+    GreaterEqual,
 };
 
 class binop_expression_node : public expression_node {

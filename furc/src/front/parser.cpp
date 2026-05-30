@@ -271,6 +271,12 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         { token_t::StarEq, rhsop_info::create(ast::binop_expression_node_t::Mul) },
         { token_t::SlashEq, rhsop_info::create(ast::binop_expression_node_t::Div) },
         { token_t::PercentEq, rhsop_info::create(ast::binop_expression_node_t::Mod) },
+        { token_t::DEq, rhsop_info::create(ast::binop_expression_node_t::Equal, 10, associativity::Left) },
+        { token_t::NotEq, rhsop_info::create(ast::binop_expression_node_t::NotEqual, 10, associativity::Left) },
+        { token_t::LessThan, rhsop_info::create(ast::binop_expression_node_t::LessThan, 9, associativity::Left) },
+        { token_t::GreaterThan, rhsop_info::create(ast::binop_expression_node_t::GreaterThan, 9, associativity::Left) },
+        { token_t::LessEq, rhsop_info::create(ast::binop_expression_node_t::LessEqual, 9, associativity::Left) },
+        { token_t::GreaterEq, rhsop_info::create(ast::binop_expression_node_t::GreaterEqual, 9, associativity::Left) },
     };
 
     ast::expression_node_h lhs = std::move(init);

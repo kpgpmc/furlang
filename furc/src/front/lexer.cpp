@@ -127,6 +127,12 @@ token_handle<> lexer::next_token() {
             { "*=", token_t::StarEq },
             { "/=", token_t::SlashEq },
             { "%=", token_t::PercentEq },
+            { "==", token_t::DEq },
+            { "!=", token_t::NotEq },
+            { "<", token_t::LessThan },
+            { ">", token_t::GreaterThan },
+            { "<=", token_t::LessEq },
+            { ">=", token_t::GreaterEq },
         };
 
         token_t     type   = token_t::None;

@@ -82,6 +82,12 @@ std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
     case binop_expression_node_t::Mul: return os << '*';
     case binop_expression_node_t::Div: return os << '/';
     case binop_expression_node_t::Mod: return os << '%';
+    case binop_expression_node_t::Equal: return os << "==";
+    case binop_expression_node_t::NotEqual: return os << "!=";
+    case binop_expression_node_t::LessThan: return os << '<';
+    case binop_expression_node_t::GreaterThan: return os << '>';
+    case binop_expression_node_t::LessEqual: return os << "<=";
+    case binop_expression_node_t::GreaterEqual: return os << ">=";
     }
 }
 
@@ -96,7 +102,7 @@ bool binop_expression_node::equal(const node& rhsNode) const {
 }
 
 std::ostream& var_assign_expression_node::print(std::ostream& os) const {
-    return os << *m_lhs << " = " << *m_rhs;
+    return os << '(' << *m_lhs << ' ' << m_compound << "= " << *m_rhs << ')';
 }
 
 bool var_assign_expression_node::equal(const node& rhsNode) const {
