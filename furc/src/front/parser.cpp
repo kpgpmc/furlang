@@ -212,6 +212,7 @@ enum class associativity {
 enum class rhsop_info_t {
     Unaryop,
     Binop,
+    Assignment,
 };
 
 struct rhsop_info {
@@ -221,6 +222,7 @@ struct rhsop_info {
     union {
         ast::unaryop_expression_node_t unary;
         ast::binop_expression_node_t   binary;
+        ast::binop_expression_node_t   assignment;
     };
 
     static rhsop_info create(ast::unaryop_expression_node_t type, std::uint32_t precedence) {
@@ -242,6 +244,15 @@ struct rhsop_info {
         info.binary        = type;
         return info;
     }
+
+    static rhsop_info create(ast::binop_expression_node_t compound = ast::binop_expression_node_t::None) {
+        rhsop_info info{};
+        info.type          = rhsop_info_t::Assignment;
+        info.precedence    = 14;
+        info.associativity = associativity::Right;
+        info.assignment    = compound;
+        return info;
+    }
 };
 
 ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence) {
@@ -253,6 +264,13 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         { token_t::Percent, rhsop_info::create(ast::binop_expression_node_t::Mod, 5, associativity::Left) },
         { token_t::DPlus, rhsop_info::create(ast::unaryop_expression_node_t::PostfixIncrement, 1) },
         { token_t::DMinus, rhsop_info::create(ast::unaryop_expression_node_t::PostfixDecrement, 1) },
+        { token_t::DMinus, rhsop_info::create(ast::unaryop_expression_node_t::PostfixDecrement, 1) },
+        { token_t::Eq, rhsop_info::create() },
+        { token_t::PlusEq, rhsop_info::create(ast::binop_expression_node_t::Add) },
+        { token_t::MinusEq, rhsop_info::create(ast::binop_expression_node_t::Sub) },
+        { token_t::StarEq, rhsop_info::create(ast::binop_expression_node_t::Mul) },
+        { token_t::SlashEq, rhsop_info::create(ast::binop_expression_node_t::Div) },
+        { token_t::PercentEq, rhsop_info::create(ast::binop_expression_node_t::Mod) },
     };
 
     ast::expression_node_h lhs = std::move(init);
@@ -265,7 +283,7 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         auto opToken = next_token();
 
         ast::expression_node_h rhs;
-        if (current.type == rhsop_info_t::Binop) {
+        if (current.type != rhsop_info_t::Unaryop) {
             rhs = parse_expression_unary(current.precedence + 1); // unary prefix is always right-associative
         }
 
@@ -273,7 +291,7 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         if (nextIt != s_rhsops.end()) {
             rhsop_info next = nextIt->second;
 
-            if (current.type == rhsop_info_t::Binop) {
+            if (current.type != rhsop_info_t::Unaryop) {
                 rhs = std::move(parse_expression_rhs(std::move(rhs),
                     current.precedence + static_cast<std::uint32_t>(current.associativity == associativity::Right)));
             } else {
@@ -281,14 +299,25 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
             }
         }
 
-        lhs = current.type == rhsop_info_t::Binop
-                  ? ast::expression_node_h(ast::binop_expression_node_h{ opToken.location(),
-                        m_arena,
-                        current.binary,
-                        std::move(lhs),
-                        std::move(rhs) })
-                  : ast::expression_node_h(
-                        ast::unaryop_expression_node_h{ opToken.location(), m_arena, current.unary, std::move(lhs) });
+        switch (current.type) {
+        case rhsop_info_t::Unaryop:
+            lhs = ast::unaryop_expression_node_h{ opToken.location(), m_arena, current.unary, std::move(lhs) };
+            break;
+        case rhsop_info_t::Binop:
+            lhs = ast::binop_expression_node_h{ opToken.location(),
+                m_arena,
+                current.binary,
+                std::move(lhs),
+                std::move(rhs) };
+            break;
+        case rhsop_info_t::Assignment:
+            lhs = ast::var_assign_expression_node_h{ opToken.location(),
+                m_arena,
+                current.assignment,
+                std::move(lhs),
+                std::move(rhs) };
+            break;
+        }
     }
     return lhs;
 }

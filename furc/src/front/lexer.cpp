@@ -121,6 +121,12 @@ token_handle<> lexer::next_token() {
             { "%", token_t::Percent },
             { "++", token_t::DPlus },
             { "--", token_t::DMinus },
+            { "=", token_t::Eq },
+            { "+=", token_t::PlusEq },
+            { "-=", token_t::MinusEq },
+            { "*=", token_t::StarEq },
+            { "/=", token_t::SlashEq },
+            { "%=", token_t::PercentEq },
         };
 
         token_t     type   = token_t::None;

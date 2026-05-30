@@ -34,6 +34,13 @@ enum class token_t {
     Percent,
     DPlus,
     DMinus,
+
+    Eq,
+    PlusEq,
+    MinusEq,
+    StarEq,
+    SlashEq,
+    PercentEq,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -60,6 +67,12 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::Percent: return os << "'%'";
     case token_t::DPlus: return os << "++";
     case token_t::DMinus: return os << "--";
+    case token_t::Eq: return os << "=";
+    case token_t::PlusEq: return os << "+=";
+    case token_t::MinusEq: return os << "-=";
+    case token_t::StarEq: return os << "*=";
+    case token_t::SlashEq: return os << "/=";
+    case token_t::PercentEq: return os << "%=";
     }
     return os;
 }
@@ -88,6 +101,12 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::Percent: return str + "'%'";
     case token_t::DPlus: return str + "++";
     case token_t::DMinus: return str + "--";
+    case token_t::Eq: return str + "=";
+    case token_t::PlusEq: return str + "+=";
+    case token_t::MinusEq: return str + "-=";
+    case token_t::StarEq: return str + "*=";
+    case token_t::SlashEq: return str + "/=";
+    case token_t::PercentEq: return str + "%=";
     }
     return str;
 }
@@ -158,24 +177,7 @@ struct token {
         case token_t::String: return value.string == rhs.value.string;
         case token_t::Keyword: return value.keyword == rhs.value.keyword;
         case token_t::Integer: return value.integer == rhs.value.integer;
-        case token_t::None:
-        case token_t::Lparen:
-        case token_t::Rparen:
-        case token_t::Lbrace:
-        case token_t::Rbrace:
-        case token_t::Lbracket:
-        case token_t::Rbracket:
-        case token_t::Semicolon:
-        case token_t::Colon:
-        case token_t::Comma:
-        case token_t::Dot:
-        case token_t::Plus:
-        case token_t::Minus:
-        case token_t::Star:
-        case token_t::Slash:
-        case token_t::Percent:
-        case token_t::DPlus:
-        case token_t::DMinus: return true;
+        default: return true;
         }
     }
 };

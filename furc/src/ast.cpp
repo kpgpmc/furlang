@@ -75,6 +75,8 @@ bool unaryop_expression_node::equal(const node& rhsNode) const {
 
 std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
     switch (type) {
+    default:
+    case binop_expression_node_t::None: return os;
     case binop_expression_node_t::Add: return os << '+';
     case binop_expression_node_t::Sub: return os << '-';
     case binop_expression_node_t::Mul: return os << '*';
@@ -84,12 +86,22 @@ std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
 }
 
 std::ostream& binop_expression_node::print(std::ostream& os) const {
+    if (m_type == binop_expression_node_t::None) return os;
     return os << '(' << *m_lhs << ' ' << m_type << ' ' << *m_rhs << ')';
 }
 
 bool binop_expression_node::equal(const node& rhsNode) const {
     const auto& rhs = reinterpret_cast<const binop_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
+}
+
+std::ostream& var_assign_expression_node::print(std::ostream& os) const {
+    return os << *m_lhs << " = " << *m_rhs;
+}
+
+bool var_assign_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = reinterpret_cast<const var_assign_expression_node&>(rhsNode);
+    return expression_node::equal(rhsNode) && m_compound == rhs.m_compound && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
 }
 
 bool declaration_node::equal(const node& rhs) const {

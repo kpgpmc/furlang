@@ -213,4 +213,62 @@ TEST(Parser, Paren) {
     EXPECT_VARREAD(inc->get_node(), "x");
 }
 
+TEST(Parser, Assignment) {
+    parser parser("<TEMP>", "func main() { x = 10; }");
+    auto   program = parser.parse();
+    EXPECT_TRUE(program.present());
+    EXPECT_EQ(program->declarations().size(), 1);
+    auto func = program->declarations()[0];
+    EXPECT_TRUE(func.present());
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    function_definition_node_h funcDef = func;
+    EXPECT_EQ(funcDef->name()->string, "main");
+    EXPECT_EQ(funcDef->body()->statements.size(), 1);
+
+    EXPECT_EQ(funcDef->body()->statements[0]->statement_type(), statement_node_t::Expression);
+    expression_node_h expr = funcDef->body()->statements[0];
+
+    EXPECT_EQ(expr->expression_type(), expression_node_t::VarAssign);
+    var_assign_expression_node_h assign = expr;
+    EXPECT_EQ(assign->compound(), binop_expression_node_t::None);
+
+    expression_node_h lhs = assign->lhs();
+    EXPECT_EQ(lhs->expression_type(), expression_node_t::VarRead);
+    var_read_expression_node_h varRead = lhs;
+    EXPECT_EQ(varRead->get_name(), "x");
+
+    expression_node_h rhs = assign->rhs();
+    EXPECT_EQ(rhs->expression_type(), expression_node_t::Literal);
+    EXPECT_INTLIT(rhs, 10);
+}
+
+TEST(Parser, CompoundAssignment) {
+    parser parser("<TEMP>", "func main() { x += 10; }");
+    auto   program = parser.parse();
+    EXPECT_TRUE(program.present());
+    EXPECT_EQ(program->declarations().size(), 1);
+    auto func = program->declarations()[0];
+    EXPECT_TRUE(func.present());
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    function_definition_node_h funcDef = func;
+    EXPECT_EQ(funcDef->name()->string, "main");
+    EXPECT_EQ(funcDef->body()->statements.size(), 1);
+
+    EXPECT_EQ(funcDef->body()->statements[0]->statement_type(), statement_node_t::Expression);
+    expression_node_h expr = funcDef->body()->statements[0];
+
+    EXPECT_EQ(expr->expression_type(), expression_node_t::VarAssign);
+    var_assign_expression_node_h assign = expr;
+    EXPECT_EQ(assign->compound(), binop_expression_node_t::Add);
+
+    expression_node_h lhs = assign->lhs();
+    EXPECT_EQ(lhs->expression_type(), expression_node_t::VarRead);
+    var_read_expression_node_h varRead = lhs;
+    EXPECT_EQ(varRead->get_name(), "x");
+
+    expression_node_h rhs = assign->rhs();
+    EXPECT_EQ(rhs->expression_type(), expression_node_t::Literal);
+    EXPECT_INTLIT(rhs, 10);
+}
+
 } // namespace

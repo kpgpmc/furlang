@@ -10,6 +10,7 @@ namespace ast {
 enum class expression_node_t {
     Literal,
     VarRead,
+    VarAssign,
     Unaryop,
     Binop,
     Paren,
@@ -81,6 +82,7 @@ private:
 using unaryop_expression_node_h = node_handle<unaryop_expression_node>;
 
 enum class binop_expression_node_t {
+    None = 0,
     Add,
     Sub,
     Mul,
@@ -113,6 +115,31 @@ private:
 };
 
 using binop_expression_node_h = node_handle<binop_expression_node>;
+
+class var_assign_expression_node : public expression_node {
+public:
+    var_assign_expression_node(expression_node_h&& lhs, expression_node_h&& rhs)
+      : m_compound(binop_expression_node_t::None), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
+
+    var_assign_expression_node(binop_expression_node_t compound, expression_node_h&& lhs, expression_node_h&& rhs)
+      : m_compound(compound), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
+
+    binop_expression_node_t  compound() const { return m_compound; }
+    const expression_node_h& lhs() const { return m_lhs; }
+    const expression_node_h& rhs() const { return m_rhs; }
+public:
+    expression_node_t expression_type() const override { return expression_node_t::VarAssign; }
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    binop_expression_node_t m_compound;
+    expression_node_h       m_lhs;
+    expression_node_h       m_rhs;
+};
+
+using var_assign_expression_node_h = node_handle<var_assign_expression_node>;
 
 } // namespace ast
 } // namespace furc
