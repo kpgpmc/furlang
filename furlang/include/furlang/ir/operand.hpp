@@ -11,11 +11,13 @@ namespace ir {
 enum class operand_t {
     None,
     Register,
+    Variable,
     Integer,
     String,
 };
 
 using register_operand = std::uint32_t;
+using variable_operand = std::string;
 using integer_operand  = std::uint64_t;
 using string_operand   = std::string;
 
@@ -34,11 +36,14 @@ public:
         case operand_t::Register: {
             m_value.reg = other.m_value.reg;
         } break;
+        case operand_t::Variable: {
+            new (&m_value.variable) variable_operand(std::move(other.m_value.variable));
+        } break;
         case operand_t::Integer: {
             m_value.integer = other.m_value.integer;
         } break;
         case operand_t::String: {
-            new (&m_value.string) std::string(std::move(other.m_value.string));
+            new (&m_value.string) string_operand(std::move(other.m_value.string));
         } break;
         }
         other.m_value.destroy(other.m_type);
@@ -52,11 +57,14 @@ public:
         case operand_t::Register: {
             m_value.reg = other.m_value.reg;
         } break;
+        case operand_t::Variable: {
+            new (&m_value.variable) variable_operand(std::move(other.m_value.variable));
+        } break;
         case operand_t::Integer: {
             m_value.integer = other.m_value.integer;
         } break;
         case operand_t::String: {
-            new (&m_value.string) std::string(std::move(other.m_value.string));
+            new (&m_value.string) string_operand(std::move(other.m_value.string));
         } break;
         }
         other.m_value.destroy(other.m_type);
@@ -68,29 +76,31 @@ public:
 public:
     static operand new_reg(register_operand value) {
         operand operand;
-        operand.m_type = operand_t::Register;
-        new (&operand.m_value) union value(value);
+        operand.m_type      = operand_t::Register;
+        operand.m_value.reg = value;
+        return operand;
+    }
+
+    template <typename T>
+    static operand new_variable(T&& value) {
+        operand operand;
+        operand.m_type = operand_t::Variable;
+        new (&operand.m_value.variable) variable_operand(std::forward<T>(value));
         return operand;
     }
 
     static operand new_integer(integer_operand value) {
         operand operand;
-        operand.m_type = operand_t::Integer;
-        new (&operand.m_value) union value(value);
+        operand.m_type          = operand_t::Integer;
+        operand.m_value.integer = value;
         return operand;
     }
 
-    static operand new_string(const string_operand& value) {
+    template <typename T>
+    static operand new_string(T&& value) {
         operand operand;
         operand.m_type = operand_t::String;
-        new (&operand.m_value) union value(value);
-        return operand;
-    }
-
-    static operand new_string(string_operand&& value) {
-        operand operand;
-        operand.m_type = operand_t::String;
-        new (&operand.m_value) union value(std::move(value));
+        new (&operand.m_value.string) string_operand(std::forward<T>(value));
         return operand;
     }
 public:
@@ -103,6 +113,7 @@ public:
         switch (operand.m_type) {
         case operand_t::None: return os << "none";
         case operand_t::Register: return os << '%' << operand.m_value.reg;
+        case operand_t::Variable: return os << operand.m_value.variable;
         case operand_t::Integer: return os << operand.m_value.integer;
         case operand_t::String: return os << '"' << operand.m_value.string << '"';
         }
@@ -115,6 +126,7 @@ private:
     union value {
         std::nullptr_t   null = nullptr;
         register_operand reg;
+        variable_operand variable;
         integer_operand  integer;
         string_operand   string;
 
@@ -130,18 +142,6 @@ private:
 
         value() = default;
         ~value() {}
-
-        value(register_operand reg)
-          : reg(reg) {}
-
-        value(integer_operand integer)
-          : integer(integer) {}
-
-        value(const std::string& string)
-          : string(string) {}
-
-        value(std::string&& string)
-          : string(std::move(string)) {}
 
         value(value&&) noexcept            = delete;
         value& operator=(value&&) noexcept = delete;

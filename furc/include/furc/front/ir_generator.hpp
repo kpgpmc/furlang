@@ -5,8 +5,6 @@
 #include "furc/ast/visitor.hpp"
 #include "furlang/ir/module.hpp"
 
-#include <unordered_map>
-
 namespace furc {
 namespace front {
 
@@ -38,8 +36,6 @@ private:
     std::unique_ptr<furlang::ir::function> m_currentFunction;
     std::shared_ptr<furlang::ir::block>    m_currentBlock;
     std::uint32_t                          m_registerCounter = 0;
-
-    std::unordered_map<std::string_view, std::uint32_t> m_variableMap;
 };
 
 } // namespace front

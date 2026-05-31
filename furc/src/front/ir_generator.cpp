@@ -71,7 +71,8 @@ void ir_generator::visit_integer_literal_node(const ast::integer_literal_node& n
 }
 
 void ir_generator::visit_var_read_expression_node(const ast::var_read_expression_node& node) {
-    throw std::runtime_error("unimplemented");
+    m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_variable(std::string(*node.get_name())),
+        ir::operand::new_reg(m_registerCounter++));
 }
 
 void ir_generator::visit_unaryop_expression_node(const ast::unaryop_expression_node& node) {
@@ -109,7 +110,24 @@ void ir_generator::visit_binop_expression_node(const ast::binop_expression_node&
 }
 
 void ir_generator::visit_var_assign_expression_node(const ast::var_assign_expression_node& node) {
-    throw std::runtime_error("unimplemented");
+    node.rhs()->accept(*this);
+    std::uint32_t rhs = m_registerCounter - 1;
+    assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
+    ast::var_read_expression_node_h lhs = node.lhs();
+
+    std::uint32_t reg = m_registerCounter++;
+
+    auto compound = node.compound();
+    if (compound != ast::binop_expression_node_t::None) {
+        m_currentBlock->emplace<ir::binary_op_instruction>(binary_op_instruction_t(compound),
+            ir::operand::new_variable(std::string(*lhs->get_name())),
+            ir::operand::new_reg(rhs),
+            ir::operand::new_reg(reg));
+    } else {
+        m_currentBlock->emplace<ir::assign_instruction>(ir::operand::new_reg(rhs), ir::operand::new_reg(reg));
+    }
+    m_currentBlock->emplace<ir::assign_instruction>(ir::operand::new_reg(reg),
+        ir::operand::new_variable(std::string(*lhs->get_name())));
 }
 
 furlang::ir::block_index ir_generator::push_block() {
