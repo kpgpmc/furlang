@@ -8,6 +8,7 @@ namespace ast {
 
 class visitor {
 public:
+    visitor()          = default;
     virtual ~visitor() = default;
 
     visitor(visitor&&)                 = default;
