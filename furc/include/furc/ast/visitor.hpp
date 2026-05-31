@@ -25,6 +25,7 @@ public:
     virtual void visit_function_declaration_node(const function_declaration_node&) {}
     virtual void visit_function_definition_node(const function_definition_node&) {}
     virtual void visit_return_statement_node(const return_statement_node&) {}
+    virtual void visit_if_statement_node(const if_statement_node&) {}
 
     virtual void visit_error(const node_handle<node>& handle) {}
 };

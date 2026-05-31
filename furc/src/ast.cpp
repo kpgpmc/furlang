@@ -188,6 +188,22 @@ bool return_statement_node::equal(const node& rhs) const {
     return statement_node::equal(rhs) && m_value == reinterpret_cast<const return_statement_node&>(rhs).m_value;
 }
 
+void if_statement_node::accept(visitor& visitor) const {
+    visitor.visit_if_statement_node(*this);
+}
+
+std::ostream& if_statement_node::print(std::ostream& os) const {
+    os << "if " << *m_cond << ", then:\n";
+    os << m_then;
+    if (m_else.present()) os << m_else;
+    return os;
+}
+
+bool if_statement_node::equal(const node& rhsNode) const {
+    const auto& rhs = reinterpret_cast<const if_statement_node&>(rhsNode);
+    return statement_node::equal(rhs) && m_cond == rhs.m_cond && m_then == rhs.m_then && m_else == rhs.m_else;
+}
+
 void program_node::accept(visitor& visitor) const {
     for (const auto& decl : m_declarations) {
         if (decl.has_error()) {
@@ -208,6 +224,14 @@ std::ostream& program_node::print(std::ostream& os) const {
 
 bool program_node::equal(const node& rhs) const {
     return m_declarations == reinterpret_cast<const program_node&>(rhs).m_declarations;
+}
+
+std::ostream& operator<<(std::ostream& os, const body& body) {
+    os << "body:";
+    for (const auto& stmt : body.statements) {
+        os << '\n' << stmt;
+    }
+    return os;
 }
 
 } // namespace furc::ast

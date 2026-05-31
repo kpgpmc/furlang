@@ -1,6 +1,6 @@
 #include "furc/front/parser.hpp"
 
-#include "furc/ast/declaration.hpp"
+// #include "furc/ast/declaration.hpp" // IWYU pragma: keep
 
 #include <fstream>
 #include <iostream>
@@ -55,7 +55,7 @@ ast::declaration_node_h parser::parse_declaration() {
             if (peek.has_error()) return peek;
             switch (peek->type) {
             case token_t::Lbrace: {
-                ast::function_body_h body = parse_body();
+                ast::body_h body = parse_body();
                 if (body.has_error()) return body;
                 return ast::function_definition_node_h{ first.location(), m_arena, *name, std::move(body) };
             }
@@ -91,16 +91,49 @@ ast::statement_node_h parser::parse_statement() {
     if (tok.has_error()) return tok;
     switch (tok->type) {
     case token_t::Keyword: {
-        auto tok = next_token();
-        if (peek_token()->type == token_t::Semicolon) {
-            next_token();
-            return ast::return_statement_node_h{ tok.location(), m_arena };
-        }
+        switch (tok->value.keyword) {
+        case keyword_token::Return: {
+            auto tok = next_token();
+            if (peek_token()->type == token_t::Semicolon) {
+                next_token();
+                return ast::return_statement_node_h{ tok.location(), m_arena };
+            }
 
-        auto value = parse_expression();
-        auto err   = eat_token(token_t::Semicolon);
-        if (err.has_error()) return err;
-        return ast::return_statement_node_h{ tok.location(), m_arena, std::move(value) };
+            auto value = parse_expression();
+            auto err   = eat_token(token_t::Semicolon);
+            if (err.has_error()) return err;
+            return ast::return_statement_node_h{ tok.location(), m_arena, std::move(value) };
+        }
+        case keyword_token::If: {
+            auto tok = next_token();
+            auto err = eat_token(token_t::Lparen);
+            if (err.has_error()) return err;
+
+            auto cond = parse_expression();
+
+            err = eat_token(token_t::Rparen);
+            if (err.has_error()) return err;
+
+            auto then = parse_statement();
+            if (then.has_error()) return then;
+
+            if (peek_token().present() && peek_token()->type == token_t::Keyword &&
+                peek_token()->value.keyword == keyword_token::Else) {
+                next_token();
+
+                return ast::if_statement_node_h{ tok.location(),
+                    m_arena,
+                    std::move(cond),
+                    std::move(then),
+                    std::move(parse_statement()) };
+            }
+
+            return ast::if_statement_node_h{ tok.location(), m_arena, std::move(cond), std::move(then) };
+        }
+        case keyword_token::None:
+        case keyword_token::Func:
+        default: break;
+        }
     }
     default: break;
     }
@@ -328,8 +361,8 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
     return lhs;
 }
 
-ast::function_body_h parser::parse_body() {
-    ast::function_body body;
+ast::body_h parser::parse_body() {
+    ast::body body;
 
     token_handle<> begin = eat_token(token_t::Lbrace);
     if (begin.has_error()) return begin;

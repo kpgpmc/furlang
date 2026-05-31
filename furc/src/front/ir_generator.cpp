@@ -14,9 +14,9 @@ namespace ir = furlang::ir;
 }
 
 void ir_generator::visit_function_definition_node(const ast::function_definition_node& funcDef) {
-    auto func = std::make_unique<furlang::ir::function>(std::string(funcDef.name()->string));
+    m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()->string));
 
-    m_currentBlock = func->push();
+    push_block();
     if (funcDef.body().has_error()) {
         std::cerr << funcDef.body().error() << '\n';
         return;
@@ -25,7 +25,7 @@ void ir_generator::visit_function_definition_node(const ast::function_definition
         stmt->accept(*this);
     }
 
-    m_module.push(std::move(func));
+    m_module.push(std::move(m_currentFunction));
 }
 
 void ir_generator::visit_return_statement_node(const ast::return_statement_node& returnStmt) {
@@ -39,6 +39,25 @@ void ir_generator::visit_return_statement_node(const ast::return_statement_node&
     } else {
         m_currentBlock->emplace<ir::return_instruction>();
     }
+}
+
+void ir_generator::visit_if_statement_node(const ast::if_statement_node& node) {
+    node.cond()->accept(*this);
+    std::uint32_t cond = m_registerCounter - 1;
+    m_currentBlock->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
+        m_currentFunction->blocks().size(),
+        m_currentFunction->blocks().size() + 1);
+
+    push_block(); // then block
+    node.then()->accept(*this);
+    if (node.elze().present()) {
+        m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size() + 1);
+
+        push_block(); // else block
+        node.elze()->accept(*this);
+    }
+
+    push_block();
 }
 
 void ir_generator::visit_string_literal_node(const ast::string_literal_node& node) {
@@ -91,6 +110,12 @@ void ir_generator::visit_binop_expression_node(const ast::binop_expression_node&
 
 void ir_generator::visit_var_assign_expression_node(const ast::var_assign_expression_node& node) {
     throw std::runtime_error("unimplemented");
+}
+
+furlang::ir::block_index ir_generator::push_block() {
+    ir::block_index index = m_currentFunction->blocks().size();
+    m_currentBlock        = m_currentFunction->push();
+    return index;
 }
 
 } // namespace furc::front

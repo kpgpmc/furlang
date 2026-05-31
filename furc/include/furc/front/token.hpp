@@ -134,6 +134,8 @@ enum class keyword_token {
     None,
     Func,
     Return,
+    If,
+    Else,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) {
@@ -141,7 +143,10 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::None: return os << "none";
     case keyword_token::Func: return os << "func";
     case keyword_token::Return: return os << "return";
+    case keyword_token::If: return os << "if";
+    case keyword_token::Else: return os << "else";
     }
+    return os;
 }
 
 static inline std::string operator+(const std::string& str, keyword_token keyword) {
@@ -149,7 +154,10 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::None: return str + "none";
     case keyword_token::Func: return str + "func";
     case keyword_token::Return: return str + "return";
+    case keyword_token::If: return str + "if";
+    case keyword_token::Else: return str + "else";
     }
+    return str;
 }
 
 using integer_token = std::uint64_t;

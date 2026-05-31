@@ -4,6 +4,7 @@
 #include "furc/handle.hpp"
 
 #include <string>
+#include <vector>
 
 namespace furc {
 namespace ast {
@@ -38,6 +39,21 @@ using binop_expression_node_h = node_handle<binop_expression_node>;
 class var_assign_expression_node;
 using var_assign_expression_node_h = node_handle<var_assign_expression_node>;
 
+struct body {
+    location                      begin, end;
+    std::vector<statement_node_h> statements;
+
+    bool operator==(const body& rhs) const {
+        return begin == rhs.begin && end == rhs.end && statements == rhs.statements;
+    }
+
+    bool operator!=(const body& rhs) const { return !this->operator==(rhs); }
+
+    friend std::ostream& operator<<(std::ostream&, const body&);
+};
+
+using body_h = handle<body>;
+
 class function_declaration_node;
 using function_declaration_node_h = node_handle<function_declaration_node>;
 class function_definition_node;
@@ -45,6 +61,8 @@ using function_definition_node_h = node_handle<function_definition_node>;
 
 class return_statement_node;
 using return_statement_node_h = node_handle<return_statement_node>;
+class if_statement_node;
+using if_statement_node_h = node_handle<if_statement_node>;
 
 } // namespace ast
 } // namespace furc

@@ -90,6 +90,8 @@ token_handle<> lexer::next_token() {
             static std::unordered_map<std::string_view, keyword_token> s_keywords = {
                 { "func", keyword_token::Func },
                 { "return", keyword_token::Return },
+                { "if", keyword_token::If },
+                { "else", keyword_token::Else },
             };
 
             if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second, value };

@@ -6,7 +6,7 @@
 #include <iostream>
 
 int main(void) {
-    furc::front::parser       parser("<TEMP>", "func main() {\n    return 7 + 6 * 10;\n}");
+    furc::front::parser       parser("<TEMP>", "func main() {\n    if (1) return 7 + 6 * 10; else return 0;\n}");
     furc::front::ir_generator generator;
 
     auto program = parser.parse();

@@ -36,7 +36,7 @@ private:
     ast::expression_node_h parse_expression_unary(std::uint32_t precedence);
     ast::expression_node_h parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence);
 
-    ast::function_body_h parse_body();
+    ast::body_h parse_body();
 private:
     token_handle<>        next_token();
     const token_handle<>& peek_token();
