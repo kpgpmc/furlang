@@ -1,4 +1,4 @@
-// #ifndef LIBFURC
+#ifndef LIBFURC
 
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
@@ -31,4 +31,4 @@ int main(void) {
     return 0;
 }
 
-// #endif // LIBFURC
+#endif // LIBFURC
