@@ -2,6 +2,7 @@
 #define FURC_AST_NODE_HPP
 
 #include "furc/ast/fwd.hpp"
+#include "furc/ast/visitor.hpp"
 
 namespace furc {
 namespace ast {
@@ -39,6 +40,8 @@ public:
     bool operator==(const node& rhs) const { return category() == rhs.category() && equal(rhs); }
     bool operator!=(const node& rhs) const { return !this->operator==(rhs); }
 public:
+    virtual void accept(visitor& visitor) const = 0;
+
     virtual std::ostream& print(std::ostream& os) const = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const node& node) { return node.print(os); }

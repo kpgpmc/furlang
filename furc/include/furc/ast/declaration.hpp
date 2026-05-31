@@ -36,6 +36,8 @@ public:
 
     front::token name() const { return m_name; }
 public:
+    void accept(visitor& visitor) const override;
+
     std::ostream& print(std::ostream& os) const override;
 protected:
     bool equal(const node& rhs) const override;
@@ -65,6 +67,8 @@ public:
 
     const function_body_h& body() const { return m_body; }
 public:
+    void accept(visitor& visitor) const override;
+
     std::ostream& print(std::ostream& os) const override;
 protected:
     bool equal(const node& rhs) const override;

@@ -36,6 +36,8 @@ public:
     handle<std::string_view>&&      move_name() { return std::move(m_name); }
 public:
     expression_node_t expression_type() const override { return expression_node_t::VarRead; }
+public:
+    void accept(visitor& visitor) const override;
 
     std::ostream& print(std::ostream& os) const override;
 protected:
@@ -66,6 +68,8 @@ public:
     expression_node_h&&       move_node() { return std::move(m_node); }
 public:
     expression_node_t expression_type() const override { return expression_node_t::Unaryop; }
+public:
+    void accept(visitor& visitor) const override;
 
     std::ostream& print(std::ostream& os) const override;
 protected:
@@ -105,6 +109,8 @@ public:
     expression_node_h&&      move_rhs() { return std::move(m_rhs); };
 public:
     expression_node_t expression_type() const override { return expression_node_t::Binop; }
+public:
+    void accept(visitor& visitor) const override;
 
     std::ostream& print(std::ostream& os) const override;
 protected:
@@ -128,6 +134,8 @@ public:
     const expression_node_h& rhs() const { return m_rhs; }
 public:
     expression_node_t expression_type() const override { return expression_node_t::VarAssign; }
+public:
+    void accept(visitor& visitor) const override;
 
     std::ostream& print(std::ostream& os) const override;
 protected:

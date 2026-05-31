@@ -31,6 +31,8 @@ public:
     node_handle<expression_node> value() const { return m_value; }
 public:
     statement_node_t statement_type() const override { return statement_node_t::Return; }
+public:
+    void accept(visitor& visitor) const override;
 
     std::ostream& print(std::ostream& os) const override;
 protected:

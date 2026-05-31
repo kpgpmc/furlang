@@ -10,8 +10,8 @@ namespace ast {
 
 class node;
 
-template <typename T, typename Error = std::string>
-using node_handle = handle<T*, Error>;
+template <typename T>
+using node_handle = handle<T*, std::string>;
 
 class literal_node;
 using literal_node_h = node_handle<literal_node>;

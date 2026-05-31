@@ -33,6 +33,8 @@ public:
 
     const handle<std::string_view>& value() const { return m_value; }
 public:
+    void accept(visitor& visitor) const override;
+
     std::ostream& print(std::ostream& os) const override;
 protected:
     bool equal(const node& rhs) const override;
@@ -51,6 +53,8 @@ public:
 
     bool operator==(front::integer_token integer) const { return m_value == integer; }
 public:
+    void accept(visitor& visitor) const override;
+
     std::ostream& print(std::ostream& os) const override;
 protected:
     bool equal(const node& rhs) const override;
