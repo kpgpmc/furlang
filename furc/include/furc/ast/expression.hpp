@@ -27,8 +27,6 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-using expression_node_h = node_handle<expression_node>;
-
 class var_read_expression_node : public expression_node {
 public:
     var_read_expression_node(handle<std::string_view>&& name)
@@ -45,8 +43,6 @@ protected:
 private:
     handle<std::string_view> m_name;
 };
-
-using var_read_expression_node_h = node_handle<var_read_expression_node>;
 
 enum class unaryop_expression_node_t {
     Positive,
@@ -78,8 +74,6 @@ private:
     unaryop_expression_node_t m_type;
     expression_node_h         m_node;
 };
-
-using unaryop_expression_node_h = node_handle<unaryop_expression_node>;
 
 enum class binop_expression_node_t {
     None = 0,
@@ -121,8 +115,6 @@ private:
     expression_node_h       m_rhs;
 };
 
-using binop_expression_node_h = node_handle<binop_expression_node>;
-
 class var_assign_expression_node : public expression_node {
 public:
     var_assign_expression_node(expression_node_h&& lhs, expression_node_h&& rhs)
@@ -145,8 +137,6 @@ private:
     expression_node_h       m_lhs;
     expression_node_h       m_rhs;
 };
-
-using var_assign_expression_node_h = node_handle<var_assign_expression_node>;
 
 } // namespace ast
 } // namespace furc

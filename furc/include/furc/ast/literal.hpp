@@ -24,8 +24,6 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-using literal_node_h = node_handle<literal_node>;
-
 class string_literal_node : public literal_node {
 public:
     string_literal_node(handle<std::string_view>&& value)
@@ -41,8 +39,6 @@ protected:
 private:
     handle<std::string_view> m_value;
 };
-
-using string_literal_node_h = node_handle<string_literal_node>;
 
 class integer_literal_node : public literal_node {
 public:
@@ -61,8 +57,6 @@ protected:
 private:
     handle<front::integer_token> m_value;
 };
-
-using integer_literal_node_h = node_handle<integer_literal_node>;
 
 } // namespace ast
 } // namespace furc

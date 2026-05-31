@@ -1,9 +1,7 @@
 #ifndef FURC_AST_NODE_HPP
 #define FURC_AST_NODE_HPP
 
-#include "furc/handle.hpp"
-
-#include <string>
+#include "furc/ast/fwd.hpp"
 
 namespace furc {
 namespace ast {
@@ -47,9 +45,6 @@ public:
 protected:
     virtual bool equal(const node& rhs) const = 0;
 };
-
-template <typename T, typename Error = std::string>
-using node_handle = handle<T*, Error>;
 
 } // namespace ast
 } // namespace furc

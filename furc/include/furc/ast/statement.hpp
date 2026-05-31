@@ -21,9 +21,6 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-using statement_node_h = node_handle<statement_node>;
-
-class expression_node;
 class return_statement_node : public statement_node {
 public:
     return_statement_node() = default;
@@ -41,8 +38,6 @@ protected:
 private:
     node_handle<expression_node> m_value;
 };
-
-using return_statement_node_h = node_handle<return_statement_node>;
 
 } // namespace ast
 } // namespace furc

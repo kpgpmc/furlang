@@ -27,8 +27,6 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-using declaration_node_h = node_handle<declaration_node>;
-
 class function_declaration_node : public declaration_node {
 public:
     function_declaration_node(front::token name)
@@ -44,8 +42,6 @@ protected:
 protected:
     front::token m_name;
 };
-
-using function_declaration_node_h = node_handle<function_declaration_node>;
 
 struct function_body {
     location                                 begin, end;
@@ -75,8 +71,6 @@ protected:
 private:
     function_body_h m_body;
 };
-
-using function_definition_node_h = node_handle<function_definition_node>;
 
 } // namespace ast
 } // namespace furc
