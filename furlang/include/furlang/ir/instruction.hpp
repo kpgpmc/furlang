@@ -14,7 +14,7 @@ enum class instruction_t {
     BinaryOp,
     Call,
     Branch,
-    BranchNotZero,
+    BranchCond,
 };
 
 class instruction {
@@ -112,25 +112,27 @@ private:
     block_index m_block;
 };
 
-class branch_nz_instruction final : public instruction {
+class branch_cond_instruction final : public instruction {
 public:
-    branch_nz_instruction(operand&& condition, block_index block)
-      : m_condition(std::move(condition)), m_block(block) {}
+    branch_cond_instruction(operand&& condition, block_index ifBlock, block_index elseBlock)
+      : m_condition(std::move(condition)), m_ifBlock(ifBlock), m_elseBlock(elseBlock) {}
 
-    ~branch_nz_instruction() override = default;
+    ~branch_cond_instruction() override = default;
 
-    branch_nz_instruction(branch_nz_instruction&&)                 = default;
-    branch_nz_instruction& operator=(branch_nz_instruction&&)      = default;
-    branch_nz_instruction(const branch_nz_instruction&)            = delete;
-    branch_nz_instruction& operator=(const branch_nz_instruction&) = delete;
+    branch_cond_instruction(branch_cond_instruction&&)                 = default;
+    branch_cond_instruction& operator=(branch_cond_instruction&&)      = default;
+    branch_cond_instruction(const branch_cond_instruction&)            = delete;
+    branch_cond_instruction& operator=(const branch_cond_instruction&) = delete;
 public:
-    instruction_t type() const override { return instruction_t::BranchNotZero; }
+    instruction_t type() const override { return instruction_t::BranchCond; }
 
     const operand& condition() const { return m_condition; }
-    block_index    block() const { return m_block; }
+    block_index    if_block() const { return m_ifBlock; }
+    block_index    else_block() const { return m_elseBlock; }
 private:
     operand     m_condition;
-    block_index m_block;
+    block_index m_ifBlock;
+    block_index m_elseBlock;
 };
 
 } // namespace ir
