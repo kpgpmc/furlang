@@ -2,6 +2,7 @@
 #define FURLANG_IR_OPERAND_HPP
 
 #include <cstdint>
+#include <ostream>
 #include <string>
 
 namespace furlang {
@@ -97,6 +98,16 @@ public:
 
     register_operand reg() const { return m_value.reg; }
     integer_operand  integer() const { return m_value.integer; }
+public:
+    friend std::ostream& operator<<(std::ostream& os, const operand& operand) {
+        switch (operand.m_type) {
+        case operand_t::None: return os << "none";
+        case operand_t::Register: return os << '%' << operand.m_value.reg;
+        case operand_t::Integer: return os << operand.m_value.integer;
+        case operand_t::String: return os << '"' << operand.m_value.string << '"';
+        }
+        return os;
+    }
 private:
     operand() = default;
 private:

@@ -13,13 +13,13 @@ namespace ir {
 // https://en.wikipedia.org/wiki/Basic_block
 class block {
 public:
-    using value_type = std::shared_ptr<instruction>;
+    using value_type = std::unique_ptr<instruction>;
 public:
     block() = default;
 public:
     template <typename T, typename... Args, typename = std::enable_if_t<std::is_base_of_v<instruction, T>>>
     void emplace(Args&&... args) {
-        m_instructions.emplace_back(std::make_shared<T>(std::forward<Args>(args)...));
+        m_instructions.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
     std::vector<value_type>&       instructions() { return m_instructions; }

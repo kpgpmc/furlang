@@ -4,6 +4,8 @@
 #include "furlang/ir/operand.hpp"
 
 #include <cstdint>
+#include <optional>
+#include <ostream>
 
 namespace furlang {
 namespace ir {
@@ -15,6 +17,7 @@ enum class instruction_t {
     Call,
     Branch,
     BranchCond,
+    Return,
 };
 
 class instruction {
@@ -28,6 +31,26 @@ public:
     instruction& operator=(const instruction&) = delete;
 public:
     virtual instruction_t type() const = 0;
+public:
+    friend std::ostream& operator<<(std::ostream& os, const instruction& instruction) { return instruction.print(os); }
+protected:
+    virtual std::ostream& print(std::ostream& os) const = 0;
+};
+
+class alloca_instruction final : public instruction {
+public:
+    alloca_instruction() {}
+
+    ~alloca_instruction() override = default;
+
+    alloca_instruction(alloca_instruction&&)                 = default;
+    alloca_instruction& operator=(alloca_instruction&&)      = default;
+    alloca_instruction(const alloca_instruction&)            = delete;
+    alloca_instruction& operator=(const alloca_instruction&) = delete;
+public:
+    instruction_t type() const override { return instruction_t::Alloca; }
+protected:
+    std::ostream& print(std::ostream& os) const override { return os << "alloca"; }
 };
 
 class assign_instruction final : public instruction {
@@ -49,6 +72,10 @@ public:
 private:
     operand m_source;
     operand m_destination;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        return os << "assign " << m_source << ", " << m_destination;
+    }
 };
 
 enum class binary_op_instruction_t {
@@ -65,6 +92,23 @@ enum class binary_op_instruction_t {
     LessEq,
     GreaterEq,
 };
+
+static inline std::ostream& operator<<(std::ostream& os, binary_op_instruction_t type) {
+    switch (type) {
+    case binary_op_instruction_t::Add: return os << '+';
+    case binary_op_instruction_t::Sub: return os << '-';
+    case binary_op_instruction_t::Mul: return os << '*';
+    case binary_op_instruction_t::Div: return os << '/';
+    case binary_op_instruction_t::Mod: return os << '%';
+    case binary_op_instruction_t::Eq: return os << "==";
+    case binary_op_instruction_t::NotEq: return os << "!=";
+    case binary_op_instruction_t::LessThan: return os << '<';
+    case binary_op_instruction_t::GreaterThan: return os << '>';
+    case binary_op_instruction_t::LessEq: return os << "<=";
+    case binary_op_instruction_t::GreaterEq: return os << ">=";
+    }
+    return os;
+}
 
 class binary_op_instruction final : public instruction {
 public:
@@ -89,6 +133,10 @@ private:
     operand                 m_lhs;
     operand                 m_rhs;
     operand                 m_dst;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        return os << "binop(" << m_type << ") " << m_lhs << ", " << m_rhs << ", " << m_dst;
+    }
 };
 
 using block_index = std::uint64_t;
@@ -110,6 +158,8 @@ public:
     block_index block() const { return m_block; }
 private:
     block_index m_block;
+protected:
+    std::ostream& print(std::ostream& os) const override { return os << "branch #" << m_block; }
 };
 
 class branch_cond_instruction final : public instruction {
@@ -133,6 +183,36 @@ private:
     operand     m_condition;
     block_index m_ifBlock;
     block_index m_elseBlock;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        return os << "branch_cond " << m_condition << ", #" << m_ifBlock << ", #" << m_elseBlock;
+    }
+};
+
+class return_instruction final : public instruction {
+public:
+    return_instruction() {}
+    return_instruction(operand&& value)
+      : m_value(std::move(value)) {}
+
+    ~return_instruction() override = default;
+
+    return_instruction(return_instruction&&)                 = default;
+    return_instruction& operator=(return_instruction&&)      = default;
+    return_instruction(const return_instruction&)            = delete;
+    return_instruction& operator=(const return_instruction&) = delete;
+public:
+    instruction_t type() const override { return instruction_t::Return; }
+
+    const std::optional<operand>& value() const { return m_value; }
+private:
+    std::optional<operand> m_value;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        os << "return";
+        if (m_value.has_value()) os << ' ' << m_value.value();
+        return os;
+    }
 };
 
 } // namespace ir
