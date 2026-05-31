@@ -44,6 +44,9 @@ CheckOptions:
   - key: readability-identifier-length.MinimumVariableNameLength
     value: 2
 
+  - key: cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove
+    value: true
+
   # Namespaces
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
