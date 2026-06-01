@@ -20,6 +20,15 @@ enum class instruction_t {
     Return,
 };
 
+static inline bool is_exit_instruction(instruction_t type) {
+    switch (type) {
+    case instruction_t::Branch:
+    case instruction_t::BranchCond:
+    case instruction_t::Return: return true;
+    default: return false;
+    }
+}
+
 class instruction {
 public:
     instruction()          = default;

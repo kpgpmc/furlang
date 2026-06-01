@@ -35,6 +35,13 @@ public:
     void visit(const ast::binop_expression_node& node) override;
     void visit(const ast::var_assign_expression_node& node) override;
 private:
+    template <typename T, typename... Args>
+    void push(Args&&... args) {
+        if (!m_currentBlock->emplace<T>(std::forward<Args>(args)...)) {
+            throw std::runtime_error("block exited too soon");
+        }
+    }
+
     furlang::ir::block_index push_block();
 private:
     furlang::ir::module                    m_module;

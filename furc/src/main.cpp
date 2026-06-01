@@ -39,6 +39,7 @@ int main(void) {
             for (const auto& instruction : block->instructions()) {
                 std::cout << "  " << *instruction << '\n';
             }
+            std::cout << "  " << *block->exit() << '\n';
         }
     }
 

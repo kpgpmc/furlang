@@ -24,6 +24,7 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
     for (const auto& stmt : funcDef.body()->statements) {
         stmt->accept(*this);
     }
+    m_currentBlock->emplace<ir::return_instruction>();
 
     m_module.push(std::move(m_currentFunction));
 }
@@ -35,16 +36,16 @@ void ir_generator::visit(const ast::return_statement_node& returnStmt) {
 
     if (returnStmt.value().present()) {
         returnStmt.value()->accept(*this);
-        m_currentBlock->emplace<ir::return_instruction>(ir::operand::new_reg(m_registerCounter - 1));
+        push<ir::return_instruction>(ir::operand::new_reg(m_registerCounter - 1));
     } else {
-        m_currentBlock->emplace<ir::return_instruction>();
+        push<ir::return_instruction>();
     }
 }
 
 void ir_generator::visit(const ast::if_statement_node& node) {
     node.cond()->accept(*this);
     ir_register cond = m_registerCounter - 1;
-    m_currentBlock->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
+    push<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
         m_currentFunction->blocks().size(),
         m_currentFunction->blocks().size() + 1);
 
@@ -68,18 +69,18 @@ void ir_generator::visit(const ast::compound_statement_node& node) {
 }
 
 void ir_generator::visit(const ast::string_literal_node& node) {
-    m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
+    push<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
         ir::operand::new_reg(m_registerCounter++));
 }
 
 void ir_generator::visit(const ast::integer_literal_node& node) {
-    m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_integer(*node.value()),
+    push<furlang::ir::assign_instruction>(ir::operand::new_integer(*node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 
 void ir_generator::visit(const ast::var_read_expression_node& node) {
     if (auto it = m_variables.find(*node.get_name()); it != m_variables.end()) {
-        m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_reg(it->second),
+        push<furlang::ir::assign_instruction>(ir::operand::new_reg(it->second),
             ir::operand::new_reg(m_registerCounter++));
     } else {
         throw std::runtime_error("unknown variable");
@@ -114,7 +115,7 @@ void ir_generator::visit(const ast::binop_expression_node& node) {
     node.rhs()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
     ir_register dst = m_registerCounter++;
-    m_currentBlock->emplace<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
+    push<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
         ir::operand::new_reg(lhs),
         ir::operand::new_reg(rhs),
         ir::operand::new_reg(dst));
@@ -135,16 +136,20 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
 
     auto compound = node.compound();
     if (compound != ast::binop_expression_node_t::None) {
-        m_currentBlock->emplace<ir::binary_op_instruction>(binary_op_instruction_t(compound),
+        push<ir::binary_op_instruction>(binary_op_instruction_t(compound),
             ir::operand::new_reg(reg),
             ir::operand::new_reg(rhs),
             ir::operand::new_reg(reg));
     } else {
-        m_currentBlock->emplace<ir::assign_instruction>(ir::operand::new_reg(rhs), ir::operand::new_reg(reg));
+        push<ir::assign_instruction>(ir::operand::new_reg(rhs), ir::operand::new_reg(reg));
     }
 }
 
 furlang::ir::block_index ir_generator::push_block() {
+    if (!m_currentFunction->blocks().empty() && !m_currentFunction->blocks().back()->has_exit()) {
+        throw std::runtime_error(
+            "block " + std::to_string(m_currentFunction->blocks().size() - 1) + " is lacking an exit");
+    }
     ir::block_index index = m_currentFunction->blocks().size();
     m_currentBlock        = m_currentFunction->push();
     return index;
