@@ -13,7 +13,7 @@ namespace {
 namespace ir = furlang::ir;
 }
 
-void ir_generator::visit_function_definition_node(const ast::function_definition_node& funcDef) {
+void ir_generator::visit(const ast::function_definition_node& funcDef) {
     m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()->string));
 
     push_block();
@@ -28,7 +28,7 @@ void ir_generator::visit_function_definition_node(const ast::function_definition
     m_module.push(std::move(m_currentFunction));
 }
 
-void ir_generator::visit_return_statement_node(const ast::return_statement_node& returnStmt) {
+void ir_generator::visit(const ast::return_statement_node& returnStmt) {
     if (returnStmt.value().has_error()) {
         std::cerr << returnStmt.value() << '\n';
     }
@@ -41,7 +41,7 @@ void ir_generator::visit_return_statement_node(const ast::return_statement_node&
     }
 }
 
-void ir_generator::visit_if_statement_node(const ast::if_statement_node& node) {
+void ir_generator::visit(const ast::if_statement_node& node) {
     node.cond()->accept(*this);
     std::uint32_t cond = m_registerCounter - 1;
     m_currentBlock->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
@@ -60,28 +60,28 @@ void ir_generator::visit_if_statement_node(const ast::if_statement_node& node) {
     push_block();
 }
 
-void ir_generator::visit_compound_statement_node(const ast::compound_statement_node& node) {
+void ir_generator::visit(const ast::compound_statement_node& node) {
     for (const auto& stmt : node.body()->statements) {
         stmt->accept(*this);
     }
 }
 
-void ir_generator::visit_string_literal_node(const ast::string_literal_node& node) {
+void ir_generator::visit(const ast::string_literal_node& node) {
     m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
         ir::operand::new_reg(m_registerCounter++));
 }
 
-void ir_generator::visit_integer_literal_node(const ast::integer_literal_node& node) {
+void ir_generator::visit(const ast::integer_literal_node& node) {
     m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_integer(*node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 
-void ir_generator::visit_var_read_expression_node(const ast::var_read_expression_node& node) {
+void ir_generator::visit(const ast::var_read_expression_node& node) {
     m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_variable(std::string(*node.get_name())),
         ir::operand::new_reg(m_registerCounter++));
 }
 
-void ir_generator::visit_unaryop_expression_node(const ast::unaryop_expression_node& node) {
+void ir_generator::visit(const ast::unaryop_expression_node& node) {
     throw std::runtime_error("unimplemented");
 }
 
@@ -103,7 +103,7 @@ static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::
     }
 }
 
-void ir_generator::visit_binop_expression_node(const ast::binop_expression_node& node) {
+void ir_generator::visit(const ast::binop_expression_node& node) {
     node.lhs()->accept(*this);
     std::uint32_t lhs = m_registerCounter - 1;
     node.rhs()->accept(*this);
@@ -115,7 +115,7 @@ void ir_generator::visit_binop_expression_node(const ast::binop_expression_node&
         ir::operand::new_reg(dst));
 }
 
-void ir_generator::visit_var_assign_expression_node(const ast::var_assign_expression_node& node) {
+void ir_generator::visit(const ast::var_assign_expression_node& node) {
     node.rhs()->accept(*this);
     std::uint32_t rhs = m_registerCounter - 1;
     assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);

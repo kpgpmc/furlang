@@ -13,7 +13,7 @@ bool literal_node::equal(const node& rhs) const {
 }
 
 void string_literal_node::accept(visitor& visitor) const {
-    visitor.visit_string_literal_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& string_literal_node::print(std::ostream& os) const {
@@ -26,7 +26,7 @@ bool string_literal_node::equal(const node& rhs) const {
 }
 
 void integer_literal_node::accept(visitor& visitor) const {
-    visitor.visit_integer_literal_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& integer_literal_node::print(std::ostream& os) const {
@@ -43,7 +43,7 @@ bool expression_node::equal(const node& rhs) const {
 }
 
 void var_read_expression_node::accept(visitor& visitor) const {
-    visitor.visit_var_read_expression_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& var_read_expression_node::print(std::ostream& os) const {
@@ -69,7 +69,7 @@ std::ostream& operator<<(std::ostream& os, unaryop_expression_node_t type) {
 }
 
 void unaryop_expression_node::accept(visitor& visitor) const {
-    visitor.visit_unaryop_expression_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& unaryop_expression_node::print(std::ostream& os) const {
@@ -108,7 +108,7 @@ std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
 }
 
 void binop_expression_node::accept(visitor& visitor) const {
-    visitor.visit_binop_expression_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& binop_expression_node::print(std::ostream& os) const {
@@ -122,7 +122,7 @@ bool binop_expression_node::equal(const node& rhsNode) const {
 }
 
 void var_assign_expression_node::accept(visitor& visitor) const {
-    visitor.visit_var_assign_expression_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& var_assign_expression_node::print(std::ostream& os) const {
@@ -139,7 +139,7 @@ bool declaration_node::equal(const node& rhs) const {
 }
 
 void function_declaration_node::accept(visitor& visitor) const {
-    visitor.visit_function_declaration_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& function_declaration_node::print(std::ostream& os) const {
@@ -151,7 +151,7 @@ bool function_declaration_node::equal(const node& rhs) const {
 }
 
 void function_definition_node::accept(visitor& visitor) const {
-    visitor.visit_function_definition_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& function_definition_node::print(std::ostream& os) const {
@@ -175,7 +175,7 @@ bool statement_node::equal(const node& rhs) const {
 }
 
 void return_statement_node::accept(visitor& visitor) const {
-    visitor.visit_return_statement_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& return_statement_node::print(std::ostream& os) const {
@@ -189,7 +189,7 @@ bool return_statement_node::equal(const node& rhs) const {
 }
 
 void if_statement_node::accept(visitor& visitor) const {
-    visitor.visit_if_statement_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& if_statement_node::print(std::ostream& os) const {
@@ -205,7 +205,7 @@ bool if_statement_node::equal(const node& rhsNode) const {
 }
 
 void compound_statement_node::accept(visitor& visitor) const {
-    visitor.visit_compound_statement_node(*this);
+    visitor.visit(*this);
 }
 
 std::ostream& compound_statement_node::print(std::ostream& os) const {
