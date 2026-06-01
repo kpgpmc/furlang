@@ -46,15 +46,15 @@ ast::declaration_node_h parser::parse_declaration() {
             token_handle<> name = eat_token(token_t::Identifier);
             if (name.has_error()) return { name.location(), name.error() };
 
-            auto tok = eat_token(token_t::Lparen);
+            auto tok = eat_token(token_t::LParen);
             if (tok.has_error()) return tok;
-            tok = eat_token(token_t::Rparen);
+            tok = eat_token(token_t::RParen);
             if (tok.has_error()) return tok;
 
             const auto& peek = peek_token();
             if (peek.has_error()) return peek;
             switch (peek->type) {
-            case token_t::Lbrace: {
+            case token_t::LBrace: {
                 ast::body_h body = parse_body();
                 if (body.has_error()) return body;
                 return ast::function_definition_node_h{ first.location(), m_arena, *name, std::move(body) };
@@ -72,12 +72,12 @@ ast::declaration_node_h parser::parse_declaration() {
     case token_t::None:
     case token_t::Identifier:
     case token_t::Integer:
-    case token_t::Lparen:
-    case token_t::Rparen:
-    case token_t::Lbrace:
-    case token_t::Rbrace:
-    case token_t::Lbracket:
-    case token_t::Rbracket:
+    case token_t::LParen:
+    case token_t::RParen:
+    case token_t::LBrace:
+    case token_t::RBrace:
+    case token_t::LBracket:
+    case token_t::RBracket:
     case token_t::Semicolon:
     case token_t::Colon:
     default: {
@@ -107,12 +107,12 @@ ast::statement_node_h parser::parse_statement() {
         }
         case keyword_token::If: {
             auto tok = next_token();
-            auto err = eat_token(token_t::Lparen);
+            auto err = eat_token(token_t::LParen);
             if (err.has_error()) return err;
 
             auto cond = parse_expression();
 
-            err = eat_token(token_t::Rparen);
+            err = eat_token(token_t::RParen);
             if (err.has_error()) return err;
 
             auto then = parse_statement();
@@ -136,7 +136,7 @@ ast::statement_node_h parser::parse_statement() {
         default: break;
         }
     }
-    case token_t::Lbrace: return ast::compound_statement_node_h{ location, m_arena, parse_body() };
+    case token_t::LBrace: return ast::compound_statement_node_h{ location, m_arena, parse_body() };
     default: break;
     }
 
@@ -187,10 +187,10 @@ ast::expression_node_h parser::parse_expression_primary() {
             m_arena,
             handle<std::string_view>{ tok.location(), (*tok)->string } };
     }
-    case token_t::Lparen: {
+    case token_t::LParen: {
         auto tok  = next_token();
         auto node = parse_expression();
-        auto err  = eat_token(token_t::Rparen);
+        auto err  = eat_token(token_t::RParen);
         if (err.has_error()) return err;
         return node;
     }
@@ -366,15 +366,15 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
 ast::body_h parser::parse_body() {
     ast::body body;
 
-    token_handle<> begin = eat_token(token_t::Lbrace);
+    token_handle<> begin = eat_token(token_t::LBrace);
     if (begin.has_error()) return begin;
     body.begin = begin.location();
 
-    while (!peek_token().has_error() && peek_token()->type != token_t::None && peek_token()->type != token_t::Rbrace) {
+    while (!peek_token().has_error() && peek_token()->type != token_t::None && peek_token()->type != token_t::RBrace) {
         body.statements.push_back(parse_statement());
     }
 
-    token_handle<> end = eat_token(token_t::Rbrace);
+    token_handle<> end = eat_token(token_t::RBrace);
     if (end.has_error()) return end;
     body.end = end.location();
 
