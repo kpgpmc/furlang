@@ -11,6 +11,7 @@ enum class statement_node_t {
     Declaration,
     Return,
     If,
+    Compound,
 };
 
 class statement_node : public node {
@@ -65,6 +66,24 @@ private:
     expression_node_h m_cond;
     statement_node_h  m_then;
     statement_node_h  m_else;
+};
+
+class compound_statement_node : public statement_node {
+public:
+    compound_statement_node(body_h&& body)
+      : m_body(std::move(body)) {}
+public:
+    const body_h& body() const { return m_body; }
+public:
+    statement_node_t statement_type() const override { return statement_node_t::Compound; }
+public:
+    void accept(visitor& visitor) const override;
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    body_h m_body;
 };
 
 } // namespace ast

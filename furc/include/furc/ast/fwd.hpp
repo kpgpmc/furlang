@@ -63,6 +63,8 @@ class return_statement_node;
 using return_statement_node_h = node_handle<return_statement_node>;
 class if_statement_node;
 using if_statement_node_h = node_handle<if_statement_node>;
+class compound_statement_node;
+using compound_statement_node_h = node_handle<compound_statement_node>;
 
 } // namespace ast
 } // namespace furc

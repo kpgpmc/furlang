@@ -89,6 +89,7 @@ ast::declaration_node_h parser::parse_declaration() {
 ast::statement_node_h parser::parse_statement() {
     const auto& tok = peek_token();
     if (tok.has_error()) return tok;
+    auto location = tok.location();
     switch (tok->type) {
     case token_t::Keyword: {
         switch (tok->value.keyword) {
@@ -121,20 +122,21 @@ ast::statement_node_h parser::parse_statement() {
                 peek_token()->value.keyword == keyword_token::Else) {
                 next_token();
 
-                return ast::if_statement_node_h{ tok.location(),
+                return ast::if_statement_node_h{ location,
                     m_arena,
                     std::move(cond),
                     std::move(then),
                     std::move(parse_statement()) };
             }
 
-            return ast::if_statement_node_h{ tok.location(), m_arena, std::move(cond), std::move(then) };
+            return ast::if_statement_node_h{ location, m_arena, std::move(cond), std::move(then) };
         }
         case keyword_token::None:
         case keyword_token::Func:
         default: break;
         }
     }
+    case token_t::Lbrace: return ast::compound_statement_node_h{ location, m_arena, parse_body() };
     default: break;
     }
 

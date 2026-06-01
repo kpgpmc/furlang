@@ -23,6 +23,7 @@ public:
     void visit_function_definition_node(const ast::function_definition_node& funcDef) override;
     void visit_return_statement_node(const ast::return_statement_node& returnStmt) override;
     void visit_if_statement_node(const ast::if_statement_node& node) override;
+    void visit_compound_statement_node(const ast::compound_statement_node& node) override;
     void visit_string_literal_node(const ast::string_literal_node& node) override;
     void visit_integer_literal_node(const ast::integer_literal_node& node) override;
     void visit_var_read_expression_node(const ast::var_read_expression_node& node) override;

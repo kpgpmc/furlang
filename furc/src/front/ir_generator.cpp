@@ -60,6 +60,12 @@ void ir_generator::visit_if_statement_node(const ast::if_statement_node& node) {
     push_block();
 }
 
+void ir_generator::visit_compound_statement_node(const ast::compound_statement_node& node) {
+    for (const auto& stmt : node.body()->statements) {
+        stmt->accept(*this);
+    }
+}
+
 void ir_generator::visit_string_literal_node(const ast::string_literal_node& node) {
     m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
         ir::operand::new_reg(m_registerCounter++));

@@ -204,6 +204,18 @@ bool if_statement_node::equal(const node& rhsNode) const {
     return statement_node::equal(rhs) && m_cond == rhs.m_cond && m_then == rhs.m_then && m_else == rhs.m_else;
 }
 
+void compound_statement_node::accept(visitor& visitor) const {
+    visitor.visit_compound_statement_node(*this);
+}
+
+std::ostream& compound_statement_node::print(std::ostream& os) const {
+    return os << m_body;
+}
+
+bool compound_statement_node::equal(const node& rhs) const {
+    return statement_node::equal(rhs) && m_body == reinterpret_cast<const compound_statement_node&>(rhs).m_body;
+}
+
 void program_node::accept(visitor& visitor) const {
     for (const auto& decl : m_declarations) {
         if (decl.has_error()) {

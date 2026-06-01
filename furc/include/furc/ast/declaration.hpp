@@ -11,7 +11,6 @@ namespace ast {
 enum class declaration_node_t {
     FunctionDeclaration,
     FunctionDefinition,
-    Variable,
 };
 
 class declaration_node : public statement_node {
