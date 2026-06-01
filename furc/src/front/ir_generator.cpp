@@ -56,6 +56,7 @@ void ir_generator::visit(const ast::if_statement_node& node) {
         push_block(); // else block
         node.elze()->accept(*this);
     }
+    m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size());
 
     push_block(); // merge block
 }
