@@ -8,6 +8,8 @@
 namespace furc {
 namespace front {
 
+using ir_register = std::uint32_t;
+
 class ir_generator final : public ast::visitor {
 public:
     ir_generator()           = default;
@@ -36,7 +38,7 @@ private:
     furlang::ir::module                    m_module;
     std::unique_ptr<furlang::ir::function> m_currentFunction;
     std::shared_ptr<furlang::ir::block>    m_currentBlock;
-    std::uint32_t                          m_registerCounter = 0;
+    ir_register                            m_registerCounter = 0;
 };
 
 } // namespace front

@@ -43,7 +43,7 @@ void ir_generator::visit(const ast::return_statement_node& returnStmt) {
 
 void ir_generator::visit(const ast::if_statement_node& node) {
     node.cond()->accept(*this);
-    std::uint32_t cond = m_registerCounter - 1;
+    ir_register cond = m_registerCounter - 1;
     m_currentBlock->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
         m_currentFunction->blocks().size(),
         m_currentFunction->blocks().size() + 1);
@@ -105,10 +105,10 @@ static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::
 
 void ir_generator::visit(const ast::binop_expression_node& node) {
     node.lhs()->accept(*this);
-    std::uint32_t lhs = m_registerCounter - 1;
+    ir_register lhs = m_registerCounter - 1;
     node.rhs()->accept(*this);
-    std::uint32_t rhs = m_registerCounter - 1;
-    std::uint32_t dst = m_registerCounter++;
+    ir_register rhs = m_registerCounter - 1;
+    ir_register dst = m_registerCounter++;
     m_currentBlock->emplace<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
         ir::operand::new_reg(lhs),
         ir::operand::new_reg(rhs),
@@ -117,11 +117,11 @@ void ir_generator::visit(const ast::binop_expression_node& node) {
 
 void ir_generator::visit(const ast::var_assign_expression_node& node) {
     node.rhs()->accept(*this);
-    std::uint32_t rhs = m_registerCounter - 1;
+    ir_register rhs = m_registerCounter - 1;
     assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
     ast::var_read_expression_node_h lhs = node.lhs();
 
-    std::uint32_t reg = m_registerCounter++;
+    ir_register reg = m_registerCounter++;
 
     auto compound = node.compound();
     if (compound != ast::binop_expression_node_t::None) {
