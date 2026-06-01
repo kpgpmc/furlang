@@ -1,10 +1,7 @@
 #ifndef FURC_FRONT_PARSER_HPP
 #define FURC_FRONT_PARSER_HPP
 
-#include "furc/ast/declaration.hpp"
-#include "furc/ast/expression.hpp"
-#include "furc/ast/literal.hpp"
-#include "furc/ast/program.hpp"
+#include "furc/ast/fwd.hpp"
 #include "furc/front/lexer.hpp"
 #include "furlang/arena.hpp"
 

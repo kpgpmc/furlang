@@ -1,5 +1,6 @@
 #ifndef LIBFURC
 
+#include "furc/ast/program.hpp"
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
 
