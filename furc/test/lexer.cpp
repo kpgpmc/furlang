@@ -1,55 +1,76 @@
+// NOLINTBEGIN(readability-identifier-naming)
+
 #include "furc/front/lexer.hpp"
 
+#include "furlang/result.hpp"
+
 #include "gtest/gtest.h"
+#include <string>
 
 namespace {
 
 using namespace furc::front;
 using namespace std::string_view_literals;
+using namespace std::string_literals;
 
-#define EXPECT_TOKEN(lexer, t) EXPECT_EQ((lexer).next_token(), (t));
-#define EXPECT_EOF(lexer) EXPECT_EQ((lexer).next_token(), (token{}));
-#define EXPECT_ERROR(lexer, err)                                                                                       \
-    do {                                                                                                               \
-        auto handle = (lexer).next_token();                                                                            \
-        EXPECT_TRUE(handle.has_error());                                                                               \
-        EXPECT_EQ(handle.error(), (err));                                                                              \
-    } while (0)
+using token_r    = furlang::result<token, std::string>;
+using lexer_case = std::pair<std::string, std::vector<token_r>>;
 
-TEST(Lexer, Tokens) {
-    lexer lexer("<TEMP>", "()\n\t\t{\n}[\"shto-to\"];    :,.main return func");
-    EXPECT_TOKEN(lexer, (token{ token_t::Lparen }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Rparen }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Lbrace }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Rbrace }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Lbracket }));
-    EXPECT_TOKEN(lexer, (token{ token_t::String, "shto-to"sv }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Rbracket }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Semicolon }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Colon }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Comma }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Dot }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Identifier, "main"sv }));
-    EXPECT_TOKEN(lexer, (token{ keyword_token::Return }));
-    EXPECT_TOKEN(lexer, (token{ keyword_token::Func }));
-    EXPECT_EOF(lexer);
+class LexerTestingFixture : public testing::TestWithParam<lexer_case> {};
+
+TEST_P(LexerTestingFixture, LexerTest) {
+    auto [code, expected] = GetParam();
+
+    lexer lexer("<TEMP>", code);
+    auto  it = expected.begin();
+    while (it != expected.end()) {
+        const auto& expected = *it++;
+
+        auto token = std::move(lexer.next_token());
+        if (expected.has_error()) {
+            EXPECT_TRUE(token.has_error());
+            EXPECT_EQ(token.error(), expected.error());
+        } else {
+            EXPECT_EQ(token, expected.value());
+        }
+    }
+    // EOF
+    EXPECT_EQ(lexer.next_token(), token{});
 }
 
-TEST(Lexer, Comments) {
-    lexer lexer("<TEMP>", "(/** skibidi **/func{//)\n}");
-    EXPECT_TOKEN(lexer, (token{ token_t::Lparen, "("sv })); // left out the string-view deliberately
-    EXPECT_TOKEN(lexer, (token{ keyword_token::Func }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Lbrace }));
-    EXPECT_TOKEN(lexer, (token{ token_t::Rbrace }));
-    EXPECT_EOF(lexer);
-}
+INSTANTIATE_TEST_SUITE_P(EmptyTests,
+    LexerTestingFixture,
+    testing::Values(lexer_case("", {}), lexer_case(" ", {}), lexer_case("\t", {}), lexer_case("\n", {})));
 
-TEST(Lexer, Integers) {
-    lexer lexer("<TEMP>", "67 18446744073709551615 18446744073709551616");
-    EXPECT_TOKEN(lexer, (token{ 67ULL }));
-    EXPECT_TOKEN(lexer, (token{ 18446744073709551615ULL }));
-    EXPECT_ERROR(lexer, "integer 18446744073709551616 is too big");
-    EXPECT_EOF(lexer);
-}
+INSTANTIATE_TEST_SUITE_P(Comments,
+    LexerTestingFixture,
+    testing::Values(lexer_case("(/** skibidi **/func{//)\n}",
+        { { token_t::LParen }, { keyword_token::Func }, { token_t::LBrace }, { token_t::RBrace } })));
+
+INSTANTIATE_TEST_SUITE_P(Integers,
+    LexerTestingFixture,
+    testing::Values(lexer_case("67 6\n7", { { 67 }, { 6 }, { 7 } }),
+        lexer_case("18446744073709551615 18446744073709551616",
+            { { 18446744073709551615ULL }, token_r(std::string("integer 18446744073709551616 is too big")) })));
+
+INSTANTIATE_TEST_SUITE_P(Tokens,
+    LexerTestingFixture,
+    testing::Values(lexer_case("()\n\t\t{\n}[\"shto-to\"];    :,.main return func",
+        { { token_t::LParen },
+            { token_t::RParen },
+            { token_t::LBrace },
+            { token_t::RBrace },
+            { token_t::LBracket },
+            { token_t::String, "shto-to"sv },
+            { token_t::RBracket },
+            { token_t::Semicolon },
+            { token_t::Colon },
+            { token_t::Comma },
+            { token_t::Dot },
+            { token_t::Identifier, "main"sv },
+            { keyword_token::Return },
+            { keyword_token::Func } })));
 
 } // namespace
+
+// NOLINTEND(readability-identifier-naming)

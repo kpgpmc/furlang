@@ -27,7 +27,7 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-class var_read_expression_node : public expression_node {
+class var_read_expression_node final : public expression_node {
 public:
     var_read_expression_node(handle<std::string_view>&& name)
       : m_name(std::move(name)) {}
@@ -55,7 +55,7 @@ enum class unaryop_expression_node_t {
     PostfixDecrement,
 };
 
-class unaryop_expression_node : public expression_node {
+class unaryop_expression_node final : public expression_node {
 public:
     unaryop_expression_node(unaryop_expression_node_t type, expression_node_h&& node)
       : m_type(type), m_node(std::move(node)) {}
@@ -95,7 +95,7 @@ enum class binop_expression_node_t {
     GreaterEqual,
 };
 
-class binop_expression_node : public expression_node {
+class binop_expression_node final : public expression_node {
 public:
     binop_expression_node(binop_expression_node_t type, expression_node_h&& lhs, expression_node_h&& rhs)
       : m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
@@ -121,7 +121,7 @@ private:
     expression_node_h       m_rhs;
 };
 
-class var_assign_expression_node : public expression_node {
+class var_assign_expression_node final : public expression_node {
 public:
     var_assign_expression_node(expression_node_h&& lhs, expression_node_h&& rhs)
       : m_compound(binop_expression_node_t::None), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}

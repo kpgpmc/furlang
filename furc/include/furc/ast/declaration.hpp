@@ -5,15 +5,12 @@
 #include "furc/ast/statement.hpp"
 #include "furc/front/token.hpp"
 
-#include <vector>
-
 namespace furc {
 namespace ast {
 
 enum class declaration_node_t {
     FunctionDeclaration,
     FunctionDefinition,
-    Variable,
 };
 
 class declaration_node : public statement_node {
@@ -45,27 +42,14 @@ protected:
     front::token m_name;
 };
 
-struct function_body {
-    location                                 begin, end;
-    std::vector<node_handle<statement_node>> statements;
-
-    bool operator==(const function_body& rhs) const {
-        return begin == rhs.begin && end == rhs.end && statements == rhs.statements;
-    }
-
-    bool operator!=(const function_body& rhs) const { return !this->operator==(rhs); }
-};
-
-using function_body_h = handle<ast::function_body>;
-
-class function_definition_node : public function_declaration_node {
+class function_definition_node final : public function_declaration_node {
 public:
-    function_definition_node(front::token name, function_body_h&& body)
+    function_definition_node(front::token name, body_h&& body)
       : function_declaration_node(name), m_body(std::move(body)) {}
 public:
     declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDefinition; }
 
-    const function_body_h& body() const { return m_body; }
+    const body_h& body() const { return m_body; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -73,7 +57,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    function_body_h m_body;
+    body_h m_body;
 };
 
 } // namespace ast

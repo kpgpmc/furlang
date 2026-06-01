@@ -90,6 +90,8 @@ token_handle<> lexer::next_token() {
             static std::unordered_map<std::string_view, keyword_token> s_keywords = {
                 { "func", keyword_token::Func },
                 { "return", keyword_token::Return },
+                { "if", keyword_token::If },
+                { "else", keyword_token::Else },
             };
 
             if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second, value };
@@ -104,12 +106,12 @@ token_handle<> lexer::next_token() {
         };
 
         static std::map<std::string_view, token_t, compare> s_tokens = {
-            { "(", token_t::Lparen },
-            { ")", token_t::Rparen },
-            { "{", token_t::Lbrace },
-            { "}", token_t::Rbrace },
-            { "[", token_t::Lbracket },
-            { "]", token_t::Rbracket },
+            { "(", token_t::LParen },
+            { ")", token_t::RParen },
+            { "{", token_t::LBrace },
+            { "}", token_t::RBrace },
+            { "[", token_t::LBracket },
+            { "]", token_t::RBracket },
             { ";", token_t::Semicolon },
             { ":", token_t::Colon },
             { ",", token_t::Comma },

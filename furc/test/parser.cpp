@@ -1,5 +1,11 @@
 #include "furc/front/parser.hpp"
 
+#include "furc/ast/declaration.hpp" // IWYU pragma: keep
+#include "furc/ast/expression.hpp"  // IWYU pragma: keep
+#include "furc/ast/literal.hpp"     // IWYU pragma: keep
+#include "furc/ast/program.hpp"     // IWYU pragma: keep
+#include "furc/ast/statement.hpp"   // IWYU pragma: keep
+
 #include "gtest/gtest.h"
 
 namespace {

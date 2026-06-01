@@ -22,7 +22,7 @@ arena::~arena() {
     region* next = nullptr;
     for (region* region = m_head; region != nullptr; region = next) {
         next = region->next;
-        delete region;
+        std::free(region); // NOLINT
     }
 }
 

@@ -16,12 +16,12 @@ enum class token_t {
     String,
     Keyword,
     Integer,
-    Lparen,
-    Rparen,
-    Lbrace,
-    Rbrace,
-    Lbracket,
-    Rbracket,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
+    LBracket,
+    RBracket,
     Semicolon,
     Colon,
     Comma,
@@ -57,12 +57,12 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::String: return os << "string";
     case token_t::Keyword: return os << "keyword";
     case token_t::Integer: return os << "integer";
-    case token_t::Lparen: return os << "'('";
-    case token_t::Rparen: return os << "')'";
-    case token_t::Lbrace: return os << "'{'";
-    case token_t::Rbrace: return os << "'}'";
-    case token_t::Lbracket: return os << "'['";
-    case token_t::Rbracket: return os << "']'";
+    case token_t::LParen: return os << "'('";
+    case token_t::RParen: return os << "')'";
+    case token_t::LBrace: return os << "'{'";
+    case token_t::RBrace: return os << "'}'";
+    case token_t::LBracket: return os << "'['";
+    case token_t::RBracket: return os << "']'";
     case token_t::Semicolon: return os << "';'";
     case token_t::Colon: return os << "':'";
     case token_t::Comma: return os << "','";
@@ -97,12 +97,12 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::String: return str + "string";
     case token_t::Keyword: return str + "keyword";
     case token_t::Integer: return str + "integer";
-    case token_t::Lparen: return str + "'('";
-    case token_t::Rparen: return str + "')'";
-    case token_t::Lbrace: return str + "'{'";
-    case token_t::Rbrace: return str + "'}'";
-    case token_t::Lbracket: return str + "'['";
-    case token_t::Rbracket: return str + "']'";
+    case token_t::LParen: return str + "'('";
+    case token_t::RParen: return str + "')'";
+    case token_t::LBrace: return str + "'{'";
+    case token_t::RBrace: return str + "'}'";
+    case token_t::LBracket: return str + "'['";
+    case token_t::RBracket: return str + "']'";
     case token_t::Semicolon: return str + "';'";
     case token_t::Colon: return str + "':'";
     case token_t::Comma: return str + "','";
@@ -134,6 +134,8 @@ enum class keyword_token {
     None,
     Func,
     Return,
+    If,
+    Else,
 };
 
 static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) {
@@ -141,7 +143,10 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::None: return os << "none";
     case keyword_token::Func: return os << "func";
     case keyword_token::Return: return os << "return";
+    case keyword_token::If: return os << "if";
+    case keyword_token::Else: return os << "else";
     }
+    return os;
 }
 
 static inline std::string operator+(const std::string& str, keyword_token keyword) {
@@ -149,7 +154,10 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::None: return str + "none";
     case keyword_token::Func: return str + "func";
     case keyword_token::Return: return str + "return";
+    case keyword_token::If: return str + "if";
+    case keyword_token::Else: return str + "else";
     }
+    return str;
 }
 
 using integer_token = std::uint64_t;

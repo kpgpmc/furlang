@@ -1,6 +1,10 @@
 #include "furc/front/parser.hpp"
 
-#include "furc/ast/declaration.hpp"
+#include "furc/ast/declaration.hpp" // IWYU pragma: keep
+#include "furc/ast/expression.hpp"  // IWYU pragma: keep
+#include "furc/ast/literal.hpp"     // IWYU pragma: keep
+#include "furc/ast/program.hpp"     // IWYU pragma: keep
+#include "furc/ast/statement.hpp"   // IWYU pragma: keep
 
 #include <fstream>
 #include <iostream>
@@ -46,16 +50,16 @@ ast::declaration_node_h parser::parse_declaration() {
             token_handle<> name = eat_token(token_t::Identifier);
             if (name.has_error()) return { name.location(), name.error() };
 
-            auto tok = eat_token(token_t::Lparen);
+            auto tok = eat_token(token_t::LParen);
             if (tok.has_error()) return tok;
-            tok = eat_token(token_t::Rparen);
+            tok = eat_token(token_t::RParen);
             if (tok.has_error()) return tok;
 
             const auto& peek = peek_token();
             if (peek.has_error()) return peek;
             switch (peek->type) {
-            case token_t::Lbrace: {
-                ast::function_body_h body = parse_body();
+            case token_t::LBrace: {
+                ast::body_h body = parse_body();
                 if (body.has_error()) return body;
                 return ast::function_definition_node_h{ first.location(), m_arena, *name, std::move(body) };
             }
@@ -72,12 +76,12 @@ ast::declaration_node_h parser::parse_declaration() {
     case token_t::None:
     case token_t::Identifier:
     case token_t::Integer:
-    case token_t::Lparen:
-    case token_t::Rparen:
-    case token_t::Lbrace:
-    case token_t::Rbrace:
-    case token_t::Lbracket:
-    case token_t::Rbracket:
+    case token_t::LParen:
+    case token_t::RParen:
+    case token_t::LBrace:
+    case token_t::RBrace:
+    case token_t::LBracket:
+    case token_t::RBracket:
     case token_t::Semicolon:
     case token_t::Colon:
     default: {
@@ -89,19 +93,54 @@ ast::declaration_node_h parser::parse_declaration() {
 ast::statement_node_h parser::parse_statement() {
     const auto& tok = peek_token();
     if (tok.has_error()) return tok;
+    auto location = tok.location();
     switch (tok->type) {
     case token_t::Keyword: {
-        auto tok = next_token();
-        if (peek_token()->type == token_t::Semicolon) {
-            next_token();
-            return ast::return_statement_node_h{ tok.location(), m_arena };
-        }
+        switch (tok->value.keyword) {
+        case keyword_token::Return: {
+            auto tok = next_token();
+            if (peek_token()->type == token_t::Semicolon) {
+                next_token();
+                return ast::return_statement_node_h{ tok.location(), m_arena };
+            }
 
-        auto value = parse_expression();
-        auto err   = eat_token(token_t::Semicolon);
-        if (err.has_error()) return err;
-        return ast::return_statement_node_h{ tok.location(), m_arena, std::move(value) };
+            auto value = parse_expression();
+            auto err   = eat_token(token_t::Semicolon);
+            if (err.has_error()) return err;
+            return ast::return_statement_node_h{ tok.location(), m_arena, std::move(value) };
+        }
+        case keyword_token::If: {
+            auto tok = next_token();
+            auto err = eat_token(token_t::LParen);
+            if (err.has_error()) return err;
+
+            auto cond = parse_expression();
+
+            err = eat_token(token_t::RParen);
+            if (err.has_error()) return err;
+
+            auto then = parse_statement();
+            if (then.has_error()) return then;
+
+            if (peek_token().present() && peek_token()->type == token_t::Keyword &&
+                peek_token()->value.keyword == keyword_token::Else) {
+                next_token();
+
+                return ast::if_statement_node_h{ location,
+                    m_arena,
+                    std::move(cond),
+                    std::move(then),
+                    std::move(parse_statement()) };
+            }
+
+            return ast::if_statement_node_h{ location, m_arena, std::move(cond), std::move(then) };
+        }
+        case keyword_token::None:
+        case keyword_token::Func:
+        default: break;
+        }
     }
+    case token_t::LBrace: return ast::compound_statement_node_h{ location, m_arena, parse_body() };
     default: break;
     }
 
@@ -152,10 +191,10 @@ ast::expression_node_h parser::parse_expression_primary() {
             m_arena,
             handle<std::string_view>{ tok.location(), (*tok)->string } };
     }
-    case token_t::Lparen: {
+    case token_t::LParen: {
         auto tok  = next_token();
         auto node = parse_expression();
-        auto err  = eat_token(token_t::Rparen);
+        auto err  = eat_token(token_t::RParen);
         if (err.has_error()) return err;
         return node;
     }
@@ -328,18 +367,18 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
     return lhs;
 }
 
-ast::function_body_h parser::parse_body() {
-    ast::function_body body;
+ast::body_h parser::parse_body() {
+    ast::body body;
 
-    token_handle<> begin = eat_token(token_t::Lbrace);
+    token_handle<> begin = eat_token(token_t::LBrace);
     if (begin.has_error()) return begin;
     body.begin = begin.location();
 
-    while (!peek_token().has_error() && peek_token()->type != token_t::None && peek_token()->type != token_t::Rbrace) {
+    while (!peek_token().has_error() && peek_token()->type != token_t::None && peek_token()->type != token_t::RBrace) {
         body.statements.push_back(parse_statement());
     }
 
-    token_handle<> end = eat_token(token_t::Rbrace);
+    token_handle<> end = eat_token(token_t::RBrace);
     if (end.has_error()) return end;
     body.end = end.location();
 

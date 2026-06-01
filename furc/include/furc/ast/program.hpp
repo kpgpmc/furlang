@@ -9,7 +9,7 @@
 namespace furc {
 namespace ast {
 
-class program_node : public node {
+class program_node final : public node {
 public:
     program_node() = default;
 

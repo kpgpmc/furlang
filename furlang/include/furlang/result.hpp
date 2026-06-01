@@ -42,12 +42,12 @@ public:
 
     explicit result(const error_type& error)
       : m_error(true) {
-        m_value.error = error;
+        new (&m_value.error) error_type(error);
     }
 
     explicit result(error_type&& error)
       : m_error(true) {
-        m_value.error = std::move(error);
+        new (&m_value.error) error_type(std::move(error));
     }
 
     ~result() {
@@ -58,17 +58,43 @@ public:
         }
     }
 
-    result(result&& other) noexcept {}
+    result(result&& other) noexcept
+      : m_error(other.m_error) {
+        if (m_error) {
+            new (&m_value.error) error_type(std::move(other.m_value.error));
+        } else {
+            new (&m_value.result) value_type(std::move(other.m_value.result));
+        }
+    }
 
     result& operator=(result&& other) noexcept {
         if (this == &other) return *this;
+        m_error = other.m_error;
+        if (m_error) {
+            new (&m_value.error) error_type(std::move(other.m_value.error));
+        } else {
+            new (&m_value.result) value_type(std::move(other.m_value.result));
+        }
         return *this;
     }
 
-    result(const result& other) {}
+    result(const result& other)
+      : m_error(other.m_error) {
+        if (m_error) {
+            new (&m_value.error) error_type(other.m_value.error);
+        } else {
+            new (&m_value.result) value_type(other.m_value.result);
+        }
+    }
 
     result& operator=(const result& other) {
         if (this == &other) return *this;
+        m_error = other.m_error;
+        if (m_error) {
+            new (&m_value.error) error_type(other.m_value.error);
+        } else {
+            new (&m_value.result) value_type(other.m_value.result);
+        }
         return *this;
     }
 public:
@@ -134,6 +160,14 @@ private:
     union value {
         value_type result;
         error_type error;
+
+        value() {}
+        ~value() {}
+
+        value(value&&) noexcept {}
+        value& operator=(value&&) noexcept {}
+        value(const value&) {}
+        value& operator=(const value&) {}
     } m_value;
     bool m_error = false;
 };

@@ -1,12 +1,27 @@
-// #ifndef LIBFURC
+#ifndef LIBFURC
 
+#include "furc/ast/program.hpp"
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
 
 #include <iostream>
 
 int main(void) {
-    furc::front::parser       parser("<TEMP>", "func main() {\n    return 7 + 6 * 10;\n}");
+    std::string               programStr = R"(
+    func main() {
+        x = 5;
+        x -= 3;
+        if (x < 3) {
+            y = x * 2;
+            w = y;
+        } else {
+            y = x - 3;
+        }
+        w = x - y;
+        z = x + y;
+    }
+    )";
+    furc::front::parser       parser("<TEMP>", programStr);
     furc::front::ir_generator generator;
 
     auto program = parser.parse();
@@ -25,10 +40,11 @@ int main(void) {
             for (const auto& instruction : block->instructions()) {
                 std::cout << "  " << *instruction << '\n';
             }
+            std::cout << "  " << *block->exit() << '\n';
         }
     }
 
     return 0;
 }
 
-// #endif // LIBFURC
+#endif // LIBFURC
