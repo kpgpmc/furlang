@@ -57,7 +57,7 @@ void ir_generator::visit(const ast::if_statement_node& node) {
         node.elze()->accept(*this);
     }
 
-    push_block();
+    push_block(); // merge block
 }
 
 void ir_generator::visit(const ast::compound_statement_node& node) {
@@ -77,8 +77,12 @@ void ir_generator::visit(const ast::integer_literal_node& node) {
 }
 
 void ir_generator::visit(const ast::var_read_expression_node& node) {
-    m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_variable(std::string(*node.get_name())),
-        ir::operand::new_reg(m_registerCounter++));
+    if (auto it = m_variables.find(*node.get_name()); it != m_variables.end()) {
+        m_currentBlock->emplace<furlang::ir::assign_instruction>(ir::operand::new_reg(it->second),
+            ir::operand::new_reg(m_registerCounter++));
+    } else {
+        throw std::runtime_error("unknown variable");
+    }
 }
 
 void ir_generator::visit(const ast::unaryop_expression_node& node) {
@@ -121,19 +125,22 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
     assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
     ast::var_read_expression_node_h lhs = node.lhs();
 
-    ir_register reg = m_registerCounter++;
+    ir_register reg = 0;
+    if (auto it = m_variables.find(*lhs->get_name()); it != m_variables.end()) {
+        reg = it->second;
+    } else {
+        m_variables[*lhs->get_name()] = reg = m_registerCounter++;
+    }
 
     auto compound = node.compound();
     if (compound != ast::binop_expression_node_t::None) {
         m_currentBlock->emplace<ir::binary_op_instruction>(binary_op_instruction_t(compound),
-            ir::operand::new_variable(std::string(*lhs->get_name())),
+            ir::operand::new_reg(reg),
             ir::operand::new_reg(rhs),
             ir::operand::new_reg(reg));
     } else {
         m_currentBlock->emplace<ir::assign_instruction>(ir::operand::new_reg(rhs), ir::operand::new_reg(reg));
     }
-    m_currentBlock->emplace<ir::assign_instruction>(ir::operand::new_reg(reg),
-        ir::operand::new_variable(std::string(*lhs->get_name())));
 }
 
 furlang::ir::block_index ir_generator::push_block() {
