@@ -24,7 +24,7 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-class string_literal_node : public literal_node {
+class string_literal_node final : public literal_node {
 public:
     string_literal_node(handle<std::string_view>&& value)
       : m_value(std::move(value)) {}
@@ -42,7 +42,7 @@ private:
     handle<std::string_view> m_value;
 };
 
-class integer_literal_node : public literal_node {
+class integer_literal_node final : public literal_node {
 public:
     integer_literal_node(handle<front::integer_token>&& value)
       : m_value(std::move(value)) {}

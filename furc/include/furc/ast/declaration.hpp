@@ -42,7 +42,7 @@ protected:
     front::token m_name;
 };
 
-class function_definition_node : public function_declaration_node {
+class function_definition_node final : public function_declaration_node {
 public:
     function_definition_node(front::token name, body_h&& body)
       : function_declaration_node(name), m_body(std::move(body)) {}

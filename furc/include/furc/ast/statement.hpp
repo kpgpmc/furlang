@@ -23,7 +23,7 @@ protected:
     bool equal(const node& rhs) const override;
 };
 
-class return_statement_node : public statement_node {
+class return_statement_node final : public statement_node {
 public:
     return_statement_node() = default;
 
@@ -43,7 +43,7 @@ private:
     expression_node_h m_value;
 };
 
-class if_statement_node : public statement_node {
+class if_statement_node final : public statement_node {
 public:
     if_statement_node(expression_node_h&& cond, statement_node_h&& then)
       : m_cond(std::move(cond)), m_then(std::move(then)) {}
@@ -68,7 +68,7 @@ private:
     statement_node_h  m_else;
 };
 
-class compound_statement_node : public statement_node {
+class compound_statement_node final : public statement_node {
 public:
     compound_statement_node(body_h&& body)
       : m_body(std::move(body)) {}
