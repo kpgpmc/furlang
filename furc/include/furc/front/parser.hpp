@@ -10,18 +10,50 @@
 namespace furc {
 namespace front {
 
-class parser {
+/**
+ * @brief Parser.
+ *
+ * Furlang's parser.
+ */
+class parser final {
 public:
+    /**
+     * @brief Construct a new parser from content.
+     *
+     * @param filename Filename for debugging.
+     * @param content Content.
+     */
     parser(std::string_view filename, std::string_view content);
+
+    /**
+     * @brief Construct a new parser from file.
+     *
+     * Constructs a lexer with content read from file passed through \p filename.
+     *
+     * @param filename Name of the file.
+     */
     parser(std::string_view filename);
     ~parser() = default;
 
-    parser(parser&&)                 = default;
-    parser(const parser&)            = delete;
-    parser& operator=(parser&&)      = default;
+    /**
+     * @brief Move constructor.
+     */
+    parser(parser&&) = default;
+
+    parser(const parser&) = delete;
+
+    /**
+     * @brief Move constructor.
+     */
+    parser& operator=(parser&&) = default;
+
     parser& operator=(const parser&) = delete;
 public:
-    // parser owns the arena :3c
+    /**
+     * @brief Returns a parsed program.
+     *
+     * @return Handle to an AST node of the program.
+     */
     ast::program_node_h parse() &;
 private:
     ast::declaration_node_h parse_declaration();
