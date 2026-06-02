@@ -143,11 +143,11 @@ void function_declaration_node::accept(visitor& visitor) const {
 }
 
 std::ostream& function_declaration_node::print(std::ostream& os) const {
-    return os << "function " << m_name->string << " declaration";
+    return os << "function " << p_name->string << " declaration";
 }
 
 bool function_declaration_node::equal(const node& rhs) const {
-    return declaration_node::equal(rhs) && m_name == reinterpret_cast<const function_declaration_node&>(rhs).m_name;
+    return declaration_node::equal(rhs) && p_name == reinterpret_cast<const function_declaration_node&>(rhs).p_name;
 }
 
 void function_definition_node::accept(visitor& visitor) const {
@@ -160,7 +160,7 @@ std::ostream& function_definition_node::print(std::ostream& os) const {
     if (m_body.present()) {
         for (const auto& entry : m_body->statements)
             os << '\n' << entry;
-        return os << '\n' << m_body->end << ": " << m_name->string << " end";
+        return os << '\n' << m_body->end << ": " << p_name->string << " end";
     }
     return os << m_body.error(); // error
 }

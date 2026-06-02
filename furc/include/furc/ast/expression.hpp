@@ -7,34 +7,78 @@
 namespace furc {
 namespace ast {
 
+/**
+ * @brief Expression node type.
+ */
 enum class expression_node_t {
-    Literal,
-    VarRead,
-    VarAssign,
-    Unaryop,
-    Binop,
-    Paren,
+    Literal,   /**< Literal */
+    VarRead,   /**< Variable read expression */
+    Unaryop,   /**< Unary operation expression */
+    Binop,     /**< Binary operation expression */
+    VarAssign, /**< Variable assignment expression */
 };
 
+/**
+ * @brief Expression AST node.
+ */
 class expression_node : public statement_node {
 public:
+    /**
+     * @brief Returns this node's category.
+     *
+     * @return node_t::Expression.
+     */
     node_t category() const override { return node_t::Expression; }
 
+    /**
+     * @brief Returns this node's statement type.
+     *
+     * @return statement_node_t::Expression.
+     */
     statement_node_t statement_type() const override { return statement_node_t::Expression; }
 
+    /**
+     * @brief Returns this node's expression type.
+     *
+     * @return The expression type.
+     */
     virtual expression_node_t expression_type() const = 0;
 protected:
     bool equal(const node& rhs) const override;
 };
 
+/**
+ * @brief Var read expression AST node.
+ */
 class var_read_expression_node final : public expression_node {
 public:
+    /**
+     * @brief Construct a new var read expression node object from a name handle.
+     *
+     * @param name Handle to the name.
+     */
     var_read_expression_node(handle<std::string_view>&& name)
       : m_name(std::move(name)) {}
 
+    /**
+     * @brief Returns the variable's name.
+     *
+     * @return Name of the variable.
+     */
     const handle<std::string_view>& get_name() const { return m_name; }
-    handle<std::string_view>&&      move_name() { return std::move(m_name); }
+
+    /**
+     * @brief Returns the variable's name.
+     *
+     * @return Name of the variable.
+     */
+    handle<std::string_view>&& move_name() { return std::move(m_name); }
 public:
+    /**
+     * @brief Returns this node's expression type.
+     *
+     * @return expression_node_t::VarRead.
+     */
     expression_node_t expression_type() const override { return expression_node_t::VarRead; }
 public:
     void accept(visitor& visitor) const override;
@@ -46,27 +90,72 @@ private:
     handle<std::string_view> m_name;
 };
 
+/**
+ * @brief Unary operation node type.
+ */
 enum class unaryop_expression_node_t {
-    Positive,
-    Negative,
-    PrefixIncrement,
-    PostfixIncrement,
-    PrefixDecrement,
-    PostfixDecrement,
+    Positive,         /**< Positive (unary plus) */
+    Negative,         /**< Negative (unary minus) */
+    PrefixIncrement,  /**< Prefix increment */
+    PostfixIncrement, /**< Postfix increment */
+    PrefixDecrement,  /**< Prefix decrement */
+    PostfixDecrement, /**< Postfix decrement */
 };
 
+/**
+ * @brief Unary operation expression AST node.
+ */
 class unaryop_expression_node final : public expression_node {
 public:
+    /**
+     * @brief Construct a new unaryop expression node object from type and expression node handle.
+     *
+     * @param type Operation type.
+     * @param node Handle to the inner expression node.
+     */
     unaryop_expression_node(unaryop_expression_node_t type, expression_node_h&& node)
       : m_type(type), m_node(std::move(node)) {}
 
+    /**
+     * @brief Sets this node's inner expression.
+     *
+     * @param node New node handle.
+     */
     void set_node(expression_node_h&& node) { m_node = std::move(node); }
 
+    /**
+     * @brief Returns the type of this node's operation.
+     *
+     * @return The operation type.
+     */
     unaryop_expression_node_t type() const { return m_type; }
-    const expression_node_h&  get_node() const { return m_node; }
-    expression_node_h&        get_node() { return m_node; }
-    expression_node_h&&       move_node() { return std::move(m_node); }
+
+    /**
+     * @brief Returns this node's inner expression.
+     *
+     * @return The inner expression.
+     */
+    const expression_node_h& get_node() const { return m_node; }
+
+    /**
+     * @brief Returns this node's inner expression.
+     *
+     * @return The inner expression.
+     */
+    expression_node_h& get_node() { return m_node; }
+
+    /**
+     * @brief Moves this node's inner expression.
+     *
+     * @return The moved inner expression.
+     */
+    expression_node_h&& move_node() { return std::move(m_node); }
 public:
+    /**
+     * @brief Returns this node's expression type.
+     *
+     * @return expression_node_t::Unaryop.
+     */
     expression_node_t expression_type() const override { return expression_node_t::Unaryop; }
 public:
     void accept(visitor& visitor) const override;
@@ -76,37 +165,91 @@ protected:
     bool equal(const node& rhs) const override;
 private:
     unaryop_expression_node_t m_type;
-    expression_node_h         m_node;
+    expression_node_h         m_node; /**< The inner expression. */
 };
 
+/**
+ * @brief Binary operation expression node type.
+ */
 enum class binop_expression_node_t {
-    None = 0,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
+    None = 0, /**< None */
+    Add,      /**< Addition */
+    Sub,      /**< Subtraction */
+    Mul,      /**< Multiplication */
+    Div,      /**< Division */
+    Mod,      /**< Modulo */
 
-    Equal,
-    NotEqual,
-    LessThan,
-    GreaterThan,
-    LessEqual,
-    GreaterEqual,
+    Equal,        /**< Equality */
+    NotEqual,     /**< Inequality */
+    LessThan,     /**< Less */
+    GreaterThan,  /**< Greater */
+    LessEqual,    /**< Less or equal */
+    GreaterEqual, /**< Greater or equal */
 };
 
+/**
+ * @brief Binary operation expression AST node.
+ */
 class binop_expression_node final : public expression_node {
 public:
+    /**
+     * @brief Construct a new binary operation expression AST node.
+     *
+     * @param type Binary operation type.
+     * @param lhs Left-hand-side expression.
+     * @param rhs Right-hand-side expression.
+     */
     binop_expression_node(binop_expression_node_t type, expression_node_h&& lhs, expression_node_h&& rhs)
       : m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
-    binop_expression_node_t  type() const { return m_type; };
+    /**
+     * @brief Returns this node's binary operation type.
+     *
+     * @return The binary operation type.
+     */
+    binop_expression_node_t type() const { return m_type; };
+
+    /**
+     * @brief Returns this node's left-hand-side expression.
+     *
+     * @return The left-hand-side expression.
+     */
     const expression_node_h& lhs() const { return m_lhs; };
-    expression_node_h&       lhs() { return m_lhs; };
-    expression_node_h&&      move_lhs() { return std::move(m_lhs); };
+
+    /**
+     * @brief Returns this node's left-hand-side expression.
+     *
+     * @return The left-hand-side expression.
+     */
+    expression_node_h& lhs() { return m_lhs; };
+
+    /**
+     * @brief Moves this node's left-hand-side expression.
+     *
+     * @return The moved left-hand-side expression.
+     */
+    expression_node_h&& move_lhs() { return std::move(m_lhs); };
+
+    /**
+     * @brief Returns this node's right-hand-side expression.
+     *
+     * @return The right-hand-side expression.
+     */
     const expression_node_h& rhs() const { return m_rhs; };
-    expression_node_h&       rhs() { return m_rhs; };
-    expression_node_h&&      move_rhs() { return std::move(m_rhs); };
+
+    /**
+     * @brief Returns this node's right-hand-side expression.
+     *
+     * @return The right-hand-side expression.
+     */
+    expression_node_h& rhs() { return m_rhs; };
+
+    /**
+     * @brief Moves this node's right-hand-side expression.
+     *
+     * @return The moved right-hand-side expression.
+     */
+    expression_node_h&& move_rhs() { return std::move(m_rhs); };
 public:
     expression_node_t expression_type() const override { return expression_node_t::Binop; }
 public:
@@ -121,18 +264,56 @@ private:
     expression_node_h       m_rhs;
 };
 
+/**
+ * @brief Variable assignment expression AST node.
+ */
 class var_assign_expression_node final : public expression_node {
 public:
+    /**
+     * @brief Construct a new variable assignment expression AST node.
+     *
+     * @param lhs Left-hand-side expression handle.
+     * @param rhs Right-hand-side expression handle.
+     */
     var_assign_expression_node(expression_node_h&& lhs, expression_node_h&& rhs)
       : m_compound(binop_expression_node_t::None), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
+    /**
+     * @brief Construct a new compound variable assignment expression AST node.
+     *
+     * @param compound Compound operation type.
+     * @param lhs Left-hand-side expression handle.
+     * @param rhs Right-hand-side expression handle.
+     */
     var_assign_expression_node(binop_expression_node_t compound, expression_node_h&& lhs, expression_node_h&& rhs)
       : m_compound(compound), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
-    binop_expression_node_t  compound() const { return m_compound; }
+    /**
+     * @brief Returns this node's compound operation type.
+     *
+     * @return The compound operation type.
+     */
+    binop_expression_node_t compound() const { return m_compound; }
+
+    /**
+     * @brief Returns this node's left-hand-side expression.
+     *
+     * @return The left-hand-side expression.
+     */
     const expression_node_h& lhs() const { return m_lhs; }
+
+    /**
+     * @brief Returns this node's right-hand-side expression.
+     *
+     * @return The right-hand-side expression.
+     */
     const expression_node_h& rhs() const { return m_rhs; }
 public:
+    /**
+     * @brief Returns this node's expression type.
+     *
+     * @return expression_node_t::VarAssign.
+     */
     expression_node_t expression_type() const override { return expression_node_t::VarAssign; }
 public:
     void accept(visitor& visitor) const override;
