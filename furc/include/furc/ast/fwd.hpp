@@ -159,7 +159,7 @@ struct body {
 };
 
 /**
- * @brief Alias for handle to body.
+ * @brief Alias for body result.
  * @see body
  */
 using body_h = handle<body>;

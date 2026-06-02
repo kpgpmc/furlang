@@ -1,9 +1,11 @@
 #ifndef FURC_FRONT_TOKEN_HPP
 #define FURC_FRONT_TOKEN_HPP
 
-#include "furc/handle.hpp"
+#include "furc/diag.hpp"
+#include "furlang/result.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <ostream>
 #include <string_view>
 
@@ -173,7 +175,9 @@ using integer_token = std::uint64_t; /**< Integer token. */
  * @brief Token.
  */
 struct token {
-    token_t type = token_t::None; /**< Token type. */
+    location location;
+    token_t  type = token_t::None; /**< Token type. */
+
     /**
      * @brief Token's value.
      */
@@ -241,35 +245,39 @@ struct token {
     /**
      * @brief Construct a new null token.
      *
+     * @param location Token's location.
      * @param type Token's type.
      */
-    token(token_t type)
-      : type(type) {}
+    token(struct location location, token_t type)
+      : location(location), type(type) {}
 
     /**
      * @brief Construct a new string token.
      *
+     * @param location Token's location.
      * @param type Token's type.
      * @param value String value.
      */
-    token(token_t type, std::string_view value)
-      : type(type), value(value) {}
+    token(struct location location, token_t type, std::string_view value)
+      : location(location), type(type), value(value) {}
 
     /**
      * @brief Construct a new keyword token.
      *
+     * @param location Token's location.
      * @param keyword Keyword value.
      */
-    token(keyword_token keyword)
-      : type(token_t::Keyword), value(keyword) {}
+    token(struct location location, keyword_token keyword)
+      : location(location), type(token_t::Keyword), value(keyword) {}
 
     /**
      * @brief Construct a new integer token.
      *
+     * @param location Token's location.
      * @param integer Integer value.
      */
-    token(integer_token integer)
-      : type(token_t::Integer), value(integer) {}
+    token(struct location location, integer_token integer)
+      : location(location), type(token_t::Integer), value(integer) {}
 
     /**
      * @brief Returns pointer to this token's value.
@@ -313,8 +321,35 @@ static inline std::ostream& operator<<(std::ostream& os, const token& token) {
     }
 }
 
-template <typename Error = std::string>
-using token_handle = handle<token, Error>; /**< Alias to handle of token. */
+/**
+ * @brief Token error type
+ */
+enum class token_error_t {
+    EndOfFile,           /**< End of file */
+    UnexpectedEof,       /**< Unexpected end of file */
+    UnexpectedCharacter, /**< Unexpected character */
+    UnexpectedToken,     /**< Unexpected character */
+    IntegerOverflow,     /**< Integer overflow */
+};
+
+/**
+ * @brief Token error
+ *
+ * For token_r alias.
+ */
+struct token_error {
+    location      location; /**< Error location. */
+    token_error_t type;     /**< Error type. */
+    std::string   message;  /**< Error message. */
+
+    bool operator==(const token_error& rhs) const {
+        return location == rhs.location && type == rhs.type && message == rhs.message;
+    }
+
+    bool operator!=(const token_error& rhs) const { return !this->operator==(rhs); }
+};
+
+using token_r = furlang::result<token, token_error>; /**< Alias to a token result. */
 
 } // namespace front
 } // namespace furc

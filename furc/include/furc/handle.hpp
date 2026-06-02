@@ -171,7 +171,7 @@ public:
         return *this;
     }
 public:
-    location location() const { return m_data->location; }
+    location location() const { return m_data->location; } // NOLINT(bugprone-unchecked-optional-access)
 
     bool present() const { return m_data.has_value() && m_data->value != nullptr; }
     bool has_error() const { return m_data.has_value() && m_data->value == nullptr; }

@@ -67,15 +67,17 @@ private:
 
     ast::body_h parse_body();
 private:
-    token_handle<>        next_token();
-    const token_handle<>& peek_token();
-    token_handle<>        eat_token(token_t type);
+    static ast::node_handle<ast::node> error_handle(const token_r& result);
 private:
-    std::string                 m_filename;
-    std::string                 m_content;
-    lexer                       m_lexer;
-    furlang::arena              m_arena;
-    std::vector<token_handle<>> m_peekBuffer;
+    token_r        next_token();
+    const token_r& peek_token();
+    token_r        eat_token(token_t type);
+private:
+    std::string          m_filename;
+    std::string          m_content;
+    lexer                m_lexer;
+    furlang::arena       m_arena;
+    std::vector<token_r> m_peekBuffer;
 };
 
 } // namespace front

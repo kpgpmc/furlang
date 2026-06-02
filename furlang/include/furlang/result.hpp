@@ -205,7 +205,7 @@ public:
      * @param rhs Value to compare against.
      * @return true if the values are equal.
      */
-    bool operator==(const value_type& rhs) const { return !m_error && !rhs.m_error && m_value.result == rhs; }
+    bool operator==(const value_type& rhs) const { return !m_error && m_value.result == rhs; }
 
     /**
      * @brief Compares a result with a value for inequality.
