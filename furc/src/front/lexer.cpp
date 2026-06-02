@@ -94,7 +94,7 @@ token_handle<> lexer::next_token() {
                 { "else", keyword_token::Else },
             };
 
-            if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second, value };
+            if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second };
             return { location, token_t::Identifier, value };
         }
 

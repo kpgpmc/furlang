@@ -10,44 +10,48 @@
 namespace furc {
 namespace front {
 
+/**
+ * @brief Token type.
+ */
 enum class token_t {
-    None,
-    Identifier,
-    String,
-    Keyword,
-    Integer,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    LBracket,
-    RBracket,
-    Semicolon,
-    Colon,
-    Comma,
-    Dot,
+    None,       /**< None */
+    Identifier, /**< Identifier */
+    String,     /**< String */
+    Keyword,    /**< Keyword */
+    Integer,    /**< Integer */
 
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Percent,
-    DPlus,
-    DMinus,
+    LParen,    /**< `(` */
+    RParen,    /**< `)` */
+    LBrace,    /**< `{` */
+    RBrace,    /**< `}` */
+    LBracket,  /**< `[` */
+    RBracket,  /**< `]` */
+    Semicolon, /**< `;` */
+    Colon,     /**< `:` */
+    Comma,     /**< `,` */
+    Dot,       /**< `.` */
 
-    Eq,
-    PlusEq,
-    MinusEq,
-    StarEq,
-    SlashEq,
-    PercentEq,
+    Plus,    /**< `+` */
+    Minus,   /**< `-` */
+    Star,    /**< `*` */
+    Slash,   /**< `/` */
+    Percent, /**< `%` */
+    DPlus,   /**< `++` */
+    DMinus,  /**< `--` */
 
-    DEq,
-    NotEq,
-    LessThan,
-    GreaterThan,
-    LessEq,
-    GreaterEq,
+    Eq,        /**< `=` */
+    PlusEq,    /**< `+=` */
+    MinusEq,   /**< `-=` */
+    StarEq,    /**< `*=` */
+    SlashEq,   /**< `/=` */
+    PercentEq, /**< `%=` */
+
+    DEq,         /**< `==` */
+    NotEq,       /**< `!=` */
+    LessThan,    /**< `<` */
+    GreaterThan, /**< `>` */
+    LessEq,      /**< `<=` */
+    GreaterEq,   /**< `>=` */
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -130,12 +134,15 @@ static inline std::string operator+(const std::string& str, token_t type) {
     return str;
 }
 
+/**
+ * @brief Keyword token.
+ */
 enum class keyword_token {
-    None,
-    Func,
-    Return,
-    If,
-    Else,
+    None,   /**< None */
+    Func,   /**< `func` */
+    Return, /**< `return` */
+    If,     /**< `if` */
+    Else,   /**< `else` */
 };
 
 static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) {
@@ -160,43 +167,130 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     return str;
 }
 
-using integer_token = std::uint64_t;
+using integer_token = std::uint64_t; /**< Integer token. */
 
+/**
+ * @brief Token.
+ */
 struct token {
-    token_t type = token_t::None;
+    token_t type = token_t::None; /**< Token type. */
+    /**
+     * @brief Token's value.
+     */
     union value {
-        std::nullptr_t   null;
-        std::string_view string;
-        keyword_token    keyword;
-        integer_token    integer;
+        /**
+         * @brief Null value. For token_t::None, token_t::Plus, token_t::Minus, etc.
+         * @see token_t::None
+         */
+        std::nullptr_t null;
 
+        /**
+         * @brief String value. For token_t::Identifier and token_t::String.
+         * @see token_t::Identifier
+         * @see token_t::String
+         */
+        std::string_view string;
+
+        /**
+         * @brief Keyword value. For token_t::Keyword.
+         * @see token_t::Keyword.
+         */
+        keyword_token keyword;
+
+        /**
+         * @brief Integer value. For token_t::Integer.
+         * @see token_t::Integer
+         */
+        integer_token integer;
+
+        /**
+         * @brief Construct a new null value.
+         *
+         * @param value Null value.
+         */
         value(std::nullptr_t value = nullptr)
           : null(value) {}
 
+        /**
+         * @brief Construct a new string value.
+         *
+         * @param value The string.
+         */
         value(std::string_view value)
           : string(value) {}
 
+        /**
+         * @brief Construct a new keyword value.
+         *
+         * @param value The keyword.
+         */
         value(keyword_token value)
           : keyword(value) {}
 
+        /**
+         * @brief Construct a new integer value.
+         *
+         * @param value The integer.
+         */
         value(integer_token value)
           : integer(value) {}
-    } value;
+    } value; /**< Token value. */
 
     token() = default;
 
-    token(token_t type, std::string_view value = {})
+    /**
+     * @brief Construct a new null token.
+     *
+     * @param type Token's type.
+     */
+    token(token_t type)
+      : type(type) {}
+
+    /**
+     * @brief Construct a new string token.
+     *
+     * @param type Token's type.
+     * @param value String value.
+     */
+    token(token_t type, std::string_view value)
       : type(type), value(value) {}
 
-    token(keyword_token keyword, std::string_view value = {})
+    /**
+     * @brief Construct a new keyword token.
+     *
+     * @param keyword Keyword value.
+     */
+    token(keyword_token keyword)
       : type(token_t::Keyword), value(keyword) {}
 
+    /**
+     * @brief Construct a new integer token.
+     *
+     * @param integer Integer value.
+     */
     token(integer_token integer)
       : type(token_t::Integer), value(integer) {}
 
-    union value*       operator->() { return &value; }
+    /**
+     * @brief Returns pointer to this token's value.
+     *
+     * @return Pointer to the token's value.
+     */
+    union value* operator->() { return &value; }
+
+    /**
+     * @brief Returns constant pointer to this token's value.
+     *
+     * @return Pointer to the token's value.
+     */
     const union value* operator->() const { return &value; }
 
+    /**
+     * @brief Compares two tokens for equality.
+     *
+     * @param rhs Token to compare against.
+     * @return true if the tokens are equal.
+     */
     bool operator==(const token& rhs) const {
         if (type != rhs.type) return false;
         switch (type) {
@@ -220,7 +314,7 @@ static inline std::ostream& operator<<(std::ostream& os, const token& token) {
 }
 
 template <typename Error = std::string>
-using token_handle = handle<token, Error>;
+using token_handle = handle<token, Error>; /**< Alias to handle of token. */
 
 } // namespace front
 } // namespace furc
