@@ -57,7 +57,7 @@ BreakArrays: false
 IncludeBlocks: Regroup
 SortIncludes: true
 
-ReflowComments: false
+ReflowComments: Always
 KeepEmptyLinesAtTheStartOfBlocks: true
 
 DerivePointerAlignment: false
