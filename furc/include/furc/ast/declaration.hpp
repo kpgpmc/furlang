@@ -8,30 +8,69 @@
 namespace furc {
 namespace ast {
 
+/**
+ * @brief Declaration node type.
+ */
 enum class declaration_node_t {
-    FunctionDeclaration,
-    FunctionDefinition,
+    Func,    /**< Function declaration. */
+    FuncDef, /**< Function definition. */
 };
 
+/**
+ * @brief Declaration AST node interface.
+ */
 class declaration_node : public statement_node {
 public:
+    /**
+     * @brief Returns this node's category.
+     *
+     * @return node_t::Declaration.
+     */
     node_t category() const override { return node_t::Declaration; }
 
-    statement_node_t statement_type() const override { return statement_node_t::Declaration; }
+    /**
+     * @brief Returns this node's statement type.
+     *
+     * @return statement_node_t::Declaration.
+     */
+    statement_node_t statement_type() const final { return statement_node_t::Declaration; }
 
+    /**
+     * @brief Returns this node's declaration type.
+     *
+     * @return The declaration type.
+     */
     virtual declaration_node_t declaration_type() const = 0;
 protected:
     bool equal(const node& rhs) const override;
 };
 
+/**
+ * @brief Function declaration AST node.
+ */
 class function_declaration_node : public declaration_node {
 public:
+    /**
+     * @brief Construct a new function declaration node object from name token.
+     *
+     * @param name Name of the function.
+     */
     function_declaration_node(front::token name)
-      : m_name(name) {}
+      : p_name(name) {}
 public:
-    declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDeclaration; }
+    /**
+     * @brief Returns this node's declaration type.
+     *
+     * @return declaration_node_t::FunctionDeclaration.
+     */
+    declaration_node_t declaration_type() const override { return declaration_node_t::Func; }
 
-    front::token name() const { return m_name; }
+    /**
+     * @brief Returns function's name.
+     *
+     * @return Name of the function.
+     */
+    front::token name() const { return p_name; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -39,16 +78,38 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 protected:
-    front::token m_name;
+    /**
+     * @brief Name of the function.
+     */
+    front::token p_name;
 };
 
+/**
+ * @brief Function definition AST node.
+ */
 class function_definition_node final : public function_declaration_node {
 public:
+    /**
+     * @brief Construct a new function definition node object from name and body.
+     *
+     * @param name Name of the function.
+     * @param body Body of the function.
+     */
     function_definition_node(front::token name, body_h&& body)
       : function_declaration_node(name), m_body(std::move(body)) {}
 public:
-    declaration_node_t declaration_type() const override { return declaration_node_t::FunctionDefinition; }
+    /**
+     * @brief Returns this node's declaration type.
+     *
+     * @return declaration_node_t::FunctionDefinition.
+     */
+    declaration_node_t declaration_type() const override { return declaration_node_t::FuncDef; }
 
+    /**
+     * @brief Returns function's body.
+     *
+     * @return Body of the function.
+     */
     const body_h& body() const { return m_body; }
 public:
     void accept(visitor& visitor) const override;

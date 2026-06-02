@@ -22,7 +22,7 @@ TEST(Parser, EmptyFunctions) {
     {
         auto first = program->declarations()[0];
         EXPECT_TRUE(first.present());
-        EXPECT_EQ(first->declaration_type(), declaration_node_t::FunctionDefinition);
+        EXPECT_EQ(first->declaration_type(), declaration_node_t::FuncDef);
         function_definition_node_h funcDef = first;
         EXPECT_EQ(funcDef->name()->string, "main");
         EXPECT_EQ(funcDef->body()->statements.size(), 0);
@@ -30,7 +30,7 @@ TEST(Parser, EmptyFunctions) {
     {
         auto second = program->declarations()[1];
         EXPECT_TRUE(second.present());
-        EXPECT_EQ(second->declaration_type(), declaration_node_t::FunctionDeclaration);
+        EXPECT_EQ(second->declaration_type(), declaration_node_t::Func);
         function_declaration_node_h funcDecl = second;
         EXPECT_EQ(funcDecl->name()->string, "foo");
     }
@@ -47,7 +47,7 @@ TEST(Parser, Literals) {
     {
         auto test1 = program->declarations()[0];
         EXPECT_TRUE(test1.present());
-        EXPECT_EQ(test1->declaration_type(), declaration_node_t::FunctionDefinition);
+        EXPECT_EQ(test1->declaration_type(), declaration_node_t::FuncDef);
         function_definition_node_h funcDef = test1;
         EXPECT_EQ(funcDef->name()->string, "test1");
         EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -57,7 +57,7 @@ TEST(Parser, Literals) {
     {
         auto test2 = program->declarations()[1];
         EXPECT_TRUE(test2.present());
-        EXPECT_EQ(test2->declaration_type(), declaration_node_t::FunctionDefinition);
+        EXPECT_EQ(test2->declaration_type(), declaration_node_t::FuncDef);
         function_definition_node_h funcDecl = test2;
         EXPECT_EQ(funcDecl->name()->string, "test2");
     }
@@ -87,7 +87,7 @@ TEST(Parser, OperatorPrecedence_AddMul) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -115,7 +115,7 @@ TEST(Parser, OperatorPrecedence_Complex) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -153,7 +153,7 @@ TEST(Parser, UnaryOperator_Simple) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -175,7 +175,7 @@ TEST(Parser, UnaryOperator_PrePost) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -200,7 +200,7 @@ TEST(Parser, Paren) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -226,7 +226,7 @@ TEST(Parser, Assignment) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);
@@ -255,7 +255,7 @@ TEST(Parser, CompoundAssignment) {
     EXPECT_EQ(program->declarations().size(), 1);
     auto func = program->declarations()[0];
     EXPECT_TRUE(func.present());
-    EXPECT_EQ(func->declaration_type(), declaration_node_t::FunctionDefinition);
+    EXPECT_EQ(func->declaration_type(), declaration_node_t::FuncDef);
     function_definition_node_h funcDef = func;
     EXPECT_EQ(funcDef->name()->string, "main");
     EXPECT_EQ(funcDef->body()->statements.size(), 1);

@@ -9,14 +9,27 @@
 namespace furc {
 namespace ast {
 
+/**
+ * @brief Program AST node.
+ */
 class program_node final : public node {
 public:
     program_node() = default;
 
     node_t category() const override { return node_t::Program; }
 public:
+    /**
+     * @brief Adds a declaration to this program.
+     *
+     * @param declaration Declaration to add.
+     */
     void push(node_handle<declaration_node>&& declaration) { m_declarations.push_back(std::move(declaration)); }
 
+    /**
+     * @brief Returns a list of declarations of this program.
+     *
+     * @return The list of this program's declarations.
+     */
     const std::vector<node_handle<declaration_node>>& declarations() const { return m_declarations; }
 public:
     void accept(visitor& visitor) const override;

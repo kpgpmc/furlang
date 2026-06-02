@@ -8,19 +8,41 @@
 namespace furlang {
 namespace ir {
 
+/**
+ * @brief Operand type
+ */
 enum class operand_t {
-    None,
-    Register,
-    Variable,
-    Integer,
-    String,
+    None,     /**< None */
+    Register, /**< Register */
+    Variable, /**< Variable */
+    Integer,  /**< Integer */
+    String,   /**< String */
 };
 
+/**
+ * @brief Register operand alias.
+ * @see operand_t::Register
+ */
 using register_operand = std::uint32_t;
+/**
+ * @brief Variable operand alias.
+ * @see operand_t::Variable
+ */
 using variable_operand = std::string;
-using integer_operand  = std::uint64_t;
-using string_operand   = std::string;
+/**
+ * @brief Integer operand alias.
+ * @see operand_t::Integer
+ */
+using integer_operand = std::uint64_t;
+/**
+ * @brief String operand alias.
+ * @see operand_t::String
+ */
+using string_operand = std::string;
 
+/**
+ * @brief IR operand
+ */
 class operand {
 public:
     ~operand() {
@@ -29,6 +51,9 @@ public:
         }
     }
 
+    /**
+     * @brief Move constructor.
+     */
     operand(operand&& other) noexcept
       : m_type(other.m_type) {
         switch (m_type) {
@@ -49,6 +74,9 @@ public:
         other.m_value.destroy(other.m_type);
     }
 
+    /**
+     * @brief Move constructor.
+     */
     operand& operator=(operand&& other) noexcept {
         if (this == &other) return *this;
         m_type = other.m_type;
@@ -74,6 +102,12 @@ public:
     operand(const operand&)            = delete;
     operand& operator=(const operand&) = delete;
 public:
+    /**
+     * @brief Construct a new register operand.
+     *
+     * @param value Value of the new register operand.
+     * @return The register operand.
+     */
     static operand new_reg(register_operand value) {
         operand operand;
         operand.m_type      = operand_t::Register;
@@ -81,6 +115,12 @@ public:
         return operand;
     }
 
+    /**
+     * @brief Construct a new variable operand.
+     *
+     * @param value Value of the new variable operand.
+     * @return The variable operand.
+     */
     template <typename T>
     static operand new_variable(T&& value) {
         operand operand;
@@ -89,6 +129,12 @@ public:
         return operand;
     }
 
+    /**
+     * @brief Construct a new integer operand.
+     *
+     * @param value Value of the new integer operand.
+     * @return The integer operand.
+     */
     static operand new_integer(integer_operand value) {
         operand operand;
         operand.m_type          = operand_t::Integer;
@@ -96,6 +142,12 @@ public:
         return operand;
     }
 
+    /**
+     * @brief Construct a new string operand.
+     *
+     * @param value Value of the new string operand.
+     * @return The string operand.
+     */
     template <typename T>
     static operand new_string(T&& value) {
         operand operand;
@@ -104,11 +156,34 @@ public:
         return operand;
     }
 public:
+    /**
+     * @brief Returns this operand's type.
+     *
+     * @return The operand type.
+     */
     operand_t type() const { return m_type; }
 
+    /**
+     * @brief Returns this operand's register value.
+     *
+     * @return The register value.
+     */
     register_operand reg() const { return m_value.reg; }
-    integer_operand  integer() const { return m_value.integer; }
+
+    /**
+     * @brief Returns this operand's integer value.
+     *
+     * @return The integer value.
+     */
+    integer_operand integer() const { return m_value.integer; }
 public:
+    /**
+     * @brief Prints an operand to an output stream.
+     *
+     * @param os Output stream.
+     * @param operand Operand to print.
+     * @return The output stream.
+     */
     friend std::ostream& operator<<(std::ostream& os, const operand& operand) {
         switch (operand.m_type) {
         case operand_t::None: return os << "none";

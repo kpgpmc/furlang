@@ -6,19 +6,50 @@
 namespace furc {
 namespace front {
 
+/**
+ * @brief Lexer.
+ *
+ * Furlang's lazy tokenizer.
+ */
 class lexer {
 public:
     lexer() = default;
+
+    /**
+     * @brief Construct a new lexer.
+     *
+     * @param filename Filename for debugging.
+     * @param content Content.
+     */
     lexer(std::string_view filename, std::string_view content);
     ~lexer() = default;
 
-    lexer(lexer&&)                 = default;
-    lexer(const lexer&)            = delete;
-    lexer& operator=(lexer&&)      = default;
+    /**
+     * @brief Move constructor.
+     */
+    lexer(lexer&&) = default;
+
+    lexer(const lexer&) = delete;
+
+    /**
+     * @brief Move constructor.
+     */
+    lexer& operator=(lexer&&) = default;
+
     lexer& operator=(const lexer&) = delete;
 public:
+    /**
+     * @brief Returns a handle to next token.
+     *
+     * @return The token handle.
+     */
     token_handle<> next_token();
 
+    /**
+     * @brief Checks whether the cursor is at the EOF.
+     *
+     * @return true if the cursor is at the EOF.
+     */
     bool empty() const { return m_cursor >= m_content.size(); }
 private:
     void     next();
