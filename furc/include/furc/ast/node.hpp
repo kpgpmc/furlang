@@ -125,7 +125,9 @@ public:
      * @param node Node to print.
      * @return The output stream.
      */
-    friend std::ostream& operator<<(std::ostream& os, const node& node) { return node.print(os); }
+    friend std::ostream& operator<<(std::ostream& os, const node& node) {
+        return node.print(os << node.location() << ": ");
+    }
 protected:
     /**
      * @brief Compares two nodes for equality.
