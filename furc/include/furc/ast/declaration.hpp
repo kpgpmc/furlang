@@ -3,7 +3,8 @@
 
 #include "furc/ast/node.hpp"
 #include "furc/ast/statement.hpp"
-#include "furc/front/token.hpp"
+
+#include <string>
 
 namespace furc {
 namespace ast {
@@ -64,8 +65,9 @@ public:
      * @param location Node location.
      * @param name Name of the function.
      */
-    function_declaration_node(struct location location, front::token name)
-      : declaration_node(location), p_name(name) {}
+    template <typename T>
+    function_declaration_node(struct location location, T&& name)
+      : declaration_node(location), p_name(std::forward<T>(name)) {}
 public:
     /**
      * @brief Returns this node's declaration type.
@@ -79,7 +81,7 @@ public:
      *
      * @return Name of the function.
      */
-    front::token name() const { return p_name; }
+    std::string name() const { return p_name; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -90,7 +92,7 @@ protected:
     /**
      * @brief Name of the function.
      */
-    front::token p_name;
+    std::string p_name;
 };
 
 /**
@@ -105,8 +107,9 @@ public:
      * @param name Name of the function.
      * @param body Body of the function.
      */
-    function_definition_node(struct location location, front::token name, body_r&& body)
-      : function_declaration_node(location, name), m_body(std::move(body)) {}
+    template <typename T>
+    function_definition_node(struct location location, T&& name, body_r&& body)
+      : function_declaration_node(location, std::forward<T>(name)), m_body(std::move(body)) {}
 public:
     /**
      * @brief Returns this node's declaration type.

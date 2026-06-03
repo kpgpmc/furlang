@@ -5,6 +5,7 @@
 #include "furc/ast/literal.hpp"     // IWYU pragma: keep
 #include "furc/ast/statement.hpp"   // IWYU pragma: keep
 
+#include <cassert>
 #include <iostream>
 
 namespace furc::front {
@@ -14,7 +15,7 @@ namespace ir = furlang::ir;
 }
 
 void ir_generator::visit(const ast::function_definition_node& funcDef) {
-    m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()->string));
+    m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()));
 
     push_block();
     if (funcDef.body().has_error()) {

@@ -118,7 +118,7 @@ void function_declaration_node::accept(visitor& visitor) const {
 }
 
 std::ostream& function_declaration_node::print(std::ostream& os) const {
-    return os << "function " << p_name->string << " declaration";
+    return os << "function " << p_name << " declaration";
 }
 
 bool function_declaration_node::equal(const node& rhs) const {
@@ -135,7 +135,7 @@ std::ostream& function_definition_node::print(std::ostream& os) const {
     if (m_body.has_value()) {
         for (const auto& entry : m_body->statements)
             os << entry << '\n';
-        return os << m_body->end << ": " << p_name->string << " end";
+        return os << m_body->end << ": " << p_name << " end";
     }
     return os << m_body.error();
 }

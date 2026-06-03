@@ -37,7 +37,7 @@ ast::program_node_r parser::parse() & {
         program->push(std::move(parse_declaration()));
     }
 
-    return program;
+    return std::move(program);
 }
 
 ast::declaration_node_r parser::parse_declaration() {
@@ -61,11 +61,13 @@ ast::declaration_node_r parser::parse_declaration() {
             case token_t::LBrace: {
                 ast::body_r body = parse_body();
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
-                return m_arena.allocate_shared<ast::function_definition_node>(first->location, *name, std::move(body));
+                return m_arena.allocate_shared<ast::function_definition_node>(first->location,
+                    name->value.string,
+                    std::move(body));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return m_arena.allocate_shared<ast::function_declaration_node>(first->location, *name);
+                return m_arena.allocate_shared<ast::function_declaration_node>(first->location, name->value.string);
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }
