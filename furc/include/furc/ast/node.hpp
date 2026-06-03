@@ -71,6 +71,14 @@ public:
      * @return The node category.
      */
     virtual node_t category() const = 0;
+
+    /**
+     * @brief Returns the location of this AST node.
+     * @see locaiton
+     *
+     * @return The location.
+     */
+    virtual location location() const = 0;
 public:
     /**
      * @brief Compares two nodes for equality.
@@ -126,6 +134,28 @@ protected:
      * @return true if nodes are equal.
      */
     virtual bool equal(const node& rhs) const = 0;
+};
+
+/**
+ * @brief An abstract AST node.
+ * @see node
+ *
+ * Implements location().
+ */
+class abstract_node : public virtual node {
+public:
+    abstract_node(struct location location)
+      : p_location(location) {}
+public:
+    /**
+     * @brief Returns the location of this AST node.
+     * @see locaiton
+     *
+     * @return The location.
+     */
+    struct location location() const override { return p_location; }
+protected:
+    struct location p_location; /**< Node location. */
 };
 
 } // namespace ast

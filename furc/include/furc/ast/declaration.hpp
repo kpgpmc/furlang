@@ -19,7 +19,15 @@ enum class declaration_node_t {
 /**
  * @brief Declaration AST node interface.
  */
-class declaration_node : public statement_node {
+class declaration_node : public statement_node, public abstract_node {
+public:
+    /**
+     * @brief Construct a new declaration AST node.
+     *
+     * @param location Node location.
+     */
+    declaration_node(struct location location)
+      : abstract_node(location) {}
 public:
     /**
      * @brief Returns this node's category.
@@ -53,10 +61,11 @@ public:
     /**
      * @brief Construct a new function declaration node object from name token.
      *
+     * @param location Node location.
      * @param name Name of the function.
      */
-    function_declaration_node(front::token name)
-      : p_name(name) {}
+    function_declaration_node(struct location location, front::token name)
+      : declaration_node(location), p_name(name) {}
 public:
     /**
      * @brief Returns this node's declaration type.
@@ -92,11 +101,12 @@ public:
     /**
      * @brief Construct a new function definition node object from name and body.
      *
+     * @param location Node location.
      * @param name Name of the function.
      * @param body Body of the function.
      */
-    function_definition_node(front::token name, body_r&& body)
-      : function_declaration_node(name), m_body(std::move(body)) {}
+    function_definition_node(struct location location, front::token name, body_r&& body)
+      : function_declaration_node(location, name), m_body(std::move(body)) {}
 public:
     /**
      * @brief Returns this node's declaration type.

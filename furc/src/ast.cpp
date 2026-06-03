@@ -13,7 +13,7 @@ std::ostream& operator<<(std::ostream& os, const error& error) {
 }
 
 bool literal_node::equal(const node& rhs) const {
-    return literal_type() == reinterpret_cast<const literal_node&>(rhs).literal_type();
+    return literal_type() == dynamic_cast<const literal_node&>(rhs).literal_type();
 }
 
 void string_literal_node::accept(visitor& visitor) const {
@@ -26,7 +26,7 @@ std::ostream& string_literal_node::print(std::ostream& os) const {
 }
 
 bool string_literal_node::equal(const node& rhs) const {
-    return literal_node::equal(rhs) && m_value == reinterpret_cast<const string_literal_node&>(rhs).m_value;
+    return literal_node::equal(rhs) && m_value == dynamic_cast<const string_literal_node&>(rhs).m_value;
 }
 
 void integer_literal_node::accept(visitor& visitor) const {
@@ -39,11 +39,11 @@ std::ostream& integer_literal_node::print(std::ostream& os) const {
 }
 
 bool integer_literal_node::equal(const node& rhs) const {
-    return literal_node::equal(rhs) && m_value == reinterpret_cast<const integer_literal_node&>(rhs).m_value;
+    return literal_node::equal(rhs) && m_value == dynamic_cast<const integer_literal_node&>(rhs).m_value;
 }
 
 bool expression_node::equal(const node& rhs) const {
-    return expression_type() == reinterpret_cast<const expression_node&>(rhs).expression_type();
+    return expression_type() == dynamic_cast<const expression_node&>(rhs).expression_type();
 }
 
 void var_read_expression_node::accept(visitor& visitor) const {
@@ -56,7 +56,7 @@ std::ostream& var_read_expression_node::print(std::ostream& os) const {
 }
 
 bool var_read_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = reinterpret_cast<const var_read_expression_node&>(rhsNode);
+    const auto& rhs = dynamic_cast<const var_read_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_name == rhs.m_name;
 }
 
@@ -90,7 +90,7 @@ std::ostream& unaryop_expression_node::print(std::ostream& os) const {
 }
 
 bool unaryop_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = reinterpret_cast<const unaryop_expression_node&>(rhsNode);
+    const auto& rhs = dynamic_cast<const unaryop_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_node == rhs.m_node;
 }
 
@@ -122,7 +122,7 @@ std::ostream& binop_expression_node::print(std::ostream& os) const {
 }
 
 bool binop_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = reinterpret_cast<const binop_expression_node&>(rhsNode);
+    const auto& rhs = dynamic_cast<const binop_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
 }
 
@@ -135,12 +135,12 @@ std::ostream& var_assign_expression_node::print(std::ostream& os) const {
 }
 
 bool var_assign_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = reinterpret_cast<const var_assign_expression_node&>(rhsNode);
+    const auto& rhs = dynamic_cast<const var_assign_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_compound == rhs.m_compound && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
 }
 
 bool declaration_node::equal(const node& rhs) const {
-    return declaration_type() == reinterpret_cast<const declaration_node&>(rhs).declaration_type();
+    return declaration_type() == dynamic_cast<const declaration_node&>(rhs).declaration_type();
 }
 
 void function_declaration_node::accept(visitor& visitor) const {
@@ -152,7 +152,7 @@ std::ostream& function_declaration_node::print(std::ostream& os) const {
 }
 
 bool function_declaration_node::equal(const node& rhs) const {
-    return declaration_node::equal(rhs) && p_name == reinterpret_cast<const function_declaration_node&>(rhs).p_name;
+    return declaration_node::equal(rhs) && p_name == dynamic_cast<const function_declaration_node&>(rhs).p_name;
 }
 
 void function_definition_node::accept(visitor& visitor) const {
@@ -171,12 +171,11 @@ std::ostream& function_definition_node::print(std::ostream& os) const {
 }
 
 bool function_definition_node::equal(const node& rhs) const {
-    return function_declaration_node::equal(rhs) &&
-           m_body == reinterpret_cast<const function_definition_node&>(rhs).m_body;
+    return function_declaration_node::equal(rhs) && m_body == dynamic_cast<const function_definition_node&>(rhs).m_body;
 }
 
 bool statement_node::equal(const node& rhs) const {
-    return statement_type() == reinterpret_cast<const statement_node&>(rhs).statement_type();
+    return statement_type() == dynamic_cast<const statement_node&>(rhs).statement_type();
 }
 
 void return_statement_node::accept(visitor& visitor) const {
@@ -190,7 +189,7 @@ std::ostream& return_statement_node::print(std::ostream& os) const {
 }
 
 bool return_statement_node::equal(const node& rhs) const {
-    return statement_node::equal(rhs) && m_value == reinterpret_cast<const return_statement_node&>(rhs).m_value;
+    return statement_node::equal(rhs) && m_value == dynamic_cast<const return_statement_node&>(rhs).m_value;
 }
 
 void if_statement_node::accept(visitor& visitor) const {
@@ -205,7 +204,7 @@ std::ostream& if_statement_node::print(std::ostream& os) const {
 }
 
 bool if_statement_node::equal(const node& rhsNode) const {
-    const auto& rhs = reinterpret_cast<const if_statement_node&>(rhsNode);
+    const auto& rhs = dynamic_cast<const if_statement_node&>(rhsNode);
     return statement_node::equal(rhs) && m_cond == rhs.m_cond && m_then == rhs.m_then && m_else == rhs.m_else;
 }
 
@@ -218,7 +217,7 @@ std::ostream& compound_statement_node::print(std::ostream& os) const {
 }
 
 bool compound_statement_node::equal(const node& rhs) const {
-    return statement_node::equal(rhs) && m_body == reinterpret_cast<const compound_statement_node&>(rhs).m_body;
+    return statement_node::equal(rhs) && m_body == dynamic_cast<const compound_statement_node&>(rhs).m_body;
 }
 
 void program_node::accept(visitor& visitor) const {
@@ -240,7 +239,7 @@ std::ostream& program_node::print(std::ostream& os) const {
 }
 
 bool program_node::equal(const node& rhs) const {
-    return m_declarations == reinterpret_cast<const program_node&>(rhs).m_declarations;
+    return m_declarations == dynamic_cast<const program_node&>(rhs).m_declarations;
 }
 
 std::ostream& operator<<(std::ostream& os, const body& body) {

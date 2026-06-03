@@ -22,7 +22,7 @@ enum class statement_node_t {
 /**
  * @brief Statement AST node.
  */
-class statement_node : public node {
+class statement_node : public virtual node {
 public:
     /**
      * @brief Returns this node's category.
@@ -44,19 +44,24 @@ protected:
 /**
  * @brief Return statement AST node.
  */
-class return_statement_node final : public statement_node {
+class return_statement_node final : public statement_node, public abstract_node {
 public:
     using value_type = std::optional<expression_node_r>; /**< Value type. */
 public:
-    return_statement_node() = default;
+    /**
+     * @brief Construct a new return statement AST node.
+     */
+    return_statement_node(struct location location)
+      : abstract_node(location) {}
 
     /**
      * @brief Construct a new return statement AST node.
      *
+     * @param location Node location.
      * @param value Return value handle.
      */
-    return_statement_node(expression_node_r&& value)
-      : m_value(std::move(value)) {}
+    return_statement_node(struct location location, expression_node_r&& value)
+      : abstract_node(location), m_value(std::move(value)) {}
 public:
     /**
      * @brief Returns this node's return value handle.
@@ -84,26 +89,31 @@ private:
 /**
  * @brief If statement AST node.
  */
-class if_statement_node final : public statement_node {
+class if_statement_node final : public statement_node, public abstract_node {
 public:
     /**
      * @brief Construct a new if statement AST node.
      *
+     * @param location Node location.
      * @param cond Condition expression handle.
      * @param then Then statement handle.
      */
-    if_statement_node(expression_node_r&& cond, statement_node_r&& then)
-      : m_cond(std::move(cond)), m_then(std::move(then)) {}
+    if_statement_node(struct location location, expression_node_r&& cond, statement_node_r&& then)
+      : abstract_node(location), m_cond(std::move(cond)), m_then(std::move(then)) {}
 
     /**
      * @brief Construct a new if statement AST node.
      *
+     * @param location Node location.
      * @param cond Condition expression handle.
      * @param then Then statement handle.
      * @param elze Else statement handle.
      */
-    if_statement_node(expression_node_r&& cond, statement_node_r&& then, statement_node_r&& elze)
-      : m_cond(std::move(cond)), m_then(std::move(then)), m_else(std::move(elze)) {}
+    if_statement_node(struct location location,
+        expression_node_r&&           cond,
+        statement_node_r&&            then,
+        statement_node_r&&            elze)
+      : abstract_node(location), m_cond(std::move(cond)), m_then(std::move(then)), m_else(std::move(elze)) {}
 public:
     /**
      * @brief Returns this node's condition expression handle.
@@ -147,15 +157,16 @@ private:
 /**
  * @brief Compound statement AST node.
  */
-class compound_statement_node final : public statement_node {
+class compound_statement_node final : public statement_node, public abstract_node {
 public:
     /**
      * @brief Construct a new compound statement AST node.
      *
+     * @param location Node location.
      * @param body Body handle.
      */
-    compound_statement_node(body_r&& body)
-      : m_body(std::move(body)) {}
+    compound_statement_node(struct location location, body_r&& body)
+      : abstract_node(location), m_body(std::move(body)) {}
 public:
     /**
      * @brief Returns this node's body handle.

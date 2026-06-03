@@ -12,9 +12,15 @@ namespace ast {
 /**
  * @brief Program AST node.
  */
-class program_node final : public node {
+class program_node final : public abstract_node {
 public:
-    program_node() = default;
+    /**
+     * @brief Construct a new program AST node.
+     *
+     * @param location Node location.
+     */
+    program_node(struct location location)
+      : abstract_node(location) {}
 
     node_t category() const override { return node_t::Program; }
 public:

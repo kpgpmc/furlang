@@ -21,7 +21,15 @@ enum class expression_node_t {
 /**
  * @brief Expression AST node.
  */
-class expression_node : public statement_node {
+class expression_node : public statement_node, public abstract_node {
+public:
+    /**
+     * @brief Construct a new expression AST node.
+     *
+     * @param location Node location.
+     */
+    expression_node(struct location location)
+      : abstract_node(location) {}
 public:
     /**
      * @brief Returns this node's category.
@@ -57,10 +65,11 @@ public:
     /**
      * @brief Construct a new var read expression node object from a name handle.
      *
+     * @param location Node location.
      * @param name Handle to the name.
      */
-    var_read_expression_node(name_type&& name)
-      : m_name(std::move(name)) {}
+    var_read_expression_node(struct location location, name_type&& name)
+      : expression_node(location), m_name(std::move(name)) {}
 
     /**
      * @brief Returns the variable's name.
@@ -114,11 +123,12 @@ public:
     /**
      * @brief Construct a new unaryop expression node object from type and expression node handle.
      *
+     * @param location Node location.
      * @param type Operation type.
      * @param node Handle to the inner expression node.
      */
-    unaryop_expression_node(unaryop_expression_node_t type, expression_node_r&& node)
-      : m_type(type), m_node(std::move(node)) {}
+    unaryop_expression_node(struct location location, unaryop_expression_node_t type, expression_node_r&& node)
+      : expression_node(location), m_type(type), m_node(std::move(node)) {}
 
     /**
      * @brief Sets this node's inner expression.
@@ -199,12 +209,16 @@ public:
     /**
      * @brief Construct a new binary operation expression AST node.
      *
+     * @param location Node location.
      * @param type Binary operation type.
      * @param lhs Left-hand-side expression.
      * @param rhs Right-hand-side expression.
      */
-    binop_expression_node(binop_expression_node_t type, expression_node_r&& lhs, expression_node_r&& rhs)
-      : m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
+    binop_expression_node(struct location location,
+        binop_expression_node_t           type,
+        expression_node_r&&               lhs,
+        expression_node_r&&               rhs)
+      : expression_node(location), m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
     /**
      * @brief Returns this node's binary operation type.
@@ -276,21 +290,29 @@ public:
     /**
      * @brief Construct a new variable assignment expression AST node.
      *
+     * @param location Node location.
      * @param lhs Left-hand-side expression handle.
      * @param rhs Right-hand-side expression handle.
      */
-    var_assign_expression_node(expression_node_r&& lhs, expression_node_r&& rhs)
-      : m_compound(binop_expression_node_t::None), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
+    var_assign_expression_node(struct location location, expression_node_r&& lhs, expression_node_r&& rhs)
+      : expression_node(location),
+        m_compound(binop_expression_node_t::None),
+        m_lhs(std::move(lhs)),
+        m_rhs(std::move(rhs)) {}
 
     /**
      * @brief Construct a new compound variable assignment expression AST node.
      *
+     * @param location Node location.
      * @param compound Compound operation type.
      * @param lhs Left-hand-side expression handle.
      * @param rhs Right-hand-side expression handle.
      */
-    var_assign_expression_node(binop_expression_node_t compound, expression_node_r&& lhs, expression_node_r&& rhs)
-      : m_compound(compound), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
+    var_assign_expression_node(struct location location,
+        binop_expression_node_t                compound,
+        expression_node_r&&                    lhs,
+        expression_node_r&&                    rhs)
+      : expression_node(location), m_compound(compound), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
     /**
      * @brief Returns this node's compound operation type.

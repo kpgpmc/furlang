@@ -22,6 +22,14 @@ enum class literal_node_t {
 class literal_node : public expression_node {
 public:
     /**
+     * @brief Construct a new literal AST node.
+     *
+     * @param location Node location.
+     */
+    literal_node(struct location location)
+      : expression_node(location) {}
+public:
+    /**
      * @brief Returns this node's category.
      *
      * @return node_t::Literal.
@@ -55,10 +63,11 @@ public:
     /**
      * @brief Construct a new string literal node object from a handle.
      *
+     * @param location Node location.
      * @param value A string view result.
      */
-    string_literal_node(value_type&& value)
-      : m_value(std::move(value)) {}
+    string_literal_node(struct location location, value_type&& value)
+      : literal_node(location), m_value(std::move(value)) {}
 public:
     /**
      * @brief Returns this node's literal type.
@@ -93,10 +102,11 @@ public:
     /**
      * @brief Construct a new integer literal node object from a handle.
      *
+     * @param location Node location.
      * @param value An integer result.
      */
-    integer_literal_node(value_type&& value)
-      : m_value(std::move(value)) {}
+    integer_literal_node(struct location location, value_type&& value)
+      : literal_node(location), m_value(std::move(value)) {}
 public:
     /**
      * @brief Returns this node's literal type.
