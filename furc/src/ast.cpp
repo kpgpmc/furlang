@@ -41,11 +41,11 @@ std::ostream& operator<<(std::ostream& os, unaryop_expression_node_t type) {
     return os;
 }
 
-void unaryop_expression_node::accept(visitor& visitor) const {
+void unary_op_expression_node::accept(visitor& visitor) const {
     visitor.visit(*this);
 }
 
-std::ostream& unaryop_expression_node::print(std::ostream& os) const {
+std::ostream& unary_op_expression_node::print(std::ostream& os) const {
     if (m_node == nullptr) return os;
     switch (m_type) {
     case unaryop_expression_node_t::Positive:
@@ -58,8 +58,8 @@ std::ostream& unaryop_expression_node::print(std::ostream& os) const {
     return os;
 }
 
-bool unaryop_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = dynamic_cast<const unaryop_expression_node&>(rhsNode);
+bool unary_op_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = dynamic_cast<const unary_op_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_node == rhs.m_node;
 }
 
@@ -81,17 +81,17 @@ std::ostream& operator<<(std::ostream& os, binop_expression_node_t type) {
     }
 }
 
-void binop_expression_node::accept(visitor& visitor) const {
+void binary_op_expression_node::accept(visitor& visitor) const {
     visitor.visit(*this);
 }
 
-std::ostream& binop_expression_node::print(std::ostream& os) const {
+std::ostream& binary_op_expression_node::print(std::ostream& os) const {
     if (m_type == binop_expression_node_t::None) return os;
     return os << '(' << *m_lhs << ' ' << m_type << ' ' << *m_rhs << ')';
 }
 
-bool binop_expression_node::equal(const node& rhsNode) const {
-    const auto& rhs = dynamic_cast<const binop_expression_node&>(rhsNode);
+bool binary_op_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = dynamic_cast<const binary_op_expression_node&>(rhsNode);
     return expression_node::equal(rhsNode) && m_type == rhs.m_type && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
 }
 

@@ -80,7 +80,7 @@ void ir_generator::visit(const ast::var_read_expression_node& node) {
     }
 }
 
-void ir_generator::visit(const ast::unaryop_expression_node& node) {
+void ir_generator::visit(const ast::unary_op_expression_node& node) {
     throw std::runtime_error("unimplemented");
 }
 
@@ -102,7 +102,7 @@ static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::
     }
 }
 
-void ir_generator::visit(const ast::binop_expression_node& node) {
+void ir_generator::visit(const ast::binary_op_expression_node& node) {
     node.lhs()->accept(*this);
     ir_register lhs = m_registerCounter - 1;
     node.rhs()->accept(*this);

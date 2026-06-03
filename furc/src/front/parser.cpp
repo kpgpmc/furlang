@@ -223,7 +223,7 @@ ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) 
         { token_t::DMinus, unaryop_info{ ast::unaryop_expression_node_t::PrefixDecrement, 2 } },
     };
 
-    std::shared_ptr<ast::unaryop_expression_node> result;
+    std::shared_ptr<ast::unary_op_expression_node> result;
     while (true) {
         auto it = s_prefixes.find(peek_token()->type);
         if (it == s_prefixes.end()) break;
@@ -243,8 +243,9 @@ ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) 
             expression = std::move(std::move(expr.value()));
         }
 
-        result =
-            m_arena.allocate_shared<ast::unaryop_expression_node>(token->location, current.type, std::move(expression));
+        result = m_arena.allocate_shared<ast::unary_op_expression_node>(token->location,
+            current.type,
+            std::move(expression));
     }
 
     if (result == nullptr) return parse_expression_primary();
@@ -369,11 +370,12 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
 
         switch (current.type) {
         case rhsop_info_t::Unaryop:
-            lhs =
-                m_arena.allocate_shared<ast::unaryop_expression_node>(opToken->location, current.unary, std::move(lhs));
+            lhs = m_arena.allocate_shared<ast::unary_op_expression_node>(opToken->location,
+                current.unary,
+                std::move(lhs));
             break;
         case rhsop_info_t::Binop:
-            lhs = m_arena.allocate_shared<ast::binop_expression_node>(opToken->location,
+            lhs = m_arena.allocate_shared<ast::binary_op_expression_node>(opToken->location,
                 current.binary,
                 std::move(lhs),
                 std::move(rhs));

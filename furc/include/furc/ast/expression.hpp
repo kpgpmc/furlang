@@ -115,7 +115,7 @@ enum class unaryop_expression_node_t {
 /**
  * @brief Unary operation expression AST node.
  */
-class unaryop_expression_node final : public expression_node {
+class unary_op_expression_node final : public expression_node {
 public:
     /**
      * @brief Construct a new unaryop expression node object from type and expression node handle.
@@ -124,7 +124,7 @@ public:
      * @param type Operation type.
      * @param node Handle to the inner expression node.
      */
-    unaryop_expression_node(struct location location, unaryop_expression_node_t type, expression_node_p&& node)
+    unary_op_expression_node(struct location location, unaryop_expression_node_t type, expression_node_p&& node)
       : expression_node(location), m_type(type), m_node(std::move(node)) {}
 
     /**
@@ -201,7 +201,7 @@ enum class binop_expression_node_t {
 /**
  * @brief Binary operation expression AST node.
  */
-class binop_expression_node final : public expression_node {
+class binary_op_expression_node final : public expression_node {
 public:
     /**
      * @brief Construct a new binary operation expression AST node.
@@ -211,10 +211,10 @@ public:
      * @param lhs Left-hand-side expression.
      * @param rhs Right-hand-side expression.
      */
-    binop_expression_node(struct location location,
-        binop_expression_node_t           type,
-        expression_node_p&&               lhs,
-        expression_node_p&&               rhs)
+    binary_op_expression_node(struct location location,
+        binop_expression_node_t               type,
+        expression_node_p&&                   lhs,
+        expression_node_p&&                   rhs)
       : expression_node(location), m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
     /**

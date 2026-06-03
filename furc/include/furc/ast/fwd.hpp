@@ -125,19 +125,19 @@ using var_read_expression_node_p =
 
 using var_read_expression_node_r = node_r<var_read_expression_node>; /**< Alias for var_read_expression_node result */
 
-class unaryop_expression_node;
+class unary_op_expression_node;
 
-using unaryop_expression_node_p =
-    node_p<unaryop_expression_node>; /**< Alias for a shared pointer to unaryop_expression_node. */
+using unary_op_expression_node_p =
+    node_p<unary_op_expression_node>; /**< Alias for a shared pointer to unaryop_expression_node. */
 
-using unaryop_expression_node_r = node_r<unaryop_expression_node>; /**< Alias for unaryop_expression_node result */
+using unary_op_expression_node_r = node_r<unary_op_expression_node>; /**< Alias for unaryop_expression_node result */
 
-class binop_expression_node;
+class binary_op_expression_node;
 
-using binop_expression_node_p =
-    node_p<binop_expression_node>; /**< Alias for a shared pointer to binop_expression_node. */
+using binary_op_expression_node_p =
+    node_p<binary_op_expression_node>; /**< Alias for a shared pointer to binop_expression_node. */
 
-using binop_expression_node_r = node_r<binop_expression_node>; /**< Alias for binop_expression_node result */
+using binary_op_expression_node_r = node_r<binary_op_expression_node>; /**< Alias for binop_expression_node result */
 
 class var_assign_expression_node;
 

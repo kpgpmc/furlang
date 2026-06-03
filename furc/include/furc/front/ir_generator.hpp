@@ -31,8 +31,8 @@ public:
     void visit(const ast::string_literal_node& node) override;
     void visit(const ast::integer_literal_node& node) override;
     void visit(const ast::var_read_expression_node& node) override;
-    void visit(const ast::unaryop_expression_node& node) override;
-    void visit(const ast::binop_expression_node& node) override;
+    void visit(const ast::unary_op_expression_node& node) override;
+    void visit(const ast::binary_op_expression_node& node) override;
     void visit(const ast::var_assign_expression_node& node) override;
 private:
     template <typename T, typename... Args>

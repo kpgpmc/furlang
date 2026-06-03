@@ -64,7 +64,7 @@ public:
      *
      * @param node Node.
      */
-    virtual void visit(const unaryop_expression_node& node) {}
+    virtual void visit(const unary_op_expression_node& node) {}
 
     /**
      * @brief Visit a binop_expression_node.
@@ -72,7 +72,7 @@ public:
      *
      * @param node Node.
      */
-    virtual void visit(const binop_expression_node& node) {}
+    virtual void visit(const binary_op_expression_node& node) {}
 
     /**
      * @brief Visit a var_assign_expression_node.
