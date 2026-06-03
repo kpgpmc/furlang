@@ -1,5 +1,5 @@
 #include "furc/ast/declaration.hpp"
-#include "furc/ast/literal.hpp"
+#include "furc/ast/expression.hpp"
 #include "furc/ast/node.hpp"
 #include "furc/ast/program.hpp"
 #include "furc/ast/statement.hpp"
@@ -10,36 +10,6 @@ namespace furc::ast {
 
 std::ostream& operator<<(std::ostream& os, const error& error) {
     return os << error.location << ": ERROR: unknown";
-}
-
-bool literal_node::equal(const node& rhs) const {
-    return literal_type() == dynamic_cast<const literal_node&>(rhs).literal_type();
-}
-
-void string_literal_node::accept(visitor& visitor) const {
-    visitor.visit(*this);
-}
-
-std::ostream& string_literal_node::print(std::ostream& os) const {
-    if (m_value.has_error()) return os << m_value.error();
-    return os << '"' << *m_value << '"';
-}
-
-bool string_literal_node::equal(const node& rhs) const {
-    return literal_node::equal(rhs) && m_value == dynamic_cast<const string_literal_node&>(rhs).m_value;
-}
-
-void integer_literal_node::accept(visitor& visitor) const {
-    visitor.visit(*this);
-}
-
-std::ostream& integer_literal_node::print(std::ostream& os) const {
-    if (m_value.has_error()) return os << m_value.error();
-    return os << *m_value;
-}
-
-bool integer_literal_node::equal(const node& rhs) const {
-    return literal_node::equal(rhs) && m_value == dynamic_cast<const integer_literal_node&>(rhs).m_value;
 }
 
 bool expression_node::equal(const node& rhs) const {

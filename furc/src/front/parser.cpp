@@ -160,25 +160,6 @@ ast::expression_node_r parser::parse_expression(std::uint32_t precedence) {
     return parse_expression_rhs(parse_expression_unary(precedence), precedence);
 }
 
-ast::literal_node_r parser::parse_literal() {
-    const auto& tok = peek_token();
-    switch (tok->type) {
-    case token_t::String: {
-        auto tok = next_token();
-        if (tok.has_error()) return ast::literal_node_r(ast::error{ tok.error().location });
-        return m_arena.allocate_shared<ast::string_literal_node>(tok->location, (*tok)->string);
-    }
-    case token_t::Integer: {
-        auto tok = next_token();
-        if (tok.has_error()) return ast::literal_node_r(ast::error{ tok.error().location });
-        return m_arena.allocate_shared<ast::integer_literal_node>(tok->location, (*tok)->integer);
-    }
-    default: break;
-    }
-
-    return ast::literal_node_r(ast::error{ tok->location });
-}
-
 ast::expression_node_r parser::parse_expression_primary() {
     const auto& tok = peek_token();
     switch (tok->type) {
@@ -194,9 +175,17 @@ ast::expression_node_r parser::parse_expression_primary() {
         if (err.has_error()) return ast::expression_node_r(ast::error{ err.error().location });
         return node;
     }
+    case token_t::String: {
+        auto tok = next_token();
+        if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
+        return m_arena.allocate_shared<ast::string_literal_node>(tok->location, (*tok)->string);
+    }
+    case token_t::Integer: {
+        auto tok = next_token();
+        if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
+        return m_arena.allocate_shared<ast::integer_literal_node>(tok->location, (*tok)->integer);
+    }
     default: {
-        auto literal = parse_literal();
-        if (literal.has_value()) return std::move(*literal);
         return ast::expression_node_r(ast::error{ tok->location });
     }
     }

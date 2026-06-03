@@ -72,12 +72,12 @@ void ir_generator::visit(const ast::compound_statement_node& node) {
 }
 
 void ir_generator::visit(const ast::string_literal_node& node) {
-    push<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
+    push<furlang::ir::assign_instruction>(ir::operand::new_string(node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 
 void ir_generator::visit(const ast::integer_literal_node& node) {
-    push<furlang::ir::assign_instruction>(ir::operand::new_integer(*node.value()),
+    push<furlang::ir::assign_instruction>(ir::operand::new_integer(node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 

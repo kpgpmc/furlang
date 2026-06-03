@@ -59,7 +59,6 @@ private:
     ast::declaration_node_r parse_declaration();
     ast::statement_node_r   parse_statement();
     ast::expression_node_r  parse_expression(std::uint32_t precedence = 16);
-    ast::literal_node_r     parse_literal();
 
     ast::expression_node_r parse_expression_primary();
     ast::expression_node_r parse_expression_unary(std::uint32_t precedence);

@@ -4,6 +4,7 @@
 #include "furc/diag.hpp"
 #include "furlang/result.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -56,14 +57,6 @@ class node;
 template <typename T>
 using node_r = furlang::result<std::shared_ptr<T>, error>;
 
-class literal_node;
-
-/**
- * @brief Alias for handle to literal_node.
- * @see literal_node
- */
-using literal_node_r = node_r<literal_node>;
-
 class expression_node;
 
 /**
@@ -96,7 +89,21 @@ class program_node;
  */
 using program_node_r = node_r<program_node>;
 
-class string_literal_node;
+/**
+ * @brief Literal node type.
+ */
+enum class literal_node_t {
+    String,  /**< String literal. */
+    Integer, /**< Integer literal. */
+};
+
+template <typename, literal_node_t>
+class literal_node;
+
+/**
+ * @brief String literal AST node.
+ */
+using string_literal_node = literal_node<std::string, literal_node_t::String>;
 
 /**
  * @brief Alias for handle to string_literal_node.
@@ -104,7 +111,10 @@ class string_literal_node;
  */
 using string_literal_node_r = node_r<string_literal_node>;
 
-class integer_literal_node;
+/**
+ * @brief Integer literal AST node.
+ */
+using integer_literal_node = literal_node<std::uint64_t, literal_node_t::Integer>;
 
 /**
  * @brief Alias for handle to integer_literal_node.
