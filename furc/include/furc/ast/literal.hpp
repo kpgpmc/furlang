@@ -50,12 +50,14 @@ protected:
  */
 class string_literal_node final : public literal_node {
 public:
+    using value_type = furlang::result<std::string_view, error>; /**< Value type. */
+public:
     /**
      * @brief Construct a new string literal node object from a handle.
      *
-     * @param value A handle to value.
+     * @param value A string view result.
      */
-    string_literal_node(handle<std::string_view>&& value)
+    string_literal_node(value_type&& value)
       : m_value(std::move(value)) {}
 public:
     /**
@@ -68,9 +70,9 @@ public:
     /**
      * @brief Returns this node's value.
      *
-     * @return A handle to the value.
+     * @return A string view result.
      */
-    const handle<std::string_view>& value() const { return m_value; }
+    const value_type& value() const { return m_value; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -78,7 +80,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    handle<std::string_view> m_value;
+    value_type m_value;
 };
 
 /**
@@ -86,12 +88,14 @@ private:
  */
 class integer_literal_node final : public literal_node {
 public:
+    using value_type = furlang::result<front::integer_token, error>; /**< Value type. */
+public:
     /**
      * @brief Construct a new integer literal node object from a handle.
      *
-     * @param value A handle to the value.
+     * @param value An integer result.
      */
-    integer_literal_node(handle<front::integer_token>&& value)
+    integer_literal_node(value_type&& value)
       : m_value(std::move(value)) {}
 public:
     /**
@@ -104,9 +108,9 @@ public:
     /**
      * @brief Returns this node's value.
      *
-     * @return A handle to the value.
+     * @return An integer result.
      */
-    const handle<front::integer_token>& value() const { return m_value; }
+    const value_type& value() const { return m_value; }
 
     /**
      * @brief Compares this node with an integer token for equality.
@@ -122,7 +126,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    handle<front::integer_token> m_value;
+    value_type m_value;
 };
 
 } // namespace ast

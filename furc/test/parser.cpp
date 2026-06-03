@@ -36,6 +36,15 @@ TEST(Parser, EmptyFunctions) {
     }
 }
 
+#define EXPECT_INTLIT(expr, integer)                                                                                   \
+    do {                                                                                                               \
+        EXPECT_EQ((expr)->expression_type(), expression_node_t::Literal);                                              \
+        literal_node_h literal = (expr);                                                                               \
+        EXPECT_EQ(literal->literal_type(), literal_node_t::Integer);                                                   \
+        integer_literal_node_h intLit = literal;                                                                       \
+        EXPECT_EQ(intLit->value(), integer_token((integer)));                                                          \
+    } while (0)
+
 TEST(Parser, Literals) {
     parser parser("<TEMP>", R"(
     func test1() { return 67; }
@@ -52,7 +61,7 @@ TEST(Parser, Literals) {
         EXPECT_EQ(funcDef->name()->string, "test1");
         EXPECT_EQ(funcDef->body()->statements.size(), 1);
         return_statement_node_h ret = funcDef->body()->statements[0];
-        EXPECT_EQ(ret->value(), integer_literal_node({ furc::location{ "<TEMP>", 1, 26 }, 67 }));
+        EXPECT_INTLIT(ret->value(), 67);
     }
     {
         auto test2 = program->declarations()[1];
@@ -62,15 +71,6 @@ TEST(Parser, Literals) {
         EXPECT_EQ(funcDecl->name()->string, "test2");
     }
 }
-
-#define EXPECT_INTLIT(expr, integer)                                                                                   \
-    do {                                                                                                               \
-        EXPECT_EQ((expr)->expression_type(), expression_node_t::Literal);                                              \
-        literal_node_h literal = (expr);                                                                               \
-        EXPECT_EQ(literal->literal_type(), literal_node_t::Integer);                                                   \
-        integer_literal_node_h intLit = literal;                                                                       \
-        EXPECT_EQ(*intLit, (integer));                                                                                 \
-    } while (0)
 
 #define EXPECT_VARREAD(expr, varname)                                                                                  \
     do {                                                                                                               \
@@ -216,7 +216,7 @@ TEST(Parser, Paren) {
     EXPECT_EQ(dec->get_node()->expression_type(), expression_node_t::Unaryop);
     unaryop_expression_node_h inc = dec->get_node();
     EXPECT_EQ(inc->type(), unaryop_expression_node_t::PostfixIncrement);
-    EXPECT_VARREAD(inc->get_node(), "x");
+    EXPECT_VARREAD(inc->get_node(), "x"sv);
 }
 
 TEST(Parser, Assignment) {
@@ -238,10 +238,7 @@ TEST(Parser, Assignment) {
     var_assign_expression_node_h assign = expr;
     EXPECT_EQ(assign->compound(), binop_expression_node_t::None);
 
-    expression_node_h lhs = assign->lhs();
-    EXPECT_EQ(lhs->expression_type(), expression_node_t::VarRead);
-    var_read_expression_node_h varRead = lhs;
-    EXPECT_EQ(varRead->get_name(), "x");
+    EXPECT_VARREAD(assign->lhs(), "x"sv);
 
     expression_node_h rhs = assign->rhs();
     EXPECT_EQ(rhs->expression_type(), expression_node_t::Literal);
@@ -267,10 +264,7 @@ TEST(Parser, CompoundAssignment) {
     var_assign_expression_node_h assign = expr;
     EXPECT_EQ(assign->compound(), binop_expression_node_t::Add);
 
-    expression_node_h lhs = assign->lhs();
-    EXPECT_EQ(lhs->expression_type(), expression_node_t::VarRead);
-    var_read_expression_node_h varRead = lhs;
-    EXPECT_EQ(varRead->get_name(), "x");
+    EXPECT_VARREAD(assign->lhs(), "x"sv);
 
     expression_node_h rhs = assign->rhs();
     EXPECT_EQ(rhs->expression_type(), expression_node_t::Literal);

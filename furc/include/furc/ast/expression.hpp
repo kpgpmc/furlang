@@ -52,12 +52,14 @@ protected:
  */
 class var_read_expression_node final : public expression_node {
 public:
+    using name_type = furlang::result<std::string_view, error>; /**< Name type alias. */
+public:
     /**
      * @brief Construct a new var read expression node object from a name handle.
      *
      * @param name Handle to the name.
      */
-    var_read_expression_node(handle<std::string_view>&& name)
+    var_read_expression_node(name_type&& name)
       : m_name(std::move(name)) {}
 
     /**
@@ -65,14 +67,14 @@ public:
      *
      * @return Name of the variable.
      */
-    const handle<std::string_view>& get_name() const { return m_name; }
+    const name_type& get_name() const { return m_name; }
 
     /**
      * @brief Returns the variable's name.
      *
      * @return Name of the variable.
      */
-    handle<std::string_view>&& move_name() { return std::move(m_name); }
+    name_type&& move_name() { return std::move(m_name); }
 public:
     /**
      * @brief Returns this node's expression type.
@@ -87,7 +89,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    handle<std::string_view> m_name;
+    name_type m_name;
 };
 
 /**

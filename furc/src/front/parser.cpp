@@ -166,15 +166,13 @@ ast::literal_node_h parser::parse_literal() {
     switch (tok->type) {
     case token_t::String: {
         auto tok = next_token();
-        return ast::string_literal_node_h{ tok->location,
-            m_arena,
-            handle<std::string_view>{ tok->location, (*tok)->string } };
+        if (tok.has_error()) return error_handle(tok);
+        return ast::string_literal_node_h{ tok->location, m_arena, (*tok)->string };
     }
     case token_t::Integer: {
         auto tok = next_token();
-        return ast::integer_literal_node_h{ tok->location,
-            m_arena,
-            handle<integer_token>{ tok->location, (*tok)->integer } };
+        if (tok.has_error()) return error_handle(tok);
+        return ast::integer_literal_node_h{ tok->location, m_arena, (*tok)->integer };
     }
     default: break;
     }
@@ -187,9 +185,8 @@ ast::expression_node_h parser::parse_expression_primary() {
     switch (tok->type) {
     case token_t::Identifier: {
         auto tok = next_token();
-        return ast::var_read_expression_node_h{ tok->location,
-            m_arena,
-            handle<std::string_view>{ tok->location, (*tok)->string } };
+        if (tok.has_error()) return error_handle(tok);
+        return ast::var_read_expression_node_h{ tok->location, m_arena, (*tok)->string };
     }
     case token_t::LParen: {
         auto tok  = next_token();
