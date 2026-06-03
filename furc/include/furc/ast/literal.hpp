@@ -1,25 +1,58 @@
+// NOLINTBEGIN(portability-template-virtual-member-function)
+
 #ifndef FURC_AST_LITERAL_HPP
 #define FURC_AST_LITERAL_HPP
 
 #include "furc/ast/expression.hpp"
 #include "furc/ast/node.hpp"
-#include "furc/front/token.hpp"
 
 namespace furc {
 namespace ast {
 
 /**
- * @brief Literal node type.
- */
-enum class literal_node_t {
-    String,  /**< String literal. */
-    Integer, /**< Integer literal. */
-};
-
-/**
  * @brief Literal AST node.
  */
+template <typename ValueType, literal_node_t LiteralType>
 class literal_node : public expression_node {
+public:
+    using value_type = std::remove_reference_t<ValueType>; /**< Value type. */
+public:
+    /**
+     * @brief Construct a new literal AST node.
+     *
+     * @param location Node location.
+     */
+    template <typename = std::enable_if_t<std::is_default_constructible_v<ValueType>>>
+    literal_node(struct location location)
+      : expression_node(location) {}
+
+    /**
+     * @brief Construct a new literal AST node.
+     *
+     * @param location Node location.
+     * @param value Node value to copy.
+     */
+    literal_node(struct location location, const value_type& value)
+      : expression_node(location), p_value(value) {}
+
+    /**
+     * @brief Construct a new literal AST node.
+     *
+     * @param location Node location.
+     * @param value Node value to move.
+     */
+    literal_node(struct location location, value_type&& value)
+      : expression_node(location), p_value(std::move(value)) {}
+
+    /**
+     * @brief Construct a new literal AST node.
+     *
+     * @param location Node location.
+     * @param args Arguments to call value constructor with.
+     */
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<ValueType, Args...>>>
+    literal_node(struct location location, Args&&... args)
+      : expression_node(location), p_value(std::forward<Args>(args)...) {}
 public:
     /**
      * @brief Returns this node's category.
@@ -40,92 +73,30 @@ public:
      *
      * @return The literal type.
      */
-    virtual literal_node_t literal_type() const = 0;
-protected:
-    bool equal(const node& rhs) const override;
-};
-
-/**
- * @brief String literal AST node.
- */
-class string_literal_node final : public literal_node {
-public:
-    /**
-     * @brief Construct a new string literal node object from a handle.
-     *
-     * @param value A handle to value.
-     */
-    string_literal_node(handle<std::string_view>&& value)
-      : m_value(std::move(value)) {}
-public:
-    /**
-     * @brief Returns this node's literal type.
-     *
-     * @return literal_node_t::String.
-     */
-    literal_node_t literal_type() const override { return literal_node_t::String; }
+    literal_node_t literal_type() const { return LiteralType; }
 
     /**
      * @brief Returns this node's value.
      *
-     * @return A handle to the value.
+     * @return A string view result.
      */
-    const handle<std::string_view>& value() const { return m_value; }
+    const value_type& value() const { return p_value; }
 public:
-    void accept(visitor& visitor) const override;
+    void accept(visitor& visitor) const override { visitor.visit(*this); }
 
-    std::ostream& print(std::ostream& os) const override;
+    std::ostream& print(std::ostream& os) const override { return os << p_value; }
 protected:
-    bool equal(const node& rhs) const override;
-private:
-    handle<std::string_view> m_value;
-};
-
-/**
- * @brief Integer literal AST node.
- */
-class integer_literal_node final : public literal_node {
-public:
-    /**
-     * @brief Construct a new integer literal node object from a handle.
-     *
-     * @param value A handle to the value.
-     */
-    integer_literal_node(handle<front::integer_token>&& value)
-      : m_value(std::move(value)) {}
-public:
-    /**
-     * @brief Returns this node's literal type.
-     *
-     * @return literal_node_t::Integer.
-     */
-    literal_node_t literal_type() const override { return literal_node_t::Integer; }
-
-    /**
-     * @brief Returns this node's value.
-     *
-     * @return A handle to the value.
-     */
-    const handle<front::integer_token>& value() const { return m_value; }
-
-    /**
-     * @brief Compares this node with an integer token for equality.
-     *
-     * @param integer Integer token to compare against.
-     * @return true if the integer token is equal to this node.
-     */
-    bool operator==(front::integer_token integer) const { return m_value == integer; }
-public:
-    void accept(visitor& visitor) const override;
-
-    std::ostream& print(std::ostream& os) const override;
+    bool equal(const node& rhsNode) const override {
+        const auto& rhs = dynamic_cast<const literal_node&>(rhsNode);
+        return literal_type() == rhs.literal_type() && p_value == rhs.p_value;
+    }
 protected:
-    bool equal(const node& rhs) const override;
-private:
-    handle<front::integer_token> m_value;
+    value_type p_value; /**< Node value. */
 };
 
 } // namespace ast
 } // namespace furc
 
 #endif // FURC_AST_LITERAL_HPP
+
+// NOLINTEND(portability-template-virtual-member-function)

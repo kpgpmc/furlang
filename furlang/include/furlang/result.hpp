@@ -200,6 +200,22 @@ public:
     bool operator!=(const result& rhs) const { return !this->operator==(rhs); }
 
     /**
+     * @brief Compares a result with a value for equality.
+     *
+     * @param rhs Value to compare against.
+     * @return true if the values are equal.
+     */
+    bool operator==(const value_type& rhs) const { return !m_error && m_value.result == rhs; }
+
+    /**
+     * @brief Compares a result with a value for inequality.
+     *
+     * @param rhs Value to compare against.
+     * @return true if the values are not equal.
+     */
+    bool operator!=(const value_type& rhs) const { return !this->operator==(rhs); }
+
+    /**
      * @brief Returns a reference to value.
      *
      * @return Reference to the value.

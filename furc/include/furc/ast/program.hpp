@@ -12,9 +12,15 @@ namespace ast {
 /**
  * @brief Program AST node.
  */
-class program_node final : public node {
+class program_node final : public abstract_node {
 public:
-    program_node() = default;
+    /**
+     * @brief Construct a new program AST node.
+     *
+     * @param location Node location.
+     */
+    program_node(struct location location)
+      : abstract_node(location) {}
 
     node_t category() const override { return node_t::Program; }
 public:
@@ -23,14 +29,14 @@ public:
      *
      * @param declaration Declaration to add.
      */
-    void push(node_handle<declaration_node>&& declaration) { m_declarations.push_back(std::move(declaration)); }
+    void push(node_r<declaration_node>&& declaration) { m_declarations.push_back(std::move(declaration)); }
 
     /**
      * @brief Returns a list of declarations of this program.
      *
      * @return The list of this program's declarations.
      */
-    const std::vector<node_handle<declaration_node>>& declarations() const { return m_declarations; }
+    const std::vector<node_r<declaration_node>>& declarations() const { return m_declarations; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -38,7 +44,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    std::vector<node_handle<declaration_node>> m_declarations;
+    std::vector<node_r<declaration_node>> m_declarations;
 };
 
 } // namespace ast

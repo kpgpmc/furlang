@@ -13,7 +13,7 @@ using namespace std::string_literals;
 lexer::lexer(std::string_view filename, std::string_view content)
   : m_filename(filename), m_content(content) {}
 
-token_handle<> lexer::next_token() {
+token_r lexer::next_token() {
     skip_spaces();
     while (m_cursor + 2 <= m_content.size() && m_content[m_cursor] == '/') {
         if (m_content[m_cursor + 1] == '/') {
@@ -35,7 +35,8 @@ token_handle<> lexer::next_token() {
             }
             if (m_cursor + 2 >= m_content.size()) {
                 next();
-                return { current_location(), "unexpected end of file before enclosing `*/`" };
+                return token_r(
+                    token_error{ current_location(), token_error_t::UnexpectedEof, "before enclosing `*/`" });
             }
             m_cursor += 2;
         } else {
@@ -51,12 +52,14 @@ token_handle<> lexer::next_token() {
         std::size_t begin = ++m_cursor;
         while (m_cursor < m_content.size() && m_content[m_cursor] != '"')
             ++m_cursor;
-        if (m_cursor >= m_content.size()) return { current_location(), "unexpected end of file before enclosing '\"'" };
+        if (m_cursor >= m_content.size()) {
+            return token_r(token_error{ current_location(), token_error_t::UnexpectedEof, "before enclosing '\"'" });
+        }
         ++m_cursor;
 
         return { location, token_t::String, m_content.substr(begin, m_cursor - begin - 1) };
     }
-    case std::char_traits<char>::eof(): return { location, token_t::None };
+    case std::char_traits<char>::eof(): return token_r(token_error{ current_location(), token_error_t::EndOfFile });
     default: {
         if (std::isdigit(get()) != 0) {
             integer_token integer    = 0;
@@ -70,7 +73,9 @@ token_handle<> lexer::next_token() {
                 if (integer > upperBound || integer == upperBound && (integer - upperBound + digit) > (max % 10)) {
                     while (std::isdigit(get()) != 0)
                         ++m_cursor;
-                    return { location, "integer "s.append(m_content.substr(start, m_cursor - start)) + " is too big" };
+                    return token_r(token_error{ location,
+                        token_error_t::IntegerOverflow,
+                        std::string(m_content.substr(start, m_cursor - start)) });
                 }
                 integer *= 10;
                 integer += digit;
@@ -150,7 +155,8 @@ token_handle<> lexer::next_token() {
             return { location, type };
         }
 
-        return { location, "unexpected character '"s.append(m_content.substr(m_cursor, length)) + "'" };
+        return token_r(
+            token_error{ location, token_error_t::UnexpectedCharacter, std::string(m_content.substr(m_cursor, 1)) });
     }
     }
 }

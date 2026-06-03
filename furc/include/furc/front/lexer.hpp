@@ -43,7 +43,7 @@ public:
      *
      * @return The token handle.
      */
-    token_handle<> next_token();
+    token_r next_token();
 
     /**
      * @brief Checks whether the cursor is at the EOF.

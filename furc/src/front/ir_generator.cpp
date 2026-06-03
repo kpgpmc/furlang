@@ -22,7 +22,7 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
         return;
     }
     for (const auto& stmt : funcDef.body()->statements) {
-        stmt->accept(*this);
+        stmt.value()->accept(*this);
     }
     m_currentBlock->emplace<ir::return_instruction>();
 
@@ -30,12 +30,15 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
 }
 
 void ir_generator::visit(const ast::return_statement_node& returnStmt) {
-    if (returnStmt.value().has_error()) {
-        std::cerr << returnStmt.value() << '\n';
+    if (!returnStmt.value().has_value()) return;
+    auto value = returnStmt.value().value();
+    if (value.has_error()) {
+        std::cerr << value.error() << '\n';
+        return;
     }
 
-    if (returnStmt.value().present()) {
-        returnStmt.value()->accept(*this);
+    if (value.has_value()) {
+        value.value()->accept(*this);
         push<ir::return_instruction>(ir::operand::new_reg(m_registerCounter - 1));
     } else {
         push<ir::return_instruction>();
@@ -43,19 +46,19 @@ void ir_generator::visit(const ast::return_statement_node& returnStmt) {
 }
 
 void ir_generator::visit(const ast::if_statement_node& node) {
-    node.cond()->accept(*this);
+    node.cond().value()->accept(*this);
     ir_register cond = m_registerCounter - 1;
     push<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
         m_currentFunction->blocks().size(),
         m_currentFunction->blocks().size() + 1);
 
     push_block(); // then block
-    node.then()->accept(*this);
-    if (node.elze().present()) {
+    node.then().value()->accept(*this);
+    if (node.elze().has_value()) {
         m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size() + 1);
 
         push_block(); // else block
-        node.elze()->accept(*this);
+        node.elze().value().value()->accept(*this);
     }
     m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size());
 
@@ -64,17 +67,17 @@ void ir_generator::visit(const ast::if_statement_node& node) {
 
 void ir_generator::visit(const ast::compound_statement_node& node) {
     for (const auto& stmt : node.body()->statements) {
-        stmt->accept(*this);
+        stmt.value()->accept(*this);
     }
 }
 
 void ir_generator::visit(const ast::string_literal_node& node) {
-    push<furlang::ir::assign_instruction>(ir::operand::new_string(std::string(*node.value())),
+    push<furlang::ir::assign_instruction>(ir::operand::new_string(node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 
 void ir_generator::visit(const ast::integer_literal_node& node) {
-    push<furlang::ir::assign_instruction>(ir::operand::new_integer(*node.value()),
+    push<furlang::ir::assign_instruction>(ir::operand::new_integer(node.value()),
         ir::operand::new_reg(m_registerCounter++));
 }
 
@@ -110,9 +113,9 @@ static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::
 }
 
 void ir_generator::visit(const ast::binop_expression_node& node) {
-    node.lhs()->accept(*this);
+    node.lhs().value()->accept(*this);
     ir_register lhs = m_registerCounter - 1;
-    node.rhs()->accept(*this);
+    node.rhs().value()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
     ir_register dst = m_registerCounter++;
     push<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
@@ -122,10 +125,10 @@ void ir_generator::visit(const ast::binop_expression_node& node) {
 }
 
 void ir_generator::visit(const ast::var_assign_expression_node& node) {
-    node.rhs()->accept(*this);
+    node.rhs().value()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
-    assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
-    ast::var_read_expression_node_h lhs = node.lhs();
+    assert(node.lhs().value()->expression_type() == ast::expression_node_t::VarRead);
+    auto lhs = std::dynamic_pointer_cast<ast::var_read_expression_node>(node.lhs().value());
 
     ir_register reg = 0;
     if (auto it = m_variables.find(*lhs->get_name()); it != m_variables.end()) {

@@ -1,9 +1,11 @@
 #ifndef FURC_AST_FWD_HPP
 #define FURC_AST_FWD_HPP
 
-#include "furc/handle.hpp"
+#include "furc/diag.hpp"
+#include "furlang/result.hpp"
 
-#include <string>
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace furc {
@@ -13,23 +15,47 @@ namespace furc {
  */
 namespace ast {
 
+/**
+ * @brief AST error.
+ */
+struct error {
+    location location; /**< Location of the error. */
+
+    /**
+     * @brief Compares two AST errors for equality.
+     *
+     * @param other Error to compare against.
+     * @return true if the errors are equal.
+     */
+    bool operator==(const error& other) const { return location == other.location; }
+
+    /**
+     * @brief Compares two AST errors for inequality.
+     *
+     * @param other Error to compare against.
+     * @return true if the errors are not equal.
+     */
+    bool operator!=(const error& other) const { return !this->operator==(other); }
+
+    /**
+     * @brief Prints an AST error to output stream.
+     *
+     * @param os Output stream.
+     * @param error AST error to print.
+     * @return The output stream.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const error& error);
+};
+
 class node;
 
 /**
- * @brief Alias for handle to node.
+ * @brief Alias for node result.
  *
  * @tparam T AST node type.
  */
 template <typename T>
-using node_handle = handle<T*, std::string>;
-
-class literal_node;
-
-/**
- * @brief Alias for handle to literal_node.
- * @see literal_node
- */
-using literal_node_h = node_handle<literal_node>;
+using node_r = furlang::result<std::shared_ptr<T>, error>;
 
 class expression_node;
 
@@ -37,7 +63,7 @@ class expression_node;
  * @brief Alias for handle to expression_node.
  * @see expression_node
  */
-using expression_node_h = node_handle<expression_node>;
+using expression_node_r = node_r<expression_node>;
 
 class declaration_node;
 
@@ -45,7 +71,7 @@ class declaration_node;
  * @brief Alias for handle to declaration_node.
  * @see declaration_node
  */
-using declaration_node_h = node_handle<declaration_node>;
+using declaration_node_r = node_r<declaration_node>;
 
 class statement_node;
 
@@ -53,7 +79,7 @@ class statement_node;
  * @brief Alias for handle to statement_node.
  * @see statement_node
  */
-using statement_node_h = node_handle<statement_node>;
+using statement_node_r = node_r<statement_node>;
 
 class program_node;
 
@@ -61,23 +87,40 @@ class program_node;
  * @brief Alias for handle to program_node.
  * @see program_node
  */
-using program_node_h = node_handle<program_node>;
+using program_node_r = node_r<program_node>;
 
-class string_literal_node;
+/**
+ * @brief Literal node type.
+ */
+enum class literal_node_t {
+    String,  /**< String literal. */
+    Integer, /**< Integer literal. */
+};
+
+template <typename, literal_node_t>
+class literal_node;
+
+/**
+ * @brief String literal AST node.
+ */
+using string_literal_node = literal_node<std::string, literal_node_t::String>;
 
 /**
  * @brief Alias for handle to string_literal_node.
  * @see string_literal_node
  */
-using string_literal_node_h = node_handle<string_literal_node>;
+using string_literal_node_r = node_r<string_literal_node>;
 
-class integer_literal_node;
+/**
+ * @brief Integer literal AST node.
+ */
+using integer_literal_node = literal_node<std::uint64_t, literal_node_t::Integer>;
 
 /**
  * @brief Alias for handle to integer_literal_node.
  * @see integer_literal_node
  */
-using integer_literal_node_h = node_handle<integer_literal_node>;
+using integer_literal_node_r = node_r<integer_literal_node>;
 
 class var_read_expression_node;
 
@@ -85,7 +128,7 @@ class var_read_expression_node;
  * @brief Alias for handle to var_read_expression_node.
  * @see var_read_expression_node
  */
-using var_read_expression_node_h = node_handle<var_read_expression_node>;
+using var_read_expression_node_r = node_r<var_read_expression_node>;
 
 class unaryop_expression_node;
 
@@ -93,7 +136,7 @@ class unaryop_expression_node;
  * @brief Alias for handle to unaryop_expression_node.
  * @see unaryop_expression_node
  */
-using unaryop_expression_node_h = node_handle<unaryop_expression_node>;
+using unaryop_expression_node_r = node_r<unaryop_expression_node>;
 
 class binop_expression_node;
 
@@ -101,7 +144,7 @@ class binop_expression_node;
  * @brief Alias for handle to binop_expression_node.
  * @see binop_expression_node
  */
-using binop_expression_node_h = node_handle<binop_expression_node>;
+using binop_expression_node_r = node_r<binop_expression_node>;
 
 class var_assign_expression_node;
 
@@ -109,7 +152,7 @@ class var_assign_expression_node;
  * @brief Alias for handle to var_assign_expression_node.
  * @see var_assign_expression_node
  */
-using var_assign_expression_node_h = node_handle<var_assign_expression_node>;
+using var_assign_expression_node_r = node_r<var_assign_expression_node>;
 
 /**
  * @brief List of statements.
@@ -128,7 +171,7 @@ struct body {
     /**
      * @brief List of statements.
      */
-    std::vector<statement_node_h> statements;
+    std::vector<statement_node_r> statements;
 
     /**
      * @brief Compares two bodies for equality.
@@ -159,10 +202,10 @@ struct body {
 };
 
 /**
- * @brief Alias for handle to body.
+ * @brief Alias for body result.
  * @see body
  */
-using body_h = handle<body>;
+using body_r = furlang::result<body, error>;
 
 class function_declaration_node;
 
@@ -170,7 +213,7 @@ class function_declaration_node;
  * @brief Alias for handle to function_declaration_node.
  * @see function_declaration_node
  */
-using function_declaration_node_h = node_handle<function_declaration_node>;
+using function_declaration_node_r = node_r<function_declaration_node>;
 
 class function_definition_node;
 
@@ -178,7 +221,7 @@ class function_definition_node;
  * @brief Alias for handle to function_definition_node.
  * @see function_definition_node
  */
-using function_definition_node_h = node_handle<function_definition_node>;
+using function_definition_node_r = node_r<function_definition_node>;
 
 class return_statement_node;
 
@@ -186,7 +229,7 @@ class return_statement_node;
  * @brief Alias for handle to return_statement_node.
  * @see return_statement_node
  */
-using return_statement_node_h = node_handle<return_statement_node>;
+using return_statement_node_r = node_r<return_statement_node>;
 
 class if_statement_node;
 
@@ -194,7 +237,7 @@ class if_statement_node;
  * @brief Alias for handle to if_statement_node.
  * @see if_statement_node
  */
-using if_statement_node_h = node_handle<if_statement_node>;
+using if_statement_node_r = node_r<if_statement_node>;
 
 class compound_statement_node;
 
@@ -202,7 +245,7 @@ class compound_statement_node;
  * @brief Alias for handle to compound_statement_node.
  * @see compound_statement_node
  */
-using compound_statement_node_h = node_handle<compound_statement_node>;
+using compound_statement_node_r = node_r<compound_statement_node>;
 
 } // namespace ast
 } // namespace furc
