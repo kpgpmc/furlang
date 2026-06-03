@@ -30,17 +30,17 @@ parser::parser(std::string_view filename)
     m_lexer = { filename, m_content };
 }
 
-ast::program_node_h parser::parse() & {
+ast::program_node_r parser::parse() & {
     auto program = m_arena.allocate_shared<ast::program_node>();
 
     while (peek_token().has_value()) {
         program->push(std::move(parse_declaration()));
     }
 
-    return { location{ m_filename, 0, 0 }, program };
+    return program;
 }
 
-ast::declaration_node_h parser::parse_declaration() {
+ast::declaration_node_r parser::parse_declaration() {
     const auto& first = peek_token();
     switch (first->type) {
     case token_t::Keyword: {
@@ -48,29 +48,29 @@ ast::declaration_node_h parser::parse_declaration() {
         switch ((*first)->keyword) {
         case keyword_token::Func: {
             auto name = eat_token(token_t::Identifier);
-            if (name.has_error()) return error_handle(name);
+            if (name.has_error()) return ast::declaration_node_r(ast::error{ name.error().location });
 
             auto tok = eat_token(token_t::LParen);
-            if (tok.has_error()) return error_handle(tok);
+            if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
             tok = eat_token(token_t::RParen);
-            if (tok.has_error()) return error_handle(tok);
+            if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
 
             const auto& peek = peek_token();
-            if (peek.has_error()) return error_handle(peek);
+            if (peek.has_error()) return ast::declaration_node_r(ast::error{ peek.error().location });
             switch (peek->type) {
             case token_t::LBrace: {
                 ast::body_r body = parse_body();
-                if (body.has_error()) return ast::node_handle<ast::node>(body.error().location, "Body error");
-                return ast::function_definition_node_h{ first->location, m_arena, *name, std::move(body) };
+                if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
+                return m_arena.allocate_shared<ast::function_definition_node>(*name, std::move(body));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return ast::function_declaration_node_h{ first->location, m_arena, *name };
+                return m_arena.allocate_shared<ast::function_declaration_node>(*name);
             }
-            default: return { tok->location, "unexpected token "s + tok->type };
+            default: return ast::declaration_node_r(ast::error{ tok->location });
             }
         }
-        default: return { first->location, "unexpected keyword "s + (*first)->keyword };
+        default: return ast::declaration_node_r(ast::error{ first->location });
         }
     }
     case token_t::None:
@@ -85,14 +85,14 @@ ast::declaration_node_h parser::parse_declaration() {
     case token_t::Semicolon:
     case token_t::Colon:
     default: {
-        return { first->location, "unexpected token "s + first->type };
+        return ast::declaration_node_r(ast::error{ first->location });
     }
     }
 }
 
-ast::statement_node_h parser::parse_statement() {
+ast::statement_node_r parser::parse_statement() {
     const auto& tok = peek_token();
-    if (tok.has_error()) return error_handle(tok);
+    if (tok.has_error()) return ast::statement_node_r(ast::error{ tok.error().location });
     auto location = tok->location;
     switch (tok->type) {
     case token_t::Keyword: {
@@ -101,104 +101,102 @@ ast::statement_node_h parser::parse_statement() {
             auto tok = next_token();
             if (peek_token()->type == token_t::Semicolon) {
                 next_token();
-                return ast::return_statement_node_h{ tok->location, m_arena };
+                return m_arena.allocate_shared<ast::return_statement_node>();
             }
 
             auto value = parse_expression();
             auto err   = eat_token(token_t::Semicolon);
-            if (err.has_error()) return error_handle(err);
-            return ast::return_statement_node_h{ tok->location, m_arena, std::move(value) };
+            if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
+            return m_arena.allocate_shared<ast::return_statement_node>(std::move(value));
         }
         case keyword_token::If: {
             auto tok = next_token();
             auto err = eat_token(token_t::LParen);
-            if (err.has_error()) return error_handle(err);
+            if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
 
             auto cond = parse_expression();
 
             err = eat_token(token_t::RParen);
-            if (err.has_error()) return error_handle(err);
+            if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
 
             auto then = parse_statement();
-            if (then.has_error()) return then;
+            if (then.has_error()) return ast::statement_node_r(ast::error{ then.error().location });
 
             if (peek_token().has_value() && peek_token()->type == token_t::Keyword &&
                 peek_token()->value.keyword == keyword_token::Else) {
                 next_token();
 
-                return ast::if_statement_node_h{ location,
-                    m_arena,
-                    std::move(cond),
+                return m_arena.allocate_shared<ast::if_statement_node>(std::move(cond),
                     std::move(then),
-                    std::move(parse_statement()) };
+                    std::move(parse_statement()));
             }
 
-            return ast::if_statement_node_h{ location, m_arena, std::move(cond), std::move(then) };
+            return m_arena.allocate_shared<ast::if_statement_node>(std::move(cond), std::move(then));
         }
         case keyword_token::None:
         case keyword_token::Func:
         default: break;
         }
     }
-    case token_t::LBrace: return ast::compound_statement_node_h{ location, m_arena, parse_body() };
+    case token_t::LBrace: return m_arena.allocate_shared<ast::compound_statement_node>(parse_body());
     default: break;
     }
 
     auto declaration = parse_declaration();
-    if (declaration.present()) return std::move(declaration);
+    if (declaration.has_value()) return std::move(*declaration);
     auto expression = parse_expression();
-    if (expression.present()) {
+    if (expression.has_value()) {
         auto semi = eat_token(token_t::Semicolon);
-        if (semi.has_error()) return error_handle(semi);
-        return std::move(expression);
+        if (semi.has_error()) return ast::statement_node_r(ast::error{ semi.error().location });
+        return std::move(*expression);
     }
 
     auto token = next_token();
-    return { token->location, "unexpected token "s + token->type + ", expected statement, declaration or expression" };
+    return ast::statement_node_r(ast::error{ token->location });
 }
 
-ast::expression_node_h parser::parse_expression(std::uint32_t precedence) {
+ast::expression_node_r parser::parse_expression(std::uint32_t precedence) {
     return parse_expression_rhs(parse_expression_unary(precedence), precedence);
 }
 
-ast::literal_node_h parser::parse_literal() {
+ast::literal_node_r parser::parse_literal() {
     const auto& tok = peek_token();
     switch (tok->type) {
     case token_t::String: {
         auto tok = next_token();
-        if (tok.has_error()) return error_handle(tok);
-        return ast::string_literal_node_h{ tok->location, m_arena, (*tok)->string };
+        if (tok.has_error()) return ast::literal_node_r(ast::error{ tok.error().location });
+        return m_arena.allocate_shared<ast::string_literal_node>((*tok)->string);
     }
     case token_t::Integer: {
         auto tok = next_token();
-        if (tok.has_error()) return error_handle(tok);
-        return ast::integer_literal_node_h{ tok->location, m_arena, (*tok)->integer };
+        if (tok.has_error()) return ast::literal_node_r(ast::error{ tok.error().location });
+        return m_arena.allocate_shared<ast::integer_literal_node>((*tok)->integer);
     }
     default: break;
     }
 
-    return { tok->location, "unexpected token "s + tok->type + ", expected literal" };
+    return ast::literal_node_r(ast::error{ tok->location });
 }
 
-ast::expression_node_h parser::parse_expression_primary() {
+ast::expression_node_r parser::parse_expression_primary() {
     const auto& tok = peek_token();
     switch (tok->type) {
     case token_t::Identifier: {
         auto tok = next_token();
-        if (tok.has_error()) return error_handle(tok);
-        return ast::var_read_expression_node_h{ tok->location, m_arena, (*tok)->string };
+        if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
+        return m_arena.allocate_shared<ast::var_read_expression_node>((*tok)->string);
     }
     case token_t::LParen: {
         auto tok  = next_token();
         auto node = parse_expression();
         auto err  = eat_token(token_t::RParen);
-        if (err.has_error()) return error_handle(err);
+        if (err.has_error()) return ast::expression_node_r(ast::error{ err.error().location });
         return node;
     }
     default: {
         auto literal = parse_literal();
-        if (literal.present()) return std::move(literal);
-        return { tok->location, "unexpected token"s + tok->type + ", expected expression or literal" };
+        if (literal.has_value()) return std::move(*literal);
+        return ast::expression_node_r(ast::error{ tok->location });
     }
     }
 }
@@ -208,7 +206,7 @@ struct unaryop_info {
     std::uint32_t                  precedence;
 };
 
-ast::expression_node_h parser::parse_expression_unary(std::uint32_t precedence) {
+ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) {
     static std::unordered_map<token_t, unaryop_info> s_prefixes = {
         { token_t::Plus, unaryop_info{ ast::unaryop_expression_node_t::Positive, 3 } },
         { token_t::Minus, unaryop_info{ ast::unaryop_expression_node_t::Negative, 3 } },
@@ -216,7 +214,7 @@ ast::expression_node_h parser::parse_expression_unary(std::uint32_t precedence) 
         { token_t::DMinus, unaryop_info{ ast::unaryop_expression_node_t::PrefixDecrement, 2 } },
     };
 
-    ast::unaryop_expression_node_h result;
+    std::shared_ptr<ast::unaryop_expression_node> result;
     while (true) {
         auto it = s_prefixes.find(peek_token()->type);
         if (it == s_prefixes.end()) break;
@@ -224,7 +222,7 @@ ast::expression_node_h parser::parse_expression_unary(std::uint32_t precedence) 
         if (current.precedence >= precedence) break;
         auto token = next_token();
 
-        ast::expression_node_h expression;
+        ast::expression_node_r expression;
 
         auto nextIt = s_prefixes.find(peek_token()->type);
         if (nextIt != s_prefixes.end()) {
@@ -232,11 +230,11 @@ ast::expression_node_h parser::parse_expression_unary(std::uint32_t precedence) 
             expression = parse_expression_unary(current.precedence + 1);
         }
 
-        result = { token->location, m_arena, current.type, std::move(expression) };
+        result = m_arena.allocate_shared<ast::unaryop_expression_node>(current.type, std::move(expression));
     }
 
-    if (!result.present()) return parse_expression_primary();
-    if (!result->get_node().present()) result->set_node(parse_expression_primary());
+    if (result == nullptr) return parse_expression_primary();
+    if (result->get_node().has_value()) result->set_node(parse_expression_primary());
     return result;
 }
 
@@ -291,7 +289,7 @@ struct rhsop_info {
     }
 };
 
-ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence) {
+ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_r&& init, std::uint32_t precedence) {
     static std::unordered_map<token_t, rhsop_info> s_rhsops = {
         { token_t::Plus, rhsop_info::create(ast::binop_expression_node_t::Add, 5, associativity::Left) },
         { token_t::Minus, rhsop_info::create(ast::binop_expression_node_t::Sub, 5, associativity::Left) },
@@ -315,7 +313,7 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         { token_t::GreaterEq, rhsop_info::create(ast::binop_expression_node_t::GreaterEqual, 9, associativity::Left) },
     };
 
-    ast::expression_node_h lhs = std::move(init);
+    ast::expression_node_r lhs = std::move(init);
     while (peek_token().has_value()) {
         auto it = s_rhsops.find(peek_token()->type);
         if (it == s_rhsops.end()) return lhs;
@@ -324,7 +322,7 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
         if (current.precedence >= precedence) return lhs;
         auto opToken = next_token();
 
-        ast::expression_node_h rhs;
+        ast::expression_node_r rhs;
         if (current.type != rhsop_info_t::Unaryop) {
             rhs = parse_expression_unary(current.precedence + 1); // unary prefix is always right-associative
         }
@@ -343,21 +341,15 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
 
         switch (current.type) {
         case rhsop_info_t::Unaryop:
-            lhs = ast::unaryop_expression_node_h{ opToken->location, m_arena, current.unary, std::move(lhs) };
+            lhs = m_arena.allocate_shared<ast::unaryop_expression_node>(current.unary, std::move(lhs));
             break;
         case rhsop_info_t::Binop:
-            lhs = ast::binop_expression_node_h{ opToken->location,
-                m_arena,
-                current.binary,
-                std::move(lhs),
-                std::move(rhs) };
+            lhs = m_arena.allocate_shared<ast::binop_expression_node>(current.binary, std::move(lhs), std::move(rhs));
             break;
         case rhsop_info_t::Assignment:
-            lhs = ast::var_assign_expression_node_h{ opToken->location,
-                m_arena,
-                current.assignment,
+            lhs = m_arena.allocate_shared<ast::var_assign_expression_node>(current.assignment,
                 std::move(lhs),
-                std::move(rhs) };
+                std::move(rhs));
             break;
         }
     }
@@ -380,10 +372,6 @@ ast::body_r parser::parse_body() {
     body.end = end->location;
 
     return body;
-}
-
-ast::node_handle<ast::node> parser::error_handle(const token_r& result) {
-    return { result.error().location, std::string(result.error().message) };
 }
 
 token_r parser::next_token() {

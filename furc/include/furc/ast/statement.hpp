@@ -3,6 +3,8 @@
 
 #include "furc/ast/node.hpp"
 
+#include <optional>
+
 namespace furc {
 namespace ast {
 
@@ -44,6 +46,8 @@ protected:
  */
 class return_statement_node final : public statement_node {
 public:
+    using value_type = std::optional<expression_node_r>; /**< Value type. */
+public:
     return_statement_node() = default;
 
     /**
@@ -51,7 +55,7 @@ public:
      *
      * @param value Return value handle.
      */
-    return_statement_node(expression_node_h&& value)
+    return_statement_node(expression_node_r&& value)
       : m_value(std::move(value)) {}
 public:
     /**
@@ -59,7 +63,7 @@ public:
      *
      * @return The return value handle.
      */
-    expression_node_h value() const { return m_value; }
+    value_type value() const { return m_value; }
 public:
     /**
      * @brief Returns this node's statement type.
@@ -74,7 +78,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    expression_node_h m_value; /**< Return value handle. */
+    value_type m_value; /**< Return value handle. */
 };
 
 /**
@@ -88,7 +92,7 @@ public:
      * @param cond Condition expression handle.
      * @param then Then statement handle.
      */
-    if_statement_node(expression_node_h&& cond, statement_node_h&& then)
+    if_statement_node(expression_node_r&& cond, statement_node_r&& then)
       : m_cond(std::move(cond)), m_then(std::move(then)) {}
 
     /**
@@ -98,7 +102,7 @@ public:
      * @param then Then statement handle.
      * @param elze Else statement handle.
      */
-    if_statement_node(expression_node_h&& cond, statement_node_h&& then, statement_node_h&& elze)
+    if_statement_node(expression_node_r&& cond, statement_node_r&& then, statement_node_r&& elze)
       : m_cond(std::move(cond)), m_then(std::move(then)), m_else(std::move(elze)) {}
 public:
     /**
@@ -106,21 +110,21 @@ public:
      *
      * @return The condition expression handle.
      */
-    expression_node_h cond() const { return m_cond; }
+    expression_node_r cond() const { return m_cond; }
 
     /**
      * @brief Returns this node's then statement handle.
      *
      * @return The then statement handle.
      */
-    const statement_node_h& then() const { return m_then; }
+    const statement_node_r& then() const { return m_then; }
 
     /**
      * @brief Returns this node's else statement handle.
      *
      * @return The else statement handle.
      */
-    const statement_node_h& elze() const { return m_else; }
+    const std::optional<statement_node_r>& elze() const { return m_else; }
 public:
     /**
      * @brief Returns this node's statement type.
@@ -135,9 +139,9 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    expression_node_h m_cond; /**< The condition expression handle */
-    statement_node_h  m_then; /**< The then statement handle */
-    statement_node_h  m_else; /**< The else statement handle */
+    expression_node_r               m_cond; /**< The condition expression handle */
+    statement_node_r                m_then; /**< The then statement handle */
+    std::optional<statement_node_r> m_else; /**< The else statement handle */
 };
 
 /**

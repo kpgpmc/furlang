@@ -54,20 +54,18 @@ public:
      *
      * @return Handle to an AST node of the program.
      */
-    ast::program_node_h parse() &;
+    ast::program_node_r parse() &;
 private:
-    ast::declaration_node_h parse_declaration();
-    ast::statement_node_h   parse_statement();
-    ast::expression_node_h  parse_expression(std::uint32_t precedence = 16);
-    ast::literal_node_h     parse_literal();
+    ast::declaration_node_r parse_declaration();
+    ast::statement_node_r   parse_statement();
+    ast::expression_node_r  parse_expression(std::uint32_t precedence = 16);
+    ast::literal_node_r     parse_literal();
 
-    ast::expression_node_h parse_expression_primary();
-    ast::expression_node_h parse_expression_unary(std::uint32_t precedence);
-    ast::expression_node_h parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence);
+    ast::expression_node_r parse_expression_primary();
+    ast::expression_node_r parse_expression_unary(std::uint32_t precedence);
+    ast::expression_node_r parse_expression_rhs(ast::expression_node_r&& init, std::uint32_t precedence);
 
     ast::body_r parse_body();
-private:
-    static ast::node_handle<ast::node> error_handle(const token_r& result);
 private:
     token_r        next_token();
     const token_r& peek_token();

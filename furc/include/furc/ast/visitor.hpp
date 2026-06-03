@@ -123,11 +123,11 @@ public:
     virtual void visit(const compound_statement_node& node) {}
 
     /**
-     * @brief Visit a node handle with an error.
+     * @brief Visit an AST error.
      *
-     * @param handle Node handle.
+     * @param error AST error.
      */
-    virtual void visit_error(const node_handle<node>& handle) {}
+    virtual void visit_error(const ast::error& error) {}
 };
 
 } // namespace ast

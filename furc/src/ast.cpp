@@ -77,6 +77,7 @@ void unaryop_expression_node::accept(visitor& visitor) const {
 }
 
 std::ostream& unaryop_expression_node::print(std::ostream& os) const {
+    if (!m_node.has_value()) return os;
     switch (m_type) {
     case unaryop_expression_node_t::Positive:
     case unaryop_expression_node_t::Negative:
@@ -184,7 +185,7 @@ void return_statement_node::accept(visitor& visitor) const {
 
 std::ostream& return_statement_node::print(std::ostream& os) const {
     os << "return statement";
-    if (m_value.present()) return os << ' ' << *m_value;
+    if (m_value.has_value()) return os << ' ' << *m_value.value();
     return os;
 }
 
@@ -199,7 +200,7 @@ void if_statement_node::accept(visitor& visitor) const {
 std::ostream& if_statement_node::print(std::ostream& os) const {
     os << "if " << *m_cond << ", then:\n";
     os << m_then;
-    if (m_else.present()) os << m_else;
+    if (m_else.has_value()) os << *m_else.value();
     return os;
 }
 
@@ -223,9 +224,9 @@ bool compound_statement_node::equal(const node& rhs) const {
 void program_node::accept(visitor& visitor) const {
     for (const auto& decl : m_declarations) {
         if (decl.has_error()) {
-            visitor.visit_error(decl);
+            visitor.visit_error(decl.error());
         } else {
-            decl->accept(visitor);
+            decl.value()->accept(visitor);
         }
     }
 }
