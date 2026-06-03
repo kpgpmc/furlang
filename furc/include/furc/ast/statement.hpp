@@ -150,7 +150,7 @@ public:
      *
      * @param body Body handle.
      */
-    compound_statement_node(body_h&& body)
+    compound_statement_node(body_r&& body)
       : m_body(std::move(body)) {}
 public:
     /**
@@ -158,7 +158,7 @@ public:
      *
      * @return The body handle.
      */
-    const body_h& body() const { return m_body; }
+    const body_r& body() const { return m_body; }
 public:
     /**
      * @brief Returns this node's statement type.
@@ -173,7 +173,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    body_h m_body; /**< The body handle. */
+    body_r m_body; /**< The body handle. */
 };
 
 } // namespace ast

@@ -65,7 +65,7 @@ private:
     ast::expression_node_h parse_expression_unary(std::uint32_t precedence);
     ast::expression_node_h parse_expression_rhs(ast::expression_node_h&& init, std::uint32_t precedence);
 
-    ast::body_h parse_body();
+    ast::body_r parse_body();
 private:
     static ast::node_handle<ast::node> error_handle(const token_r& result);
 private:

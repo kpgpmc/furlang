@@ -59,8 +59,8 @@ ast::declaration_node_h parser::parse_declaration() {
             if (peek.has_error()) return error_handle(peek);
             switch (peek->type) {
             case token_t::LBrace: {
-                ast::body_h body = parse_body();
-                if (body.has_error()) return body;
+                ast::body_r body = parse_body();
+                if (body.has_error()) return ast::node_handle<ast::node>(body.error().location, "Body error");
                 return ast::function_definition_node_h{ first->location, m_arena, *name, std::move(body) };
             }
             case token_t::Semicolon: {
@@ -367,11 +367,11 @@ ast::expression_node_h parser::parse_expression_rhs(ast::expression_node_h&& ini
     return lhs;
 }
 
-ast::body_h parser::parse_body() {
+ast::body_r parser::parse_body() {
     ast::body body;
 
     auto begin = eat_token(token_t::LBrace);
-    if (begin.has_error()) return error_handle(begin);
+    if (begin.has_error()) return ast::body_r(ast::error{ begin.error().location });
     body.begin = begin->location;
 
     while (!peek_token().has_error() && peek_token()->type != token_t::None && peek_token()->type != token_t::RBrace) {
@@ -379,10 +379,10 @@ ast::body_h parser::parse_body() {
     }
 
     auto end = eat_token(token_t::RBrace);
-    if (end.has_error()) return error_handle(end);
+    if (end.has_error()) return ast::body_r(ast::error{ end.error().location });
     body.end = end->location;
 
-    return { begin->location, body };
+    return body;
 }
 
 ast::node_handle<ast::node> parser::error_handle(const token_r& result) {

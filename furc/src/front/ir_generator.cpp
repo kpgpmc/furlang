@@ -18,7 +18,7 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
 
     push_block();
     if (funcDef.body().has_error()) {
-        std::cerr << funcDef.body().error() << '\n';
+        std::cerr << funcDef.body().error().location << ": ERROR: unknown\n";
         return;
     }
     for (const auto& stmt : funcDef.body()->statements) {

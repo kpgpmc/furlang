@@ -1,7 +1,9 @@
 #ifndef FURC_AST_FWD_HPP
 #define FURC_AST_FWD_HPP
 
+#include "furc/diag.hpp"
 #include "furc/handle.hpp"
+#include "furlang/result.hpp"
 
 #include <string>
 #include <vector>
@@ -12,6 +14,29 @@ namespace furc {
  * @brief Abstract Syntax Tree definitions.
  */
 namespace ast {
+
+/**
+ * @brief AST error.
+ */
+struct error {
+    location location; /**< Location of the error. */
+
+    /**
+     * @brief Compares two AST errors for equality.
+     *
+     * @param other Error to compare against.
+     * @return true if the errors are equal.
+     */
+    bool operator==(const error& other) const { return location == other.location; }
+
+    /**
+     * @brief Compares two AST errors for inequality.
+     *
+     * @param other Error to compare against.
+     * @return true if the errors are not equal.
+     */
+    bool operator!=(const error& other) const { return !this->operator==(other); }
+};
 
 class node;
 
@@ -162,7 +187,7 @@ struct body {
  * @brief Alias for body result.
  * @see body
  */
-using body_h = handle<body>;
+using body_r = furlang::result<body, error>;
 
 class function_declaration_node;
 

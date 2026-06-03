@@ -156,13 +156,13 @@ void function_definition_node::accept(visitor& visitor) const {
 
 std::ostream& function_definition_node::print(std::ostream& os) const {
     function_declaration_node::print(os);
-    os << ':';
-    if (m_body.present()) {
+    os << ":\n";
+    if (m_body.has_value()) {
         for (const auto& entry : m_body->statements)
-            os << '\n' << entry;
-        return os << '\n' << m_body->end << ": " << p_name->string << " end";
+            os << entry << '\n';
+        return os << m_body->end << ": " << p_name->string << " end";
     }
-    return os << m_body.error(); // error
+    return os << m_body.error().location << ": ERROR: unknown";
 }
 
 bool function_definition_node::equal(const node& rhs) const {

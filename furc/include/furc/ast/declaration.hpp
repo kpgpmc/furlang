@@ -95,7 +95,7 @@ public:
      * @param name Name of the function.
      * @param body Body of the function.
      */
-    function_definition_node(front::token name, body_h&& body)
+    function_definition_node(front::token name, body_r&& body)
       : function_declaration_node(name), m_body(std::move(body)) {}
 public:
     /**
@@ -110,7 +110,7 @@ public:
      *
      * @return Body of the function.
      */
-    const body_h& body() const { return m_body; }
+    const body_r& body() const { return m_body; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -118,7 +118,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    body_h m_body;
+    body_r m_body;
 };
 
 } // namespace ast
