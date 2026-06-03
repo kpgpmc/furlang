@@ -50,44 +50,44 @@ struct error {
 class node;
 
 /**
+ * @brief Alias for a shared pointer to node.
+ *
+ * @tparam T AST node type.
+ */
+template <typename T = node>
+using node_p = std::shared_ptr<T>;
+
+/**
  * @brief Alias for node result.
  *
  * @tparam T AST node type.
  */
-template <typename T>
-using node_r = furlang::result<std::shared_ptr<T>, error>;
+template <typename T = node>
+using node_r = furlang::result<node_p<T>, error>;
 
 class expression_node;
 
-/**
- * @brief Alias for handle to expression_node.
- * @see expression_node
- */
-using expression_node_r = node_r<expression_node>;
+using expression_node_p = node_p<expression_node>; /**< Alias for a shared pointer to expression_node. */
+
+using expression_node_r = node_r<expression_node>; /**< Alias for expression_node result */
 
 class declaration_node;
 
-/**
- * @brief Alias for handle to declaration_node.
- * @see declaration_node
- */
-using declaration_node_r = node_r<declaration_node>;
+using declaration_node_p = node_p<declaration_node>; /**< Alias for a shared pointer to declaration_node. */
+
+using declaration_node_r = node_r<declaration_node>; /**< Alias for declaration_node result */
 
 class statement_node;
 
-/**
- * @brief Alias for handle to statement_node.
- * @see statement_node
- */
-using statement_node_r = node_r<statement_node>;
+using statement_node_p = node_p<statement_node>; /**< Alias for a shared pointer to statement_node. */
+
+using statement_node_r = node_r<statement_node>; /**< Alias for statement_node result */
 
 class program_node;
 
-/**
- * @brief Alias for handle to program_node.
- * @see program_node
- */
-using program_node_r = node_r<program_node>;
+using program_node_p = node_p<program_node>; /**< Alias for a shared pointer to program_node. */
+
+using program_node_r = node_r<program_node>; /**< Alias for program_node result */
 
 /**
  * @brief Literal node type.
@@ -105,54 +105,47 @@ class literal_node;
  */
 using string_literal_node = literal_node<std::string, literal_node_t::String>;
 
-/**
- * @brief Alias for handle to string_literal_node.
- * @see string_literal_node
- */
-using string_literal_node_r = node_r<string_literal_node>;
+using string_literal_node_p = node_p<string_literal_node>; /**< Alias for a shared pointer to string_literal_node */
+
+using string_literal_node_r = node_r<string_literal_node>; /**< Alias for string_literal_node result */
 
 /**
  * @brief Integer literal AST node.
  */
 using integer_literal_node = literal_node<std::uint64_t, literal_node_t::Integer>;
 
-/**
- * @brief Alias for handle to integer_literal_node.
- * @see integer_literal_node
- */
-using integer_literal_node_r = node_r<integer_literal_node>;
+using integer_literal_node_p = node_p<integer_literal_node>; /**< Alias for a shared pointer to integer_literal_node */
+
+using integer_literal_node_r = node_r<integer_literal_node>; /**< Alias for integer_literal_node result */
 
 class var_read_expression_node;
 
-/**
- * @brief Alias for handle to var_read_expression_node.
- * @see var_read_expression_node
- */
-using var_read_expression_node_r = node_r<var_read_expression_node>;
+using var_read_expression_node_p =
+    node_p<var_read_expression_node>; /**< Alias for a shared pointer to var_read_expression_node. */
+
+using var_read_expression_node_r = node_r<var_read_expression_node>; /**< Alias for var_read_expression_node result */
 
 class unaryop_expression_node;
 
-/**
- * @brief Alias for handle to unaryop_expression_node.
- * @see unaryop_expression_node
- */
-using unaryop_expression_node_r = node_r<unaryop_expression_node>;
+using unaryop_expression_node_p =
+    node_p<unaryop_expression_node>; /**< Alias for a shared pointer to unaryop_expression_node. */
+
+using unaryop_expression_node_r = node_r<unaryop_expression_node>; /**< Alias for unaryop_expression_node result */
 
 class binop_expression_node;
 
-/**
- * @brief Alias for handle to binop_expression_node.
- * @see binop_expression_node
- */
-using binop_expression_node_r = node_r<binop_expression_node>;
+using binop_expression_node_p =
+    node_p<binop_expression_node>; /**< Alias for a shared pointer to binop_expression_node. */
+
+using binop_expression_node_r = node_r<binop_expression_node>; /**< Alias for binop_expression_node result */
 
 class var_assign_expression_node;
 
-/**
- * @brief Alias for handle to var_assign_expression_node.
- * @see var_assign_expression_node
- */
-using var_assign_expression_node_r = node_r<var_assign_expression_node>;
+using var_assign_expression_node_p =
+    node_p<var_assign_expression_node>; /**< Alias for a shared pointer to var_assign_expression_node. */
+
+using var_assign_expression_node_r =
+    node_r<var_assign_expression_node>; /**< Alias for var_assign_expression_node result */
 
 /**
  * @brief List of statements.
@@ -209,43 +202,38 @@ using body_r = furlang::result<body, error>;
 
 class function_declaration_node;
 
-/**
- * @brief Alias for handle to function_declaration_node.
- * @see function_declaration_node
- */
-using function_declaration_node_r = node_r<function_declaration_node>;
+using function_declaration_node_p =
+    node_p<function_declaration_node>; /**< Alias for a shared pointer to function_declaration_node. */
+
+using function_declaration_node_r =
+    node_r<function_declaration_node>; /**< Alias for function_declaration_node result */
 
 class function_definition_node;
 
-/**
- * @brief Alias for handle to function_definition_node.
- * @see function_definition_node
- */
-using function_definition_node_r = node_r<function_definition_node>;
+using function_definition_node_p =
+    node_p<function_definition_node>; /**< Alias for a shared pointer to function_definition_node. */
+
+using function_definition_node_r = node_r<function_definition_node>; /**< Alias for function_definition_node result */
 
 class return_statement_node;
 
-/**
- * @brief Alias for handle to return_statement_node.
- * @see return_statement_node
- */
-using return_statement_node_r = node_r<return_statement_node>;
+using return_statement_node_p =
+    node_p<return_statement_node>; /**< Alias for a shared pointer to return_statement_node. */
+
+using return_statement_node_r = node_r<return_statement_node>; /**< Alias for return_statement_node result */
 
 class if_statement_node;
 
-/**
- * @brief Alias for handle to if_statement_node.
- * @see if_statement_node
- */
-using if_statement_node_r = node_r<if_statement_node>;
+using if_statement_node_p = node_p<if_statement_node>; /**< Alias for a shared pointer to if_statement_node. */
+
+using if_statement_node_r = node_r<if_statement_node>; /**< Alias for if_statement_node result */
 
 class compound_statement_node;
 
-/**
- * @brief Alias for handle to compound_statement_node.
- * @see compound_statement_node
- */
-using compound_statement_node_r = node_r<compound_statement_node>;
+using compound_statement_node_p =
+    node_p<compound_statement_node>; /**< Alias for a shared pointer to compound_statement_node. */
+
+using compound_statement_node_r = node_r<compound_statement_node>; /**< Alias for compound_statement_node result */
 
 } // namespace ast
 } // namespace furc
