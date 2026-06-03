@@ -21,8 +21,7 @@ void var_read_expression_node::accept(visitor& visitor) const {
 }
 
 std::ostream& var_read_expression_node::print(std::ostream& os) const {
-    if (m_name.has_error()) return os << m_name.error();
-    return os << *m_name;
+    return os << m_name;
 }
 
 bool var_read_expression_node::equal(const node& rhsNode) const {
@@ -47,7 +46,7 @@ void unaryop_expression_node::accept(visitor& visitor) const {
 }
 
 std::ostream& unaryop_expression_node::print(std::ostream& os) const {
-    if (!m_node.has_value()) return os;
+    if (m_node == nullptr) return os;
     switch (m_type) {
     case unaryop_expression_node_t::Positive:
     case unaryop_expression_node_t::Negative:
@@ -132,12 +131,9 @@ void function_definition_node::accept(visitor& visitor) const {
 std::ostream& function_definition_node::print(std::ostream& os) const {
     function_declaration_node::print(os);
     os << ":\n";
-    if (m_body.has_value()) {
-        for (const auto& entry : m_body->statements)
-            os << entry << '\n';
-        return os << m_body->end << ": " << p_name << " end";
-    }
-    return os << m_body.error();
+    for (const auto& entry : m_body.statements)
+        os << entry << '\n';
+    return os << m_body.end << ": " << p_name << " end";
 }
 
 bool function_definition_node::equal(const node& rhs) const {
@@ -192,11 +188,7 @@ bool compound_statement_node::equal(const node& rhs) const {
 
 void program_node::accept(visitor& visitor) const {
     for (const auto& decl : m_declarations) {
-        if (decl.has_error()) {
-            visitor.visit_error(decl.error());
-        } else {
-            decl.value()->accept(visitor);
-        }
+        decl->accept(visitor);
     }
 }
 

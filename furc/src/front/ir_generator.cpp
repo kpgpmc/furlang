@@ -6,7 +6,6 @@
 #include "furc/ast/statement.hpp"   // IWYU pragma: keep
 
 #include <cassert>
-#include <iostream>
 
 namespace furc::front {
 
@@ -18,28 +17,18 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
     m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()));
 
     push_block();
-    if (funcDef.body().has_error()) {
-        std::cerr << funcDef.body().error() << '\n';
-        return;
-    }
-    for (const auto& stmt : funcDef.body()->statements) {
+    for (const auto& stmt : funcDef.body().statements) {
         stmt.value()->accept(*this);
     }
+
     m_currentBlock->emplace<ir::return_instruction>();
 
     m_module.push(std::move(m_currentFunction));
 }
 
 void ir_generator::visit(const ast::return_statement_node& returnStmt) {
-    if (!returnStmt.value().has_value()) return;
-    auto value = returnStmt.value().value();
-    if (value.has_error()) {
-        std::cerr << value.error() << '\n';
-        return;
-    }
-
-    if (value.has_value()) {
-        value.value()->accept(*this);
+    if (returnStmt.value().has_value()) {
+        returnStmt.value().value()->accept(*this);
         push<ir::return_instruction>(ir::operand::new_reg(m_registerCounter - 1));
     } else {
         push<ir::return_instruction>();
@@ -47,19 +36,19 @@ void ir_generator::visit(const ast::return_statement_node& returnStmt) {
 }
 
 void ir_generator::visit(const ast::if_statement_node& node) {
-    node.cond().value()->accept(*this);
+    node.cond()->accept(*this);
     ir_register cond = m_registerCounter - 1;
     push<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
         m_currentFunction->blocks().size(),
         m_currentFunction->blocks().size() + 1);
 
     push_block(); // then block
-    node.then().value()->accept(*this);
+    node.then()->accept(*this);
     if (node.elze().has_value()) {
         m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size() + 1);
 
         push_block(); // else block
-        node.elze().value().value()->accept(*this);
+        node.elze().value()->accept(*this);
     }
     m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size());
 
@@ -67,7 +56,7 @@ void ir_generator::visit(const ast::if_statement_node& node) {
 }
 
 void ir_generator::visit(const ast::compound_statement_node& node) {
-    for (const auto& stmt : node.body()->statements) {
+    for (const auto& stmt : node.body().statements) {
         stmt.value()->accept(*this);
     }
 }
@@ -83,7 +72,7 @@ void ir_generator::visit(const ast::integer_literal_node& node) {
 }
 
 void ir_generator::visit(const ast::var_read_expression_node& node) {
-    if (auto it = m_variables.find(*node.get_name()); it != m_variables.end()) {
+    if (auto it = m_variables.find(node.get_name()); it != m_variables.end()) {
         push<furlang::ir::assign_instruction>(ir::operand::new_reg(it->second),
             ir::operand::new_reg(m_registerCounter++));
     } else {
@@ -114,9 +103,9 @@ static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::
 }
 
 void ir_generator::visit(const ast::binop_expression_node& node) {
-    node.lhs().value()->accept(*this);
+    node.lhs()->accept(*this);
     ir_register lhs = m_registerCounter - 1;
-    node.rhs().value()->accept(*this);
+    node.rhs()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
     ir_register dst = m_registerCounter++;
     push<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
@@ -126,16 +115,16 @@ void ir_generator::visit(const ast::binop_expression_node& node) {
 }
 
 void ir_generator::visit(const ast::var_assign_expression_node& node) {
-    node.rhs().value()->accept(*this);
+    node.rhs()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
-    assert(node.lhs().value()->expression_type() == ast::expression_node_t::VarRead);
-    auto lhs = std::dynamic_pointer_cast<ast::var_read_expression_node>(node.lhs().value());
+    assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
+    auto lhs = std::dynamic_pointer_cast<ast::var_read_expression_node>(node.lhs());
 
     ir_register reg = 0;
-    if (auto it = m_variables.find(*lhs->get_name()); it != m_variables.end()) {
+    if (auto it = m_variables.find(lhs->get_name()); it != m_variables.end()) {
         reg = it->second;
     } else {
-        m_variables[*lhs->get_name()] = reg = m_registerCounter++;
+        m_variables[lhs->get_name()] = reg = m_registerCounter++;
     }
 
     auto compound = node.compound();

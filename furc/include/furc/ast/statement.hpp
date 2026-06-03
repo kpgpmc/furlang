@@ -46,7 +46,7 @@ protected:
  */
 class return_statement_node final : public statement_node, public abstract_node {
 public:
-    using value_type = std::optional<expression_node_r>; /**< Value type. */
+    using value_type = std::optional<expression_node_p>; /**< Value type. */
 public:
     /**
      * @brief Construct a new return statement AST node.
@@ -60,7 +60,7 @@ public:
      * @param location Node location.
      * @param value Return value handle.
      */
-    return_statement_node(struct location location, expression_node_r&& value)
+    return_statement_node(struct location location, expression_node_p&& value)
       : abstract_node(location), m_value(std::move(value)) {}
 public:
     /**
@@ -98,7 +98,7 @@ public:
      * @param cond Condition expression handle.
      * @param then Then statement handle.
      */
-    if_statement_node(struct location location, expression_node_r&& cond, statement_node_r&& then)
+    if_statement_node(struct location location, expression_node_p&& cond, statement_node_p&& then)
       : abstract_node(location), m_cond(std::move(cond)), m_then(std::move(then)) {}
 
     /**
@@ -110,9 +110,9 @@ public:
      * @param elze Else statement handle.
      */
     if_statement_node(struct location location,
-        expression_node_r&&           cond,
-        statement_node_r&&            then,
-        statement_node_r&&            elze)
+        expression_node_p&&           cond,
+        statement_node_p&&            then,
+        statement_node_p&&            elze)
       : abstract_node(location), m_cond(std::move(cond)), m_then(std::move(then)), m_else(std::move(elze)) {}
 public:
     /**
@@ -120,21 +120,21 @@ public:
      *
      * @return The condition expression handle.
      */
-    expression_node_r cond() const { return m_cond; }
+    expression_node_p cond() const { return m_cond; }
 
     /**
      * @brief Returns this node's then statement handle.
      *
      * @return The then statement handle.
      */
-    const statement_node_r& then() const { return m_then; }
+    const statement_node_p& then() const { return m_then; }
 
     /**
      * @brief Returns this node's else statement handle.
      *
      * @return The else statement handle.
      */
-    const std::optional<statement_node_r>& elze() const { return m_else; }
+    const std::optional<statement_node_p>& elze() const { return m_else; }
 public:
     /**
      * @brief Returns this node's statement type.
@@ -149,9 +149,9 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    expression_node_r               m_cond; /**< The condition expression handle */
-    statement_node_r                m_then; /**< The then statement handle */
-    std::optional<statement_node_r> m_else; /**< The else statement handle */
+    expression_node_p               m_cond; /**< The condition expression handle */
+    statement_node_p                m_then; /**< The then statement handle */
+    std::optional<statement_node_p> m_else; /**< The else statement handle */
 };
 
 /**
@@ -165,7 +165,7 @@ public:
      * @param location Node location.
      * @param body Body handle.
      */
-    compound_statement_node(struct location location, body_r&& body)
+    compound_statement_node(struct location location, body&& body)
       : abstract_node(location), m_body(std::move(body)) {}
 public:
     /**
@@ -173,7 +173,7 @@ public:
      *
      * @return The body handle.
      */
-    const body_r& body() const { return m_body; }
+    const body& body() const { return m_body; }
 public:
     /**
      * @brief Returns this node's statement type.
@@ -188,7 +188,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    body_r m_body; /**< The body handle. */
+    struct body m_body; /**< The body handle. */
 };
 
 } // namespace ast

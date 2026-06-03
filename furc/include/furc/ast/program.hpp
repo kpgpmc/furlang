@@ -1,7 +1,6 @@
 #ifndef FURC_AST_PROGRAM_HPP
 #define FURC_AST_PROGRAM_HPP
 
-#include "furc/ast/declaration.hpp"
 #include "furc/ast/node.hpp"
 
 #include <vector>
@@ -29,14 +28,14 @@ public:
      *
      * @param declaration Declaration to add.
      */
-    void push(node_r<declaration_node>&& declaration) { m_declarations.push_back(std::move(declaration)); }
+    void push(declaration_node_p&& declaration) { m_declarations.push_back(std::move(declaration)); }
 
     /**
      * @brief Returns a list of declarations of this program.
      *
      * @return The list of this program's declarations.
      */
-    const std::vector<node_r<declaration_node>>& declarations() const { return m_declarations; }
+    const std::vector<declaration_node_p>& declarations() const { return m_declarations; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -44,7 +43,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    std::vector<node_r<declaration_node>> m_declarations;
+    std::vector<declaration_node_p> m_declarations;
 };
 
 } // namespace ast

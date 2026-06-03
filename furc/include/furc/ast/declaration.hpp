@@ -108,7 +108,7 @@ public:
      * @param body Body of the function.
      */
     template <typename T>
-    function_definition_node(struct location location, T&& name, body_r&& body)
+    function_definition_node(struct location location, T&& name, body&& body)
       : function_declaration_node(location, std::forward<T>(name)), m_body(std::move(body)) {}
 public:
     /**
@@ -123,7 +123,7 @@ public:
      *
      * @return Body of the function.
      */
-    const body_r& body() const { return m_body; }
+    const body& body() const { return m_body; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -131,7 +131,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    body_r m_body;
+    struct body m_body;
 };
 
 } // namespace ast

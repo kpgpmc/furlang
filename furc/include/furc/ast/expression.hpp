@@ -60,30 +60,29 @@ protected:
  */
 class var_read_expression_node final : public expression_node {
 public:
-    using name_type = furlang::result<std::string_view, error>; /**< Name type alias. */
-public:
     /**
      * @brief Construct a new var read expression node object from a name handle.
      *
      * @param location Node location.
      * @param name Handle to the name.
      */
-    var_read_expression_node(struct location location, name_type&& name)
-      : expression_node(location), m_name(std::move(name)) {}
+    template <typename T>
+    var_read_expression_node(struct location location, T&& name)
+      : expression_node(location), m_name(std::forward<T>(name)) {}
 
     /**
      * @brief Returns the variable's name.
      *
      * @return Name of the variable.
      */
-    const name_type& get_name() const { return m_name; }
+    const std::string& get_name() const { return m_name; }
 
     /**
      * @brief Returns the variable's name.
      *
      * @return Name of the variable.
      */
-    name_type&& move_name() { return std::move(m_name); }
+    std::string&& move_name() { return std::move(m_name); }
 public:
     /**
      * @brief Returns this node's expression type.
@@ -98,7 +97,7 @@ public:
 protected:
     bool equal(const node& rhs) const override;
 private:
-    name_type m_name;
+    std::string m_name;
 };
 
 /**
@@ -118,8 +117,6 @@ enum class unaryop_expression_node_t {
  */
 class unaryop_expression_node final : public expression_node {
 public:
-    using value_type = std::optional<expression_node_r>; /**< Value type. */
-public:
     /**
      * @brief Construct a new unaryop expression node object from type and expression node handle.
      *
@@ -127,7 +124,7 @@ public:
      * @param type Operation type.
      * @param node Handle to the inner expression node.
      */
-    unaryop_expression_node(struct location location, unaryop_expression_node_t type, expression_node_r&& node)
+    unaryop_expression_node(struct location location, unaryop_expression_node_t type, expression_node_p&& node)
       : expression_node(location), m_type(type), m_node(std::move(node)) {}
 
     /**
@@ -135,7 +132,7 @@ public:
      *
      * @param node New node handle.
      */
-    void set_node(expression_node_r&& node) { m_node = std::move(node); }
+    void set_node(expression_node_p&& node) { m_node = std::move(node); }
 
     /**
      * @brief Returns the type of this node's operation.
@@ -149,21 +146,21 @@ public:
      *
      * @return The inner expression.
      */
-    const value_type& get_node() const { return m_node; }
+    const expression_node_p& get_node() const { return m_node; }
 
     /**
      * @brief Returns this node's inner expression.
      *
      * @return The inner expression.
      */
-    value_type& get_node() { return m_node; }
+    expression_node_p& get_node() { return m_node; }
 
     /**
      * @brief Moves this node's inner expression.
      *
      * @return The moved inner expression.
      */
-    value_type&& move_node() { return std::move(m_node); }
+    expression_node_p&& move_node() { return std::move(m_node); }
 public:
     /**
      * @brief Returns this node's expression type.
@@ -179,7 +176,7 @@ protected:
     bool equal(const node& rhs) const override;
 private:
     unaryop_expression_node_t m_type;
-    value_type                m_node; /**< The inner expression. */
+    expression_node_p         m_node; /**< The inner expression. */
 };
 
 /**
@@ -216,8 +213,8 @@ public:
      */
     binop_expression_node(struct location location,
         binop_expression_node_t           type,
-        expression_node_r&&               lhs,
-        expression_node_r&&               rhs)
+        expression_node_p&&               lhs,
+        expression_node_p&&               rhs)
       : expression_node(location), m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
     /**
@@ -232,42 +229,42 @@ public:
      *
      * @return The left-hand-side expression.
      */
-    const expression_node_r& lhs() const { return m_lhs; };
+    const expression_node_p& lhs() const { return m_lhs; };
 
     /**
      * @brief Returns this node's left-hand-side expression.
      *
      * @return The left-hand-side expression.
      */
-    expression_node_r& lhs() { return m_lhs; };
+    expression_node_p& lhs() { return m_lhs; };
 
     /**
      * @brief Moves this node's left-hand-side expression.
      *
      * @return The moved left-hand-side expression.
      */
-    expression_node_r&& move_lhs() { return std::move(m_lhs); };
+    expression_node_p&& move_lhs() { return std::move(m_lhs); };
 
     /**
      * @brief Returns this node's right-hand-side expression.
      *
      * @return The right-hand-side expression.
      */
-    const expression_node_r& rhs() const { return m_rhs; };
+    const expression_node_p& rhs() const { return m_rhs; };
 
     /**
      * @brief Returns this node's right-hand-side expression.
      *
      * @return The right-hand-side expression.
      */
-    expression_node_r& rhs() { return m_rhs; };
+    expression_node_p& rhs() { return m_rhs; };
 
     /**
      * @brief Moves this node's right-hand-side expression.
      *
      * @return The moved right-hand-side expression.
      */
-    expression_node_r&& move_rhs() { return std::move(m_rhs); };
+    expression_node_p&& move_rhs() { return std::move(m_rhs); };
 public:
     expression_node_t expression_type() const override { return expression_node_t::Binop; }
 public:
@@ -278,8 +275,8 @@ protected:
     bool equal(const node& rhs) const override;
 private:
     binop_expression_node_t m_type;
-    expression_node_r       m_lhs;
-    expression_node_r       m_rhs;
+    expression_node_p       m_lhs;
+    expression_node_p       m_rhs;
 };
 
 /**
@@ -294,7 +291,7 @@ public:
      * @param lhs Left-hand-side expression handle.
      * @param rhs Right-hand-side expression handle.
      */
-    var_assign_expression_node(struct location location, expression_node_r&& lhs, expression_node_r&& rhs)
+    var_assign_expression_node(struct location location, expression_node_p&& lhs, expression_node_p&& rhs)
       : expression_node(location),
         m_compound(binop_expression_node_t::None),
         m_lhs(std::move(lhs)),
@@ -310,8 +307,8 @@ public:
      */
     var_assign_expression_node(struct location location,
         binop_expression_node_t                compound,
-        expression_node_r&&                    lhs,
-        expression_node_r&&                    rhs)
+        expression_node_p&&                    lhs,
+        expression_node_p&&                    rhs)
       : expression_node(location), m_compound(compound), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) {}
 
     /**
@@ -326,14 +323,14 @@ public:
      *
      * @return The left-hand-side expression.
      */
-    const expression_node_r& lhs() const { return m_lhs; }
+    const expression_node_p& lhs() const { return m_lhs; }
 
     /**
      * @brief Returns this node's right-hand-side expression.
      *
      * @return The right-hand-side expression.
      */
-    const expression_node_r& rhs() const { return m_rhs; }
+    const expression_node_p& rhs() const { return m_rhs; }
 public:
     /**
      * @brief Returns this node's expression type.
@@ -349,8 +346,8 @@ protected:
     bool equal(const node& rhs) const override;
 private:
     binop_expression_node_t m_compound;
-    expression_node_r       m_lhs;
-    expression_node_r       m_rhs;
+    expression_node_p       m_lhs;
+    expression_node_p       m_rhs;
 };
 
 } // namespace ast

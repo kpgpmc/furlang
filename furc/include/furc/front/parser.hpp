@@ -62,7 +62,7 @@ private:
 
     ast::expression_node_r parse_expression_primary();
     ast::expression_node_r parse_expression_unary(std::uint32_t precedence);
-    ast::expression_node_r parse_expression_rhs(ast::expression_node_r&& init, std::uint32_t precedence);
+    ast::expression_node_r parse_expression_rhs(ast::expression_node_p&& init, std::uint32_t precedence);
 
     ast::body_r parse_body();
 private:
