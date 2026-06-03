@@ -175,7 +175,7 @@ using integer_token = std::uint64_t; /**< Integer token. */
  * @brief Token.
  */
 struct token {
-    location location;
+    location location;             /**< Token location. */
     token_t  type = token_t::None; /**< Token type. */
 
     /**
@@ -342,10 +342,22 @@ struct token_error {
     token_error_t type;     /**< Error type. */
     std::string   message;  /**< Error message. */
 
+    /**
+     * @brief Compares two token errors for equality.
+     *
+     * @param rhs Error to compare against.
+     * @return true if the errors are equal.
+     */
     bool operator==(const token_error& rhs) const {
         return location == rhs.location && type == rhs.type && message == rhs.message;
     }
 
+    /**
+     * @brief Compares two token errors for inequality.
+     *
+     * @param rhs Error to compare against.
+     * @return true if the errors are not equal.
+     */
     bool operator!=(const token_error& rhs) const { return !this->operator==(rhs); }
 };
 
