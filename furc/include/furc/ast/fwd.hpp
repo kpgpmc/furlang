@@ -36,6 +36,15 @@ struct error {
      * @return true if the errors are not equal.
      */
     bool operator!=(const error& other) const { return !this->operator==(other); }
+
+    /**
+     * @brief Prints an AST error to output stream.
+     *
+     * @param os Output stream.
+     * @param error AST error to print.
+     * @return The output stream.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const error& error);
 };
 
 class node;

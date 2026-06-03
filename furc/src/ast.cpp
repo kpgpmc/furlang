@@ -8,6 +8,10 @@
 
 namespace furc::ast {
 
+std::ostream& operator<<(std::ostream& os, const error& error) {
+    return os << error.location << ": ERROR: unknown";
+}
+
 bool literal_node::equal(const node& rhs) const {
     return literal_type() == reinterpret_cast<const literal_node&>(rhs).literal_type();
 }
@@ -47,8 +51,8 @@ void var_read_expression_node::accept(visitor& visitor) const {
 }
 
 std::ostream& var_read_expression_node::print(std::ostream& os) const {
-    if (m_name.present()) return os << *m_name;
-    return os << m_name.error();
+    if (m_name.has_error()) return os << m_name.error();
+    return os << *m_name;
 }
 
 bool var_read_expression_node::equal(const node& rhsNode) const {
@@ -162,7 +166,7 @@ std::ostream& function_definition_node::print(std::ostream& os) const {
             os << entry << '\n';
         return os << m_body->end << ": " << p_name->string << " end";
     }
-    return os << m_body.error().location << ": ERROR: unknown";
+    return os << m_body.error();
 }
 
 bool function_definition_node::equal(const node& rhs) const {
