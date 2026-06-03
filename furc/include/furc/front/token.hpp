@@ -359,6 +359,17 @@ struct token_error {
      * @return true if the errors are not equal.
      */
     bool operator!=(const token_error& rhs) const { return !this->operator==(rhs); }
+
+    /**
+     * @brief Prints a token error to an output stream.
+     *
+     * @param os Output stream.
+     * @param error Token error to print.
+     * @return The output stream.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const token_error& error) {
+        return os << error.location << ": error: unknown";
+    }
 };
 
 using token_r = furlang::result<token, token_error>; /**< Alias to a token result. */

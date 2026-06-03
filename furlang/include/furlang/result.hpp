@@ -2,6 +2,7 @@
 #define FURLANG_RESULT_HPP
 
 #include <exception>
+#include <ostream>
 #include <utility>
 
 namespace furlang {
@@ -214,6 +215,17 @@ public:
      * @return true if the values are not equal.
      */
     bool operator!=(const value_type& rhs) const { return !this->operator==(rhs); }
+
+    /**
+     * @brief Prints a result to an output stream.
+     *
+     * @param os Output stream.
+     * @param result Result to print.
+     * @return The output stream.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const result& result) {
+        return result.has_value() ? os << result.value() : os << result.error();
+    }
 
     /**
      * @brief Returns a reference to value.
