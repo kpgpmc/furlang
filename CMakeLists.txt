@@ -9,6 +9,7 @@ find_package(GTest REQUIRED)
 find_package(Doxygen)
 
 add_subdirectory(furlang)
+add_subdirectory(furvm)
 add_subdirectory(furc)
 
 if(DOXYGEN_FOUND)
@@ -17,7 +18,7 @@ if(DOXYGEN_FOUND)
     set(DOXYGEN_HIDE_UNDOC_NAMESPACES NO)
     set(DOXYGEN_HIDE_UNDOC_RELATIONS NO)
     set(DOXYGEN_FILE_PATTERNS "*.hpp")
-    doxygen_add_docs(doxygen_doc ${CMAKE_SOURCE_DIR}/furc/ ${CMAKE_SOURCE_DIR}/furlang/
+    doxygen_add_docs(doxygen_doc ${CMAKE_SOURCE_DIR}/furlang/ ${CMAKE_SOURCE_DIR}/furvm/ ${CMAKE_SOURCE_DIR}/furc/
         ALL WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen")
 endif()

@@ -1,0 +1,16 @@
+file(GLOB_RECURSE FURVM_SRCS "src/**.cpp")
+file(GLOB_RECURSE FURVM_HDRS "include/**.hpp")
+add_library(libfurvm ${FURVM_SRCS} ${FURVM_HDRS})
+target_include_directories(libfurvm PUBLIC include/)
+target_compile_definitions(libfurvm PRIVATE LIBFURVM)
+set_target_properties(libfurvm PROPERTIES PREFIX "")
+target_link_libraries(libfurvm PUBLIC furlang)
+add_executable(furvm src/main.cpp)
+target_link_libraries(furvm PRIVATE libfurvm)
+
+include(GoogleTest)
+
+file(GLOB_RECURSE FURVM_TESTS "test/**.cpp")
+add_executable(furvm_tests ${FURVM_TESTS})
+target_link_libraries(furvm_tests PRIVATE libfurvm GTest::gtest_main)
+gtest_discover_tests(furvm_tests)
