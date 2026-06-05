@@ -5,7 +5,7 @@
 
 namespace furvm {
 
-enum class instruction_t : std::uint8_t {
+enum class instruction_t : byte {
     /**
      * @brief No operation.
      */

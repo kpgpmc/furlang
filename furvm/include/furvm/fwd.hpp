@@ -9,6 +9,8 @@
  */
 namespace furvm {
 
+using byte = std::uint8_t;
+
 // constant.hpp
 
 /**
@@ -36,13 +38,27 @@ class constant;
  * @enum instruction_t
  * @brief Furvm's instruction type.
  */
-enum class instruction_t : std::uint8_t;
+enum class instruction_t : byte;
 
 /**
  * @struct instruction
  * @brief Furvm's instruction.
  */
 struct instruction;
+
+// function.hpp
+
+/**
+ * @class function
+ * @brief Function.
+ *
+ *
+ * A furvm function.
+ */
+class function {
+public:
+private:
+};
 
 // module.hpp
 
