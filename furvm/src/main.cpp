@@ -1,9 +1,9 @@
 #ifndef LIBFURVM
 
-#include <iostream>
+#include "furvm/context.hpp"
 
 int main(void) {
-    std::cout << "Hello, furlang!\n";
+    furvm::context context;
 
     return 0;
 }
