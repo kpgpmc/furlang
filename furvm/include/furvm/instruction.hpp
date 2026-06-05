@@ -14,7 +14,7 @@ enum class instruction_t : std::uint8_t {
     /**
      * @brief Pushes a constant onto the stack.
      *
-     * Pushes a constant from the constant pool denoted by two next bytes in low-endian onto the stack.
+     * Pushes a constant from the constant pool denoted by two next bytes in little-endian onto the stack.
      */
     PushConstant,
 
