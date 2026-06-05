@@ -46,20 +46,6 @@ enum class instruction_t : byte;
  */
 struct instruction;
 
-// function.hpp
-
-/**
- * @class function
- * @brief Function.
- *
- *
- * A furvm function.
- */
-class function {
-public:
-private:
-};
-
 // module.hpp
 
 /**
