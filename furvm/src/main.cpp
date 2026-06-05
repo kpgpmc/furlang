@@ -5,6 +5,8 @@
 int main(void) {
     furvm::context context;
 
+    auto mainModule = context.emplace();
+
     return 0;
 }
 
