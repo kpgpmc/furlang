@@ -12,7 +12,7 @@ namespace furvm {
 
 class context {
 public:
-    using value_type = std::unique_ptr<mod>;
+    using value_type = std::unique_ptr<mod>; /**< An alias to unique pointer of module. */
 public:
     context()  = default;
     ~context() = default;
