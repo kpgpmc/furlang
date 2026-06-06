@@ -76,6 +76,12 @@ using module_handle = std::uint32_t;
 enum class thing_t : std::uint8_t;
 
 /**
+ * @class bad_thing_access
+ * @brief Bad thing access exception.
+ */
+class bad_thing_access;
+
+/**
  * @class thing
  * @brief Furvm thing.
  *

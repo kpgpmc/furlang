@@ -1,6 +1,10 @@
 #include "furvm/executor.hpp"
 
 #include "furvm/context.hpp" // IWYU pragma: keep
+#include "furvm/instruction.hpp"
+#include "furvm/thing.hpp"
+
+#include <stdexcept>
 
 namespace furvm {
 
@@ -45,6 +49,34 @@ thing_p executor::pop_thing() {
 thing_p executor::thing() const {
     if (m_frames.top().stackBase >= m_stack.size()) return {};
     return m_stack.top();
+}
+
+void executor::step() {
+    if ((m_flags & executor_flags::Suspended) == executor_flags::Suspended) return;
+
+    struct frame& frame = m_frames.top();
+
+    instruction_t instr = static_cast<instruction_t>(frame.mod->byte(frame.position++));
+    switch (instr) {
+    case instruction_t::NoOperation: break;
+    case instruction_t::Return: {
+        pop_frame();
+        if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
+    } break;
+    case instruction_t::PushB2I: {
+        auto thing     = thing::create(m_context, thing_t::Int32);
+        thing->int32() = frame.mod->byte(frame.position++);
+        m_stack.push(std::move(thing));
+    } break;
+    case instruction_t::Drop: {
+        m_stack.pop();
+    } break;
+    case instruction_t::PushConstant:
+    case instruction_t::Duplicate:
+    case instruction_t::ReturnValue: {
+        throw std::runtime_error("unimplemented");
+    }
+    }
 }
 
 } // namespace furvm

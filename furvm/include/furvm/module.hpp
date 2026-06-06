@@ -42,6 +42,14 @@ public:
      * @return The id.
      */
     constexpr module_handle id() const { return m_id; }
+
+    /**
+     * @brief Returns a byte from bytecode of this module.
+     *
+     * @param offset An offset of the byte.
+     * @return The byte.
+     */
+    constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
 private:
     module_handle m_id;
     bytecode_t    m_bytecode;

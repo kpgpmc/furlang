@@ -22,6 +22,10 @@ int main(void) {
     auto executor = furvm::executor::create(context);
     executor->push_frame(mainModule, 0);
 
+    while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
+        executor->step();
+    }
+
     return 0;
 }
 

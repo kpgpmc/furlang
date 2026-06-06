@@ -6,7 +6,7 @@
 namespace furvm {
 
 enum class thing_t : std::uint8_t {
-    Int,
+    Int32,
 };
 
 /**
@@ -16,6 +16,39 @@ enum class thing_t : std::uint8_t {
  * @return The data size of the thing.
  */
 std::size_t thing_type_size(thing_t type);
+
+class bad_thing_access : public std::exception {
+public:
+    bad_thing_access()           = default;
+    ~bad_thing_access() override = default;
+
+    /**
+     * @brief Move constructor.
+     */
+    bad_thing_access(bad_thing_access&&) noexcept = default;
+
+    /**
+     * @brief Move constructor.
+     */
+    bad_thing_access& operator=(bad_thing_access&&) noexcept = default;
+
+    /**
+     * @brief Copy constructor.
+     */
+    bad_thing_access(const bad_thing_access&) = default;
+
+    /**
+     * @brief Copy constructor.
+     */
+    bad_thing_access& operator=(const bad_thing_access&) = default;
+public:
+    /**
+     * @brief Returns a C-style string describing the cause of the error.
+     *
+     * @return The cause of the error.
+     */
+    const char* what() const noexcept override { return "bad thing access"; }
+};
 
 class thing {
     friend class executor;
@@ -61,6 +94,20 @@ public:
      * @return Shared pointer to the new thing.
      */
     static thing_p create(const context_p& context, thing_t type);
+public:
+    /**
+     * @brief Returns an int32 value from this thing.
+     *
+     * @return The value.
+     */
+    std::int32_t& int32();
+
+    /**
+     * @brief Returns an int32 value from this thing.
+     *
+     * @return The value.
+     */
+    const std::int32_t& int32() const;
 private:
     thing_handle m_id;
     thing_t      m_type;

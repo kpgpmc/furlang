@@ -9,6 +9,7 @@ namespace furvm {
 
 enum class executor_flags : std::uint32_t {
     Suspended = (1 << 0), /**< Execution suspended. */
+    Done      = (1 << 1), /**< Execution is finished. */
 };
 
 static inline executor_flags operator|(executor_flags lhs, executor_flags rhs) {
@@ -132,6 +133,11 @@ public:
      * @return The thing.
      */
     thing_p thing() const;
+public:
+    /**
+     * @brief Executes next instruction.
+     */
+    void step();
 private:
     executor_handle m_id;
     executor_flags  m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
