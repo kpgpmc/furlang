@@ -6,7 +6,9 @@
 #include <array>
 #include <cstddef>
 
-static constexpr std::array<furvm::byte, 1> s_bytecode = {
+static constexpr std::array<furvm::byte, 3> s_bytecode = {
+    furvm::byte(furvm::instruction_t::PushB2I),
+    67,
     furvm::byte(furvm::instruction_t::Return),
 };
 
