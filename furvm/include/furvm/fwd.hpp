@@ -61,6 +61,27 @@ class mod;
  */
 using module_handle = std::uint32_t;
 
+// executor.hpp
+
+/**
+ * @enum executor_flags
+ * @brief Flags of an executor.
+ */
+enum class executor_flags : std::uint32_t;
+
+/**
+ * @class executor
+ * @brief Furvm executor.
+ *
+ * Furvm executors are like threads.
+ */
+class executor;
+
+/**
+ * @brief Furvm executor's index.
+ */
+using executor_handle = std::uint32_t;
+
 // context.hpp
 
 /**

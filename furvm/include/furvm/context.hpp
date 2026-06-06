@@ -13,8 +13,10 @@ namespace furvm {
 class context {
 public:
     using value_type = std::unique_ptr<mod>; /**< An alias to unique pointer of module. */
+
+    friend class executor;
 public:
-    context()  = default;
+    context();
     ~context() = default;
 
     /**
@@ -92,7 +94,8 @@ public:
      */
     constexpr size_t size() const { return m_modules.size(); }
 private:
-    std::vector<std::unique_ptr<mod>> m_modules;
+    std::vector<std::unique_ptr<mod>>      m_modules;
+    std::vector<std::shared_ptr<executor>> m_executors;
 };
 
 } // namespace furvm

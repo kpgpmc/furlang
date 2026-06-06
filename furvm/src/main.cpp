@@ -1,10 +1,12 @@
 #ifndef LIBFURVM
 
 #include "furvm/context.hpp"
+#include "furvm/executor.hpp"
 #include "furvm/instruction.hpp"
 
 #include <array>
 #include <cstddef>
+#include <memory>
 
 static constexpr std::array<furvm::byte, 3> s_bytecode = {
     furvm::byte(furvm::instruction_t::PushB2I),
@@ -13,9 +15,11 @@ static constexpr std::array<furvm::byte, 3> s_bytecode = {
 };
 
 int main(void) {
-    furvm::context context;
+    auto context = std::make_shared<furvm::context>();
 
-    const auto& mainModule = context.emplace(s_bytecode.begin(), s_bytecode.end());
+    const auto& mainModule = context->emplace(s_bytecode.begin(), s_bytecode.end());
+
+    auto executor = furvm::executor::create(context);
 
     return 0;
 }

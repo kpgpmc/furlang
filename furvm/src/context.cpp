@@ -1,3 +1,7 @@
 #include "furvm/context.hpp"
 
-namespace furvm {}
+namespace furvm {
+
+context::context() {}
+
+} // namespace furvm
