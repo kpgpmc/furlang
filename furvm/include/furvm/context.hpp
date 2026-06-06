@@ -12,8 +12,6 @@ namespace furvm {
 
 class context {
 public:
-    using value_type = std::unique_ptr<mod>; /**< An alias to unique pointer of module. */
-
     friend class executor;
 public:
     context();
@@ -50,7 +48,7 @@ public:
      * @param index Index to the module.
      * @return Old value.
      */
-    value_type erase(module_handle index) {
+    std::shared_ptr<mod> erase(module_handle index) {
         if (index >= m_modules.size()) return nullptr;
         return std::move(m_modules[index]);
     }
@@ -61,7 +59,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr value_type& operator[](module_handle index) { return m_modules[index]; }
+    constexpr std::shared_ptr<mod>& operator[](module_handle index) { return m_modules[index]; }
 
     /**
      * @brief Returns a module of this context.
@@ -69,7 +67,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr const value_type& operator[](module_handle index) const { return m_modules[index]; }
+    constexpr const std::shared_ptr<mod>& operator[](module_handle index) const { return m_modules[index]; }
 
     /**
      * @brief Returns a module of this context.
@@ -77,7 +75,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr value_type& at(module_handle index) { return m_modules.at(index); }
+    constexpr std::shared_ptr<mod>& at(module_handle index) { return m_modules.at(index); }
 
     /**
      * @brief Returns a module of this context.
@@ -85,7 +83,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr const value_type& at(module_handle index) const { return m_modules.at(index); }
+    constexpr const std::shared_ptr<mod>& at(module_handle index) const { return m_modules.at(index); }
 
     /**
      * @brief Returns how many does this context have modules.
@@ -94,7 +92,8 @@ public:
      */
     constexpr size_t size() const { return m_modules.size(); }
 private:
-    std::vector<std::unique_ptr<mod>>      m_modules;
+    std::vector<std::shared_ptr<mod>>      m_modules;
+    std::vector<std::shared_ptr<thing>>    m_things;
     std::vector<std::shared_ptr<executor>> m_executors;
 };
 

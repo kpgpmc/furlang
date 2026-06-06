@@ -17,9 +17,10 @@ static constexpr std::array<furvm::byte, 3> s_bytecode = {
 int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    const auto& mainModule = context->emplace(s_bytecode.begin(), s_bytecode.end());
+    auto mainModule = context->emplace(s_bytecode.begin(), s_bytecode.end());
 
     auto executor = furvm::executor::create(context);
+    executor->push_frame(mainModule, 0);
 
     return 0;
 }
