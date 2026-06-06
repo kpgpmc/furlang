@@ -27,6 +27,16 @@ enum class instruction_t : byte {
      * @brief Duplicates top element on the stack.
      */
     Duplicate,
+
+    /**
+     * @brief Pops the current call frame.
+     */
+    Return,
+
+    /**
+     * @brief Pops the current call frame and pushes the first element from the previous stack onto the new stack.
+     */
+    ReturnValue,
 };
 
 struct instruction {

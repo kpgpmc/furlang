@@ -7,7 +7,7 @@
 #include <cstddef>
 
 static constexpr std::array<furvm::byte, 1> s_bytecode = {
-    furvm::byte(furvm::instruction_t::NoOperation),
+    furvm::byte(furvm::instruction_t::Return),
 };
 
 int main(void) {
