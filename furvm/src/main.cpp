@@ -13,7 +13,7 @@ static constexpr std::array<furvm::byte, 1> s_bytecode = {
 int main(void) {
     furvm::context context;
 
-    auto mainModule = context.emplace(s_bytecode.begin(), s_bytecode.end());
+    const auto& mainModule = context.emplace(s_bytecode.begin(), s_bytecode.end());
 
     return 0;
 }

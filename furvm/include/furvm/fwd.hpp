@@ -59,7 +59,7 @@ class mod;
 /**
  * @brief Furvm module's index.
  */
-using module_index = std::size_t;
+using module_handle = std::uint32_t;
 
 // context.hpp
 

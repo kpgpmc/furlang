@@ -36,11 +36,10 @@ public:
      * @param args Arguments to forward to module's constructor.
      * @return An index to the emplaced module.
      */
-    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, Args...>>>
-    constexpr module_index emplace(Args&&... args) {
-        module_index index = m_modules.size();
-        m_modules.emplace_back(std::make_unique<mod>(std::forward<Args>(args)...));
-        return index;
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, module_handle, Args...>>>
+    constexpr const auto& emplace(Args&&... args) {
+        module_handle id = static_cast<module_handle>(m_modules.size());
+        return m_modules.emplace_back(std::make_unique<mod>(id, std::forward<Args>(args)...));
     }
 
     /**
@@ -49,7 +48,7 @@ public:
      * @param index Index to the module.
      * @return Old value.
      */
-    value_type erase(module_index index) {
+    value_type erase(module_handle index) {
         if (index >= m_modules.size()) return nullptr;
         return std::move(m_modules[index]);
     }
@@ -60,7 +59,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr value_type& operator[](module_index index) { return m_modules[index]; }
+    constexpr value_type& operator[](module_handle index) { return m_modules[index]; }
 
     /**
      * @brief Returns a module of this context.
@@ -68,7 +67,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr const value_type& operator[](module_index index) const { return m_modules[index]; }
+    constexpr const value_type& operator[](module_handle index) const { return m_modules[index]; }
 
     /**
      * @brief Returns a module of this context.
@@ -76,7 +75,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr value_type& at(module_index index) { return m_modules.at(index); }
+    constexpr value_type& at(module_handle index) { return m_modules.at(index); }
 
     /**
      * @brief Returns a module of this context.
@@ -84,7 +83,7 @@ public:
      * @param index Position of the module.
      * @return The module.
      */
-    constexpr const value_type& at(module_index index) const { return m_modules.at(index); }
+    constexpr const value_type& at(module_handle index) const { return m_modules.at(index); }
 
     /**
      * @brief Returns how many does this context have modules.

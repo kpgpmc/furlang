@@ -14,11 +14,12 @@ public:
     /**
      * @brief Construct a new module.
      *
+     * @param id Id of this module.
      * @param args Arguments to forward to bytecode's constructor.
      */
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
-    mod(Args&&... args)
-      : m_bytecode(std::forward<Args>(args)...) {}
+    mod(module_handle id, Args&&... args)
+      : m_id(id), m_bytecode(std::forward<Args>(args)...) {}
 
     ~mod() = default;
 
@@ -34,8 +35,16 @@ public:
 
     mod(const mod&)            = delete;
     mod& operator=(const mod&) = delete;
+public:
+    /**
+     * @brief Returns an id of this module.
+     *
+     * @return The id.
+     */
+    constexpr module_handle id() const { return m_id; }
 private:
-    bytecode_t m_bytecode;
+    module_handle m_id;
+    bytecode_t    m_bytecode;
 };
 
 } // namespace furvm
