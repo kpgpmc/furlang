@@ -51,7 +51,7 @@ private:
     thing_t                  m_type;
     std::shared_ptr<context> m_context;
 
-    void* m_data;
+    void* m_data = nullptr;
 };
 
 } // namespace furvm
