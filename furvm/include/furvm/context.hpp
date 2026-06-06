@@ -12,6 +12,7 @@ namespace furvm {
 class context {
 public:
     friend class executor;
+    friend class thing;
 public:
     context();
     ~context() = default;

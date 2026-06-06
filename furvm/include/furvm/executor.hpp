@@ -72,6 +72,7 @@ public:
      * @brief Returns a new executor.
      *
      * @param context Furvm context.
+     * @return Shared pointer to the new executor.
      */
     static executor_p create(const context_p& context);
 public:

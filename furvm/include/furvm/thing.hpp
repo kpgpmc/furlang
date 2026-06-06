@@ -9,6 +9,14 @@ enum class thing_t : std::uint8_t {
     Int,
 };
 
+/**
+ * @brief Returns data size of a thing.
+ *
+ * @param type Type of the thing.
+ * @return The data size of the thing.
+ */
+std::size_t thing_type_size(thing_t type);
+
 class thing {
     friend class executor;
 private:
@@ -44,6 +52,15 @@ public:
 
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
+public:
+    /**
+     * @brief Returns a new thing.
+     *
+     * @param context Furvm context.
+     * @param type Type of the new thing.
+     * @return Shared pointer to the new thing.
+     */
+    static thing_p create(const context_p& context, thing_t type);
 private:
     thing_handle m_id;
     thing_t      m_type;
