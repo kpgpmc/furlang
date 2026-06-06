@@ -61,6 +61,27 @@ class mod;
  */
 using module_handle = std::uint32_t;
 
+// thing.hpp
+
+/**
+ * @enum thing_t
+ * @brief Thing type.
+ */
+enum class thing_t : std::uint8_t;
+
+/**
+ * @class thing
+ * @brief Furvm thing.
+ *
+ * A stack element. Think of it like of a value in C++ or I guess a class in java.
+ */
+class thing;
+
+/**
+ * @brief Furvm thing's index.
+ */
+using thing_handle = std::uint32_t;
+
 // executor.hpp
 
 /**
