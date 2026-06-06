@@ -2,9 +2,7 @@
 #define FURVM_EXECUTOR_HPP
 
 #include "furvm/fwd.hpp"
-#include "furvm/thing.hpp"
 
-#include <memory>
 #include <stack>
 
 namespace furvm {
@@ -42,9 +40,9 @@ public:
      * Call frame.
      */
     struct frame {
-        std::shared_ptr<mod> mod;       /**< Shared pointer to a module with the bytecode. */
-        std::size_t          position;  /**< Cursor to a current instruction in the bytecode. */
-        std::size_t          stackBase; /**< Snapshot of the stack size before this frame. */
+        mod_p       mod;       /**< Shared pointer to a module with the bytecode. */
+        std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
+        std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
     };
 public:
     /**
@@ -53,7 +51,7 @@ public:
      * @param id
      * @param context
      */
-    executor(egzekutor, executor_handle id, const std::shared_ptr<context>& context);
+    executor(egzekutor, executor_handle id, const context_p& context);
 
     ~executor();
 
@@ -75,7 +73,7 @@ public:
      *
      * @param context Furvm context.
      */
-    static std::shared_ptr<executor> create(const std::shared_ptr<context>& context);
+    static executor_p create(const context_p& context);
 public:
     /**
      * @brief Returns an id of this executor.
@@ -97,7 +95,7 @@ public:
      * @param mod A shared pointer to a furvm module.
      * @param position Position in the module's bytecode.
      */
-    void push_frame(const std::shared_ptr<mod>& mod, std::size_t position);
+    void push_frame(const mod_p& mod, std::size_t position);
 
     /**
      * @brief Pops the top frame.
@@ -118,28 +116,28 @@ public:
      *
      * @param thing The thing to push.
      */
-    void push_thing(const std::shared_ptr<class thing>& thing);
+    void push_thing(const thing_p& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
      * @return The popped thing.
      */
-    std::shared_ptr<class thing> pop_thing();
+    thing_p pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
      * @return The thing.
      */
-    std::shared_ptr<class thing> thing() const;
+    thing_p thing() const;
 private:
-    executor_handle          m_id;
-    executor_flags           m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
-    std::shared_ptr<context> m_context;
+    executor_handle m_id;
+    executor_flags  m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
+    context_p       m_context;
 
-    std::stack<struct frame>                 m_frames;
-    std::stack<std::shared_ptr<class thing>> m_stack;
+    std::stack<struct frame> m_frames;
+    std::stack<thing_p>      m_stack;
 };
 
 } // namespace furvm

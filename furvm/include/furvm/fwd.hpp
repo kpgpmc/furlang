@@ -3,6 +3,7 @@
 
 #include <cstddef> // IWYU pragma: export
 #include <cstdint> // IWYU pragma: export
+#include <memory>
 
 /**
  * @brief Furlang's virtual machine.
@@ -57,6 +58,11 @@ struct instruction;
 class mod;
 
 /**
+ * @brief An alias to a module shared pointer.
+ */
+using mod_p = std::shared_ptr<mod>;
+
+/**
  * @brief Furvm module's index.
  */
 using module_handle = std::uint32_t;
@@ -76,6 +82,11 @@ enum class thing_t : std::uint8_t;
  * A stack element. Think of it like of a value in C++ or I guess a class in java.
  */
 class thing;
+
+/**
+ * @brief An alias to a thing shared pointer.
+ */
+using thing_p = std::shared_ptr<thing>;
 
 /**
  * @brief Furvm thing's index.
@@ -99,6 +110,11 @@ enum class executor_flags : std::uint32_t;
 class executor;
 
 /**
+ * @brief An alias to a executor shared pointer.
+ */
+using executor_p = std::shared_ptr<executor>;
+
+/**
  * @brief Furvm executor's index.
  */
 using executor_handle = std::uint32_t;
@@ -112,6 +128,11 @@ using executor_handle = std::uint32_t;
  * A furvm context.
  */
 class context;
+
+/**
+ * @brief An alias to a context shared pointer.
+ */
+using context_p = std::shared_ptr<context>;
 
 } // namespace furvm
 

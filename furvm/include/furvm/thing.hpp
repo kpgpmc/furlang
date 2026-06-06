@@ -3,8 +3,6 @@
 
 #include "furvm/fwd.hpp"
 
-#include <memory>
-
 namespace furvm {
 
 enum class thing_t : std::uint8_t {
@@ -30,7 +28,7 @@ public:
      * @param type
      * @param context
      */
-    thing(rzecz, thing_handle id, thing_t type, const std::shared_ptr<context>& context);
+    thing(rzecz, thing_handle id, thing_t type, const context_p& context);
 
     ~thing();
 
@@ -47,9 +45,9 @@ public:
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
 private:
-    thing_handle             m_id;
-    thing_t                  m_type;
-    std::shared_ptr<context> m_context;
+    thing_handle m_id;
+    thing_t      m_type;
+    context_p    m_context;
 
     void* m_data = nullptr;
 };
