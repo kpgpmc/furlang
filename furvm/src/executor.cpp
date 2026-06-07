@@ -59,10 +59,6 @@ void executor::step() {
     instruction_t instr = static_cast<instruction_t>(frame.mod->byte(frame.position++));
     switch (instr) {
     case instruction_t::NoOperation: break;
-    case instruction_t::Return: {
-        pop_frame();
-        if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
-    } break;
     case instruction_t::PushB2I: {
         auto thing     = thing::create(m_context, thing_t::Int32);
         thing->int32() = frame.mod->byte(frame.position++);
@@ -71,9 +67,17 @@ void executor::step() {
     case instruction_t::Drop: {
         m_stack.pop();
     } break;
-    case instruction_t::PushConstant:
-    case instruction_t::Duplicate:
+    case instruction_t::Return: {
+        pop_frame();
+        if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
+    } break;
     case instruction_t::ReturnValue: {
+        auto value = pop_thing();
+        pop_frame();
+        m_stack.push(std::move(value));
+    } break;
+    case instruction_t::PushConstant:
+    case instruction_t::Duplicate: {
         throw std::runtime_error("unimplemented");
     }
     }
