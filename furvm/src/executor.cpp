@@ -1,6 +1,7 @@
 #include "furvm/executor.hpp"
 
 #include "furvm/context.hpp" // IWYU pragma: keep
+#include "furvm/exceptions.hpp"
 #include "furvm/instruction.hpp"
 #include "furvm/thing.hpp"
 
@@ -26,6 +27,7 @@ void executor::push_frame(const mod_p& mod, std::size_t position) {
 }
 
 struct executor::frame executor::pop_frame() {
+    if (m_frames.empty()) throw stack_underflow();
     struct executor::frame frame = m_frames.top();
     m_frames.pop();
     return frame;
@@ -40,14 +42,14 @@ void executor::push_thing(const thing_p& thing) {
 }
 
 thing_p executor::pop_thing() {
-    if (m_frames.top().stackBase >= m_stack.size()) return {};
+    if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     thing_p top = std::move(m_stack.top());
     m_stack.pop();
     return top;
 }
 
 thing_p executor::thing() const {
-    if (m_frames.top().stackBase >= m_stack.size()) return {};
+    if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     return m_stack.top();
 }
 
@@ -65,7 +67,7 @@ void executor::step() {
         m_stack.push(std::move(thing));
     } break;
     case instruction_t::Drop: {
-        m_stack.pop();
+        pop_thing();
     } break;
     case instruction_t::Return: {
         pop_frame();

@@ -140,6 +140,13 @@ class context;
  */
 using context_p = std::shared_ptr<context>;
 
+// exceptions.hpp:
+
+/**
+ * @brief Stack underflow exception.
+ */
+class stack_underflow;
+
 } // namespace furvm
 
 #endif // FURVM_FWD_HPP
