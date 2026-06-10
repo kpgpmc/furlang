@@ -143,6 +143,7 @@ using context_p = std::shared_ptr<context>;
 // exceptions.hpp:
 
 /**
+ * @class stack_underflow
  * @brief Stack underflow exception.
  */
 class stack_underflow;
