@@ -37,10 +37,21 @@ thing::thing(rzecz, thing_handle id, thing_t type, const context_p& context)
     if (data == nullptr) throw std::runtime_error("failed to allocate data for new thing");
     std::memcpy(data, &type, sizeof(type));
     m_data = data + sizeof(type);
-    std::memset(m_data, 0, size);
+
+    switch (m_type) {
+    // Primitives are zero-initialized.
+    default:
+    case thing_t::Int32: std::memset(m_data, 0, size);
+    }
 }
 
 thing::~thing() {
+    switch (m_type) {
+    // Primitives are not destructed.
+    default:
+    case thing_t::Int32: break;
+    }
+
     m_context->m_deadThingData.push_back(m_data);
 }
 
