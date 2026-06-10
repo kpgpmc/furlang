@@ -71,6 +71,12 @@ void executor::step() {
     case instruction_t::Drop: {
         pop_thing();
     } break;
+    case instruction_t::Duplicate: {
+        push_thing(thing());
+    } break;
+    case instruction_t::Clone: {
+        push_thing(thing::clone(thing()));
+    } break;
     case instruction_t::Return: {
         pop_frame();
         if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
@@ -80,10 +86,8 @@ void executor::step() {
         pop_frame();
         m_stack.push(std::move(value));
     } break;
-    case instruction_t::PushConstant:
-    case instruction_t::Duplicate: {
-        throw std::runtime_error("unimplemented");
-    }
+    case instruction_t::PushConstant: throw std::runtime_error("unimplemented");
+    default: throw std::runtime_error("unknown instruction");
     }
 }
 
