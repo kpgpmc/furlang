@@ -12,7 +12,7 @@ static constexpr std::array<furvm::byte, 6> s_bytecode = {
     furvm::byte(furvm::instruction_t::PushB2I),
     67,
     furvm::byte(furvm::instruction_t::Clone),
-    furvm::byte(furvm::instruction_t::Drop),
+    furvm::byte(furvm::instruction_t::Add),
     furvm::byte(furvm::instruction_t::Drop),
     furvm::byte(furvm::instruction_t::Return),
 };

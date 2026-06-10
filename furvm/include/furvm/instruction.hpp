@@ -41,6 +41,31 @@ enum class instruction_t : byte {
     Clone,
 
     /**
+     * @brief Adds two things together on the stack.
+     */
+    Add,
+
+    /**
+     * @brief Subtracts two things together on the stack.
+     */
+    Sub,
+
+    /**
+     * @brief Multiplies two things together on the stack.
+     */
+    Mul,
+
+    /**
+     * @brief Divides two things together on the stack.
+     */
+    Div,
+
+    /**
+     * @brief Modulos two things together on the stack.
+     */
+    Mod,
+
+    /**
      * @brief Pops the current call frame.
      */
     Return,

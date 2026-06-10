@@ -82,6 +82,31 @@ void executor::step() {
     case instruction_t::Clone: {
         push_thing(std::move(thing::clone(thing())));
     } break;
+    case instruction_t::Add: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs + rhs);
+    } break;
+    case instruction_t::Sub: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs - rhs);
+    } break;
+    case instruction_t::Mul: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs * rhs);
+    } break;
+    case instruction_t::Div: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs / rhs);
+    } break;
+    case instruction_t::Mod: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs % rhs);
+    } break;
     case instruction_t::Return: {
         pop_frame();
         if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
