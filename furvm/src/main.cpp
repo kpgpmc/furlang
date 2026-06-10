@@ -25,8 +25,12 @@ int main(void) {
     auto executor = furvm::executor::create(context);
     executor->push_frame(mainModule, 0);
 
+    static constexpr std::size_t FPC = 3; // Frames per collection
+
+    std::size_t count = 0;
     while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
         executor->step();
+        if ((++count % FPC) == 0) context->collect();
     }
 
     return 0;

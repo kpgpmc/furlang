@@ -93,6 +93,11 @@ public:
      * @return The module count.
      */
     constexpr size_t size() const { return m_modules.size(); }
+public:
+    /**
+     * @brief Removes unreferenced things from the thing list.
+     */
+    void collect();
 private:
     std::vector<mod_p>      m_modules;
     std::vector<thing_p>    m_things;
