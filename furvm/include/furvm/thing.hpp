@@ -50,7 +50,7 @@ public:
     const char* what() const noexcept override { return "bad thing access"; }
 };
 
-class thing {
+class thing final {
     friend class executor;
 private:
     /**
@@ -61,6 +61,8 @@ private:
     struct rzecz {
         explicit rzecz() = default;
     };
+public:
+    static constexpr thing_handle GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
 public:
     /**
      * @brief Private constructor.

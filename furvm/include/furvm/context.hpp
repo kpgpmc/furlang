@@ -5,6 +5,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp"
 
+#include <queue>
 #include <type_traits>
 #include <vector>
 
@@ -21,12 +22,12 @@ public:
     /**
      * @brief Move constructor.
      */
-    context(context&&) = default;
+    context(context&&) noexcept = default;
 
     /**
      * @brief Move constructor.
      */
-    context& operator=(context&&) = default;
+    context& operator=(context&&) noexcept = default;
 
     context(const context&)            = delete;
     context& operator=(const context&) = delete;
@@ -97,8 +98,9 @@ private:
     std::vector<thing_p>    m_things;
     std::vector<executor_p> m_executors;
 
-    std::vector<void*> m_deadThings;
-    furlang::arena     m_thingArena;
+    std::queue<thing_handle> m_deadThings;
+    std::vector<void*>       m_deadThingData;
+    furlang::arena           m_thingArena;
 };
 
 } // namespace furvm

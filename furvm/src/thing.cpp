@@ -21,12 +21,13 @@ thing::thing(rzecz, thing_handle id, thing_t type, const context_p& context)
   : m_id(id), m_type(type), m_context(context) {
     std::size_t size = thing_type_size(type);
     std::byte*  data = nullptr;
-    if (!m_context->m_deadThings.empty()) {
+    if (!m_context->m_deadThingData.empty()) {
         thing_t itType{};
-        for (auto it = m_context->m_deadThings.rbegin(); it != m_context->m_deadThings.rend(); ++it) {
+        for (auto it = m_context->m_deadThingData.rbegin(); it != m_context->m_deadThingData.rend(); ++it) {
             std::memcpy(&itType, static_cast<std::byte*>(*it) - sizeof(itType), sizeof(itType));
             if (size == thing_type_size(itType)) {
                 data = static_cast<std::byte*>(*it);
+                m_context->m_deadThingData.erase(std::next(it).base());
                 break;
             }
         }
@@ -40,12 +41,20 @@ thing::thing(rzecz, thing_handle id, thing_t type, const context_p& context)
 }
 
 thing::~thing() {
-    m_context->m_deadThings.push_back(m_data);
+    m_context->m_deadThingData.push_back(m_data);
 }
 
 thing_p thing::create(const context_p& context, thing_t type) {
-    auto th = std::make_shared<thing>(rzecz{}, context->m_things.size(), type, context);
-    context->m_things.push_back(th);
+    thing_handle id = context->m_things.size();
+    if (!context->m_deadThings.empty()) {
+        id = context->m_deadThings.front();
+        context->m_deadThings.pop();
+        id += 1 << GENERATION_SIZE;
+    }
+    thing_handle idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
+
+    auto th = std::make_shared<thing>(rzecz{}, id, type, context);
+    context->m_things.emplace(context->m_things.begin() + idx, th);
     return std::move(th);
 }
 
