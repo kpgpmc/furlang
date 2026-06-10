@@ -55,17 +55,51 @@ thing::~thing() {
     m_context->m_deadThingData.push_back(m_data);
 }
 
-thing_p thing::create(const context_p& context, thing_t type) {
-    thing_handle id = context->m_things.size();
-    if (!context->m_deadThings.empty()) {
-        id = context->m_deadThings.front();
-        context->m_deadThings.pop();
+thing::thing(thing&& other) noexcept
+  : m_id(other.m_id),
+    m_type(other.m_type),
+    m_context(std::move(other.m_context)),
+    m_refCount(other.m_refCount),
+    m_data(other.m_data) {
+    other.m_id       = {};
+    other.m_type     = {};
+    other.m_refCount = {};
+    other.m_data     = nullptr;
+}
+
+thing& thing::operator=(thing&& other) noexcept {
+    if (this == &other) return *this;
+    m_id       = other.m_id;
+    m_type     = other.m_type;
+    m_context  = std::move(other.m_context);
+    m_refCount = other.m_refCount;
+    m_data     = other.m_data;
+
+    other.m_id       = {};
+    other.m_type     = {};
+    other.m_refCount = {};
+    other.m_data     = nullptr;
+    return *this;
+}
+
+thing_p thing::clone(const thing_p& thing) {
+    thing_handle id = thing->m_context->m_things.size();
+    if (!thing->m_context->m_deadThings.empty()) {
+        id = thing->m_context->m_deadThings.front();
+        thing->m_context->m_deadThings.pop();
         id += 1 << GENERATION_SIZE;
     }
     thing_handle idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
 
-    auto th = std::make_shared<thing>(rzecz{}, id, type, context);
-    context->m_things.emplace(context->m_things.begin() + idx, th);
+    auto th = std::make_shared<class thing>(rzecz{}, id, thing->m_type, thing->m_context);
+    switch (thing->m_type) {
+    // Primitives
+    default: {
+        memcpy(th->m_data, thing->m_data, thing_type_size(thing->m_type));
+    }
+    }
+
+    thing->m_context->m_things.emplace(thing->m_context->m_things.begin() + idx, th);
     return std::move(th);
 }
 

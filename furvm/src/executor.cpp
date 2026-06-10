@@ -42,6 +42,11 @@ void executor::push_thing(const thing_p& thing) {
     m_stack.push(thing);
 }
 
+void executor::push_thing(thing_p&& thing) {
+    thing->add_reference();
+    m_stack.push(std::move(thing));
+}
+
 thing_p executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     thing_p top = std::move(m_stack.top());
@@ -66,7 +71,7 @@ void executor::step() {
     case instruction_t::PushB2I: {
         auto thing     = thing::create(m_context, thing_t::Int32);
         thing->int32() = frame.mod->byte(frame.position++);
-        m_stack.push(std::move(thing));
+        push_thing(std::move(thing));
     } break;
     case instruction_t::Drop: {
         pop_thing();
@@ -75,7 +80,7 @@ void executor::step() {
         push_thing(thing());
     } break;
     case instruction_t::Clone: {
-        push_thing(thing::clone(thing()));
+        push_thing(std::move(thing::clone(thing())));
     } break;
     case instruction_t::Return: {
         pop_frame();
@@ -84,7 +89,7 @@ void executor::step() {
     case instruction_t::ReturnValue: {
         auto value = pop_thing();
         pop_frame();
-        m_stack.push(std::move(value));
+        push_thing(std::move(value));
     } break;
     case instruction_t::PushConstant: throw std::runtime_error("unimplemented");
     default: throw std::runtime_error("unknown instruction");

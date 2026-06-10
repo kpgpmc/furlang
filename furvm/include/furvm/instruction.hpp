@@ -36,6 +36,11 @@ enum class instruction_t : byte {
     Duplicate,
 
     /**
+     * @brief Clones top element on the stack.
+     */
+    Clone,
+
+    /**
      * @brief Pops the current call frame.
      */
     Return,

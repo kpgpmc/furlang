@@ -1,6 +1,7 @@
 #ifndef FURVM_THING_HPP
 #define FURVM_THING_HPP
 
+#include "furvm/context.hpp" // IWYU pragma: keep
 #include "furvm/fwd.hpp"
 
 namespace furvm {
@@ -80,12 +81,12 @@ public:
     /**
      * @brief Move constructor.
      */
-    thing(thing&&) noexcept = default;
+    thing(thing&&) noexcept;
 
     /**
      * @brief Move constructor.
      */
-    thing& operator=(thing&&) noexcept = default;
+    thing& operator=(thing&&) noexcept;
 
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
@@ -94,10 +95,32 @@ public:
      * @brief Returns a new thing.
      *
      * @param context Furvm context.
-     * @param type Type of the new thing.
+     * @param args Arguments to forward to the thing constructor.
      * @return Shared pointer to the new thing.
      */
-    static thing_p create(const context_p& context, thing_t type);
+    template <typename... Args,
+        typename = std::enable_if_t<std::is_constructible_v<thing, rzecz, thing_handle, Args..., const context_p&>>>
+    static thing_p create(const context_p& context, Args&&... args) {
+        thing_handle id = context->m_things.size();
+        if (!context->m_deadThings.empty()) {
+            id = context->m_deadThings.front();
+            context->m_deadThings.pop();
+            id += 1 << GENERATION_SIZE;
+        }
+        thing_handle idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
+
+        auto th = std::make_shared<thing>(rzecz{}, id, std::forward<Args>(args)..., context);
+        context->m_things.emplace(context->m_things.begin() + idx, th);
+        return std::move(th);
+    }
+
+    /**
+     * @brief Returns a clone of the thing.
+     *
+     * @param thing Thing to clone.
+     * @return Shared pointer to a clone of the thing.
+     */
+    static thing_p clone(const thing_p& thing);
 public:
     /**
      * @brief Returns an int32 value from this thing.

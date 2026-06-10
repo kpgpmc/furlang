@@ -121,6 +121,13 @@ public:
     void push_thing(const thing_p& thing);
 
     /**
+     * @brief Pushes a thing onto the stack.
+     *
+     * @param thing The thing to push.
+     */
+    void push_thing(thing_p&& thing);
+
+    /**
      * @brief Pops a thing from the stack.
      *
      * @return The popped thing.
