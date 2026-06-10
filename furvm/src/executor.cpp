@@ -38,6 +38,7 @@ struct executor::frame executor::frame() const {
 }
 
 void executor::push_thing(const thing_p& thing) {
+    thing->add_reference();
     m_stack.push(thing);
 }
 
@@ -45,6 +46,7 @@ thing_p executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     thing_p top = std::move(m_stack.top());
     m_stack.pop();
+    top->remove_reference();
     return top;
 }
 

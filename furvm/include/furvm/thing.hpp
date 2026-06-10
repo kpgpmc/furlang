@@ -62,6 +62,8 @@ private:
         explicit rzecz() = default;
     };
 public:
+    using nref_t = std::size_t; /**< Type of reference count. */
+
     static constexpr thing_handle GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
 public:
     /**
@@ -110,12 +112,30 @@ public:
      * @return The value.
      */
     const std::int32_t& int32() const;
+public:
+    /**
+     * @brief Increments reference count of this thing by one.
+     */
+    void add_reference() { ++m_refCount; }
+
+    /**
+     * @brief Decrements reference count of this thing by one.
+     */
+    void remove_reference() { --m_refCount; }
+
+    /**
+     * @brief Returns reference count of this thing.
+     *
+     * @return The reference count.
+     */
+    constexpr nref_t reference_count() const { return m_refCount; }
 private:
     thing_handle m_id;
     thing_t      m_type;
     context_p    m_context;
 
-    void* m_data = nullptr;
+    nref_t m_refCount = 0;
+    void*  m_data     = nullptr;
 };
 
 } // namespace furvm
