@@ -1,6 +1,7 @@
 #ifndef FURVM_CONTEXT_HPP
 #define FURVM_CONTEXT_HPP
 
+#include "furlang/arena.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp"
 
@@ -95,6 +96,9 @@ private:
     std::vector<mod_p>      m_modules;
     std::vector<thing_p>    m_things;
     std::vector<executor_p> m_executors;
+
+    std::vector<void*> m_deadThings;
+    furlang::arena     m_thingArena;
 };
 
 } // namespace furvm
