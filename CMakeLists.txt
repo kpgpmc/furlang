@@ -8,6 +8,9 @@ find_package(GTest REQUIRED)
 
 find_package(Doxygen)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_subdirectory(furlang)
 add_subdirectory(furvm)
 add_subdirectory(furc)
