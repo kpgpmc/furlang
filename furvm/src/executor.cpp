@@ -109,6 +109,17 @@ void executor::step() {
         auto lhs = pop_thing();
         push_thing(lhs % rhs);
     } break;
+    case instruction_t::Call: {
+        function_handle funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
+                                 (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        frame.position        += 2;
+
+        const function_p& function = frame.mod->function_at(funcId);
+        switch (function->type()) {
+        case function_t::Normal: push_frame(function); break;
+        case function_t::Native: function->native()(*this); break;
+        }
+    } break;
     case instruction_t::Return: {
         pop_frame();
         if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;

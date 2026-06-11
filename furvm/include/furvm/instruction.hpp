@@ -66,6 +66,13 @@ enum class instruction_t : byte {
     Mod,
 
     /**
+     * @brief Calls a function.
+     *
+     * Calls a function denoted by next two bytes in little-endian from current frame's module.
+     */
+    Call,
+
+    /**
      * @brief Pops the current call frame.
      */
     Return,

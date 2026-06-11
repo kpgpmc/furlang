@@ -51,6 +51,14 @@ public:
      * @return The byte.
      */
     constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
+public:
+    /**
+     * @brief Returns a function from this module.
+     *
+     * @param id Id of the function.
+     * @return The function.
+     */
+    constexpr const function_p& function_at(function_handle id) const { return m_functions.at(id); }
 private:
     module_handle           m_id;
     bytecode_t              m_bytecode;

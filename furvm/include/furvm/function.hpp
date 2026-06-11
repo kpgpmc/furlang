@@ -14,7 +14,7 @@ enum class function_t : std::uint8_t {
     Native,     /**< A native function implemented through furvm API. */
 };
 
-using native_function = std::function<void(const executor_p&)>;
+using native_function = std::function<void(executor&)>;
 
 class function {
 private:
