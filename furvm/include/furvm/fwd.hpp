@@ -10,6 +10,11 @@
  */
 namespace furvm {
 
+/**
+ * @brief A byte.
+ *
+ * There's nothing more to it.
+ */
 using byte = std::uint8_t;
 
 // constant.hpp
@@ -46,6 +51,32 @@ enum class instruction_t : byte;
  * @brief Furvm's instruction.
  */
 struct instruction;
+
+// function.hpp
+
+/**
+ * @enum function_t
+ * @brief Function type.
+ */
+enum class function_t : std::uint8_t;
+
+/**
+ * @class function
+ * @brief Function.
+ *
+ * A furvm function.
+ */
+class function;
+
+/**
+ * @brief An alias to a function shared pointer.
+ */
+using function_p = std::shared_ptr<function>;
+
+/**
+ * @brief Furvm function's index.
+ */
+using function_handle = std::uint16_t;
 
 // module.hpp
 

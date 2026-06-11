@@ -94,10 +94,9 @@ public:
     /**
      * @brief Pushes a new frame.
      *
-     * @param mod A shared pointer to a furvm module.
-     * @param position Position in the module's bytecode.
+     * @param function Function.
      */
-    void push_frame(const mod_p& mod, std::size_t position);
+    void push_frame(const function_p& function);
 
     /**
      * @brief Pops the top frame.

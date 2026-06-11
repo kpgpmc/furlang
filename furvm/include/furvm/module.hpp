@@ -8,6 +8,7 @@
 namespace furvm {
 
 class mod {
+    friend class function;
 public:
     using bytecode_t = std::vector<byte>; /**< An alias to a vector of bytes. */
 public:
@@ -51,8 +52,9 @@ public:
      */
     constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
 private:
-    module_handle m_id;
-    bytecode_t    m_bytecode;
+    module_handle           m_id;
+    bytecode_t              m_bytecode;
+    std::vector<function_p> m_functions;
 };
 
 } // namespace furvm

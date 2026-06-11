@@ -2,6 +2,7 @@
 
 #include "furvm/context.hpp" // IWYU pragma: keep
 #include "furvm/exceptions.hpp"
+#include "furvm/function.hpp" // IWYU pragma: keep
 #include "furvm/instruction.hpp"
 #include "furvm/thing.hpp"
 
@@ -22,8 +23,9 @@ executor_p executor::create(const context_p& context) {
     return std::move(ex);
 }
 
-void executor::push_frame(const mod_p& mod, std::size_t position) {
-    m_frames.emplace((struct executor::frame){ mod, position, m_stack.size() });
+void executor::push_frame(const function_p& function) {
+    if (function->type() != function_t::Normal) return;
+    m_frames.emplace((struct executor::frame){ function->mod(), function->position(), m_stack.size() });
 }
 
 struct executor::frame executor::pop_frame() {
