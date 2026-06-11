@@ -104,7 +104,7 @@ public:
      * @return The value.
      */
     std::size_t position() const {
-        if (m_type == function_t::Normal) throw std::runtime_error("function type mismatch");
+        if (m_type != function_t::Normal) throw std::runtime_error("function type mismatch");
         return m_value.position;
     }
 
@@ -114,7 +114,7 @@ public:
      * @return The value.
      */
     const native_function& native() const {
-        if (m_type == function_t::Native) throw std::runtime_error("function type mismatch");
+        if (m_type != function_t::Native) throw std::runtime_error("function type mismatch");
         return m_value.native;
     }
 private:
