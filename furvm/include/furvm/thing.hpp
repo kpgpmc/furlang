@@ -4,8 +4,6 @@
 #include "furvm/context.hpp" // IWYU pragma: keep
 #include "furvm/fwd.hpp"
 
-#include <stdexcept>
-
 namespace furvm {
 
 enum class thing_t : std::uint8_t {
@@ -93,7 +91,6 @@ public:
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
 public:
-#define x(lType, rType) ((std::uint16_t)((((std::uint8_t)(lType)) << 8) | ((std::uint8_t)(rType))))
     /**
      * @brief Adds two things together.
      *
@@ -101,16 +98,7 @@ public:
      * @param rhs Right-hand-side thing.
      * @return Shared pointer to result thing.
      */
-    friend thing_p operator+(const thing_p& lhs, const thing_p& rhs) {
-        switch (x(lhs->m_type, rhs->m_type)) {
-        case x(thing_t::Int32, thing_t::Int32): {
-            auto res     = create(lhs->m_context, thing_t::Int32);
-            res->int32() = lhs->int32() + rhs->int32();
-            return res;
-        }
-        default: throw std::runtime_error("unexpected operator");
-        }
-    }
+    friend thing_p operator+(const thing_p& lhs, const thing_p& rhs);
 
     /**
      * @brief Subtracts two things together.
@@ -119,16 +107,7 @@ public:
      * @param rhs Right-hand-side thing.
      * @return Shared pointer to result thing.
      */
-    friend thing_p operator-(const thing_p& lhs, const thing_p& rhs) {
-        switch (x(lhs->m_type, rhs->m_type)) {
-        case x(thing_t::Int32, thing_t::Int32): {
-            auto res     = create(lhs->m_context, thing_t::Int32);
-            res->int32() = lhs->int32() - rhs->int32();
-            return res;
-        }
-        default: throw std::runtime_error("unexpected operator");
-        }
-    }
+    friend thing_p operator-(const thing_p& lhs, const thing_p& rhs);
 
     /**
      * @brief Multiplies two things together.
@@ -137,16 +116,7 @@ public:
      * @param rhs Right-hand-side thing.
      * @return Shared pointer to result thing.
      */
-    friend thing_p operator*(const thing_p& lhs, const thing_p& rhs) {
-        switch (x(lhs->m_type, rhs->m_type)) {
-        case x(thing_t::Int32, thing_t::Int32): {
-            auto res     = create(lhs->m_context, thing_t::Int32);
-            res->int32() = lhs->int32() * rhs->int32();
-            return res;
-        }
-        default: throw std::runtime_error("unexpected operator");
-        }
-    }
+    friend thing_p operator*(const thing_p& lhs, const thing_p& rhs);
 
     /**
      * @brief Divides two things together.
@@ -155,16 +125,7 @@ public:
      * @param rhs Right-hand-side thing.
      * @return Shared pointer to result thing.
      */
-    friend thing_p operator/(const thing_p& lhs, const thing_p& rhs) {
-        switch (x(lhs->m_type, rhs->m_type)) {
-        case x(thing_t::Int32, thing_t::Int32): {
-            auto res     = create(lhs->m_context, thing_t::Int32);
-            res->int32() = lhs->int32() / rhs->int32();
-            return res;
-        }
-        default: throw std::runtime_error("unexpected operator");
-        }
-    }
+    friend thing_p operator/(const thing_p& lhs, const thing_p& rhs);
 
     /**
      * @brief Modulos two things together.
@@ -173,17 +134,7 @@ public:
      * @param rhs Right-hand-side thing.
      * @return Shared pointer to result thing.
      */
-    friend thing_p operator%(const thing_p& lhs, const thing_p& rhs) {
-        switch (x(lhs->m_type, rhs->m_type)) {
-        case x(thing_t::Int32, thing_t::Int32): {
-            auto res     = create(lhs->m_context, thing_t::Int32);
-            res->int32() = lhs->int32() % rhs->int32();
-            return res;
-        }
-        default: throw std::runtime_error("unexpected operator");
-        }
-    }
-#undef x
+    friend thing_p operator%(const thing_p& lhs, const thing_p& rhs);
 public:
     /**
      * @brief Returns a new thing.
