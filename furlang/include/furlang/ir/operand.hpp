@@ -138,6 +138,19 @@ public:
     }
 
     /**
+     * @brief Construct a new register operand.
+     *
+     * @param value Value of the new register operand.
+     * @return The register operand.
+     */
+    static operand new_reg(register_operand value) {
+        operand operand;
+        operand.m_type      = operand_t::Register;
+        operand.m_value.reg = value;
+        return operand;
+    }
+
+    /**
      * @brief Construct a new variable operand.
      *
      * @param value Value of the new variable operand.

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <ostream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -69,6 +70,41 @@ public:
      * @return The type.
      */
     virtual instruction_t type() const = 0;
+
+    /**
+     * @brief Returns whether this instruction has a destination operand.
+     *
+     * @return true if this instruction has the destination operand.
+     */
+    virtual bool has_destination() const { return false; }
+
+    /**
+     * @brief Returns destination operand of this instruction.
+     *
+     * @return The destination operand.
+     */
+    virtual operand& destination() { throw std::runtime_error("instruction type mismatch"); }
+
+    /**
+     * @brief Returns destination operand of this instruction.
+     *
+     * @return The destination operand.
+     */
+    virtual const operand& destination() const { throw std::runtime_error("instruction type mismatch"); }
+
+    /**
+     * @brief Returns a list of source operands of this instruction.
+     *
+     * @return The list of source operands.
+     */
+    virtual std::vector<operand*> sources() { return {}; }
+
+    /**
+     * @brief Returns a list of source operands of this instruction.
+     *
+     * @return The list of source operands.
+     */
+    virtual std::vector<const operand*> sources() const { return {}; }
 public:
     /**
      * @brief Prints an instruction to an output stream.
@@ -161,18 +197,39 @@ public:
     instruction_t type() const override { return instruction_t::Assign; }
 
     /**
-     * @brief Returns this instruction's source.
+     * @brief Returns whether this instruction has a destination operand.
      *
-     * @return The source.
+     * @return true
      */
-    const operand& source() const { return m_source; }
+    bool has_destination() const override { return true; }
 
     /**
      * @brief Returns this instruction's destination.
      *
      * @return The destination.
      */
-    const operand& destination() const { return m_destination; }
+    operand& destination() override { return m_destination; }
+
+    /**
+     * @brief Returns this instruction's destination.
+     *
+     * @return The destination.
+     */
+    const operand& destination() const override { return m_destination; }
+
+    /**
+     * @brief Returns a list of this instruction's source operands.
+     *
+     * @return The list of source operands.
+     */
+    std::vector<operand*> sources() override { return { &m_source }; }
+
+    /**
+     * @brief Returns a list of this instruction's source operands.
+     *
+     * @return The list of source operands.
+     */
+    std::vector<const operand*> sources() const override { return { &m_source }; }
 private:
     operand m_source;
     operand m_destination;
@@ -255,6 +312,16 @@ public:
      * @return instruction_t::BinaryOp.
      */
     instruction_t type() const override { return instruction_t::BinaryOp; }
+
+    bool has_destination() const override { return true; }
+
+    operand& destination() override { return m_dst; }
+
+    const operand& destination() const override { return m_dst; }
+
+    std::vector<operand*> sources() override { return { &m_lhs, &m_rhs }; }
+
+    std::vector<const operand*> sources() const override { return { &m_lhs, &m_rhs }; }
 
     /**
      * @brief Returns this instruction's operation type.
@@ -445,6 +512,16 @@ public:
      */
     instruction_t type() const override { return instruction_t::Return; }
 
+    std::vector<operand*> sources() override {
+        if (m_value.has_value()) return { &*m_value };
+        return {};
+    }
+
+    std::vector<const operand*> sources() const override {
+        if (m_value.has_value()) return { &*m_value };
+        return {};
+    }
+
     /**
      * @brief Returns this instruction's return value operand.
      *
@@ -469,7 +546,7 @@ protected:
 class phi_instruction final : public instruction {
 public:
     phi_instruction(register_operand dst)
-      : m_dst(dst) {}
+      : m_dst(operand::new_reg(dst)) {}
 
     ~phi_instruction() override = default;
 
@@ -499,7 +576,14 @@ public:
      *
      * @return The register.
      */
-    register_operand destination() const { return m_dst; }
+    operand& destination() override { return m_dst; }
+
+    /**
+     * @brief Returns this instruction's destination register.
+     *
+     * @return The register.
+     */
+    const operand& destination() const override { return m_dst; }
 
     /**
      * @brief Returns this instruction's labels.
@@ -515,7 +599,7 @@ public:
      */
     const std::vector<std::pair<operand, block_index>>& labels() const { return m_labels; }
 private:
-    register_operand                             m_dst;
+    operand                                      m_dst;
     std::vector<std::pair<operand, block_index>> m_labels;
 protected:
     std::ostream& print(std::ostream& os) const override {

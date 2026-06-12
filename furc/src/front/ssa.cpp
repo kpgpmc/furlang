@@ -31,25 +31,15 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
         const auto& block = func->blocks()[i];
 
         for (const auto& instr : block->instructions()) {
-            switch (instr->type()) {
-            case furlang::ir::instruction_t::Assign: {
-                const auto& assign = dynamic_cast<const furlang::ir::assign_instruction&>(*instr);
-                regSites[assign.destination().reg()].insert(i);
-                if (assign.source().type() == furlang::ir::operand_t::Register) {
-                    regUses[i].insert(assign.source().reg());
+            if (instr->has_destination()) {
+                if (instr->destination().type() == furlang::ir::operand_t::Register) {
+                    regSites[instr->destination().reg()].insert(i);
                 }
-            } break;
-            case furlang::ir::instruction_t::BinaryOp: {
-                const auto& binOp = dynamic_cast<const furlang::ir::binary_op_instruction&>(*instr);
-                regSites[binOp.dst().reg()].insert(i);
-                if (binOp.lhs().type() == furlang::ir::operand_t::Register) {
-                    regUses[i].insert(binOp.lhs().reg());
-                }
-                if (binOp.rhs().type() == furlang::ir::operand_t::Register) {
-                    regUses[i].insert(binOp.rhs().reg());
-                }
-            } break;
-            default: break;
+            }
+
+            for (const furlang::ir::operand* src : instr->sources()) {
+                if (src->type() != furlang::ir::operand_t::Register) continue;
+                regUses[i].insert(src->reg());
             }
         }
 
