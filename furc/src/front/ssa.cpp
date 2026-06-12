@@ -200,6 +200,14 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
             }
         }
 
+        for (auto& operand : block->exit()->sources()) {
+            if (operand->type() != furlang::ir::operand_t::Register) continue;
+            auto orig = operand->reg();
+            if (!regVerStacks[orig].empty()) {
+                operand->reg().ver = regVerStacks[orig].top();
+            }
+        }
+
         for (auto succIndex : successors[blockIndex]) {
             const auto& succ = func->blocks()[succIndex];
             for (auto& instr : succ->instructions()) {
