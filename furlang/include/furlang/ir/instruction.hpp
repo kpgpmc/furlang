@@ -444,6 +444,9 @@ public:
 public:
     instruction_t type() const override { return instruction_t::BranchCond; }
 
+    std::vector<operand*>       sources() override { return { &m_condition }; }
+    std::vector<const operand*> sources() const override { return { &m_condition }; }
+
     /**
      * @brief Returns this instruction's condition operand.
      *

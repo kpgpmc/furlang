@@ -235,6 +235,12 @@ using compound_statement_node_p =
 
 using compound_statement_node_r = node_r<compound_statement_node>; /**< Alias for compound_statement_node result */
 
+class while_statement_node;
+
+using while_statement_node_p = node_p<while_statement_node>; /**< Alias for a shared pointer to while_statement_node. */
+
+using while_statement_node_r = node_r<while_statement_node>; /**< Alias for while_statement_node result */
+
 } // namespace ast
 } // namespace furc
 

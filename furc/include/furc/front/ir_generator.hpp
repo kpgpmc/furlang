@@ -27,6 +27,7 @@ public:
     void visit(const ast::function_definition_node& funcDef) override;
     void visit(const ast::return_statement_node& returnStmt) override;
     void visit(const ast::if_statement_node& node) override;
+    void visit(const ast::while_statement_node& node) override;
     void visit(const ast::compound_statement_node& node) override;
     void visit(const ast::string_literal_node& node) override;
     void visit(const ast::integer_literal_node& node) override;
@@ -42,7 +43,7 @@ private:
         }
     }
 
-    furlang::ir::block_index push_block();
+    furlang::ir::block_index push_block(bool validate = true);
 private:
     furlang::ir::module                    m_module;
     std::unique_ptr<furlang::ir::function> m_currentFunction;

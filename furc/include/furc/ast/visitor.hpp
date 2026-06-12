@@ -123,6 +123,14 @@ public:
     virtual void visit(const compound_statement_node& node) {}
 
     /**
+     * @brief Visit a while_statement_node.
+     * @see while_statement_node
+     *
+     * @param node Node.
+     */
+    virtual void visit(const while_statement_node& node) {}
+
+    /**
      * @brief Visit an AST error.
      *
      * @param error AST error.

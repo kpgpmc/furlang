@@ -2,9 +2,10 @@
 
 #include "furc/ast/declaration.hpp" // IWYU pragma: keep
 #include "furc/ast/expression.hpp"  // IWYU pragma: keep
-#include "furc/ast/literal.hpp"     // IWYU pragma: keep
-#include "furc/ast/program.hpp"     // IWYU pragma: keep
-#include "furc/ast/statement.hpp"   // IWYU pragma: keep
+#include "furc/ast/fwd.hpp"
+#include "furc/ast/literal.hpp"   // IWYU pragma: keep
+#include "furc/ast/program.hpp"   // IWYU pragma: keep
+#include "furc/ast/statement.hpp" // IWYU pragma: keep
 
 #include <fstream>
 #include <iostream>
@@ -144,6 +145,24 @@ ast::statement_node_r parser::parse_statement() {
             return m_arena.allocate_shared<ast::if_statement_node>(location,
                 std::move(cond.value()),
                 std::move(then.value()));
+        }
+        case keyword_token::While: {
+            auto tok = next_token();
+            auto err = eat_token(token_t::LParen);
+            if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
+
+            auto cond = parse_expression();
+            if (cond.has_error()) return ast::statement_node_r(ast::error{ cond.error().location });
+
+            err = eat_token(token_t::RParen);
+            if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
+
+            auto body = parse_statement();
+            if (body.has_error()) return ast::statement_node_r(ast::error{ body.error().location });
+
+            return m_arena.allocate_shared<ast::while_statement_node>(location,
+                std::move(cond.value()),
+                std::move(body.value()));
         }
         case keyword_token::None:
         case keyword_token::Func:

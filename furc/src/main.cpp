@@ -11,16 +11,12 @@ int main(void) {
     try {
         std::string               programStr = R"(
     func main() {
-        x = 5;
-        x -= 3;
-        if (x < 3) {
-            y = x * 2;
-            w = y;
-        } else {
-            y = x - 3;
+        x = 0;
+        y = 10;
+        z = 1;
+        while (x < y) {
+            x = x + z;
         }
-        w = x - y;
-        z = x + y;
     }
     )";
         furc::front::parser       parser("<TEMP>", programStr);

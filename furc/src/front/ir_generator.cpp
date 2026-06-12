@@ -4,8 +4,10 @@
 #include "furc/ast/expression.hpp"  // IWYU pragma: keep
 #include "furc/ast/literal.hpp"     // IWYU pragma: keep
 #include "furc/ast/statement.hpp"   // IWYU pragma: keep
+#include "furlang/ir/instruction.hpp"
 
 #include <cassert>
+#include <memory>
 
 namespace furc::front {
 
@@ -52,6 +54,33 @@ void ir_generator::visit(const ast::if_statement_node& node) {
     }
     m_currentBlock->emplace<ir::branch_instruction>(m_currentFunction->blocks().size());
 
+    push_block(); // merge block
+}
+
+void ir_generator::visit(const ast::while_statement_node& node) {
+    node.condition()->accept(*this);
+    ir_register                cond      = m_registerCounter - 1;
+    std::shared_ptr<ir::block> entry     = m_currentBlock;
+    ir::block_index            headerIdx = m_currentFunction->blocks().size();
+
+    push_block(false); // loop header
+    push<ir::branch_instruction>(m_currentFunction->blocks().size());
+
+    push_block(); // loop condition
+    node.condition()->accept(*this);
+    std::shared_ptr<ir::block> condBlock = m_currentBlock;
+    ir_register                cond2     = m_registerCounter - 1;
+
+    push_block(false); // loop body
+    node.body()->accept(*this);
+    push<ir::branch_instruction>(headerIdx);
+
+    entry->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond),
+        headerIdx,
+        m_currentFunction->blocks().size());
+    condBlock->emplace<ir::branch_cond_instruction>(ir::operand::new_reg(cond2),
+        m_currentFunction->blocks().size() - 1,
+        m_currentFunction->blocks().size());
     push_block(); // merge block
 }
 
@@ -138,8 +167,8 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
     }
 }
 
-furlang::ir::block_index ir_generator::push_block() {
-    if (!m_currentFunction->blocks().empty() && !m_currentFunction->blocks().back()->has_exit()) {
+furlang::ir::block_index ir_generator::push_block(bool validate) {
+    if (validate && !m_currentFunction->blocks().empty() && !m_currentFunction->blocks().back()->has_exit()) {
         throw std::runtime_error(
             "block " + std::to_string(m_currentFunction->blocks().size() - 1) + " is lacking an exit");
     }

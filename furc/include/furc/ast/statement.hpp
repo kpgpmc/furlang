@@ -1,6 +1,7 @@
 #ifndef FURC_AST_STATEMENT_HPP
 #define FURC_AST_STATEMENT_HPP
 
+#include "furc/ast/fwd.hpp"
 #include "furc/ast/node.hpp"
 
 #include <optional>
@@ -17,6 +18,7 @@ enum class statement_node_t {
     Return,      /**< Return statement */
     If,          /**< If statement */
     Compound,    /**< Compound statement */
+    While,       /**< While loop statement. */
 };
 
 /**
@@ -189,6 +191,51 @@ protected:
     bool equal(const node& rhs) const override;
 private:
     struct body m_body; /**< The body handle. */
+};
+
+/**
+ * @brief while statement AST node.
+ */
+class while_statement_node final : public statement_node, public abstract_node {
+public:
+    /**
+     * @brief Construct a new while statement AST node.
+     *
+     * @param location Node location.
+     * @param body Body handle.
+     */
+    while_statement_node(struct location location, expression_node_p&& cond, statement_node_p&& body)
+      : abstract_node(location), m_cond(std::move(cond)), m_body(std::move(body)) {}
+public:
+    /**
+     * @brief Returns this node's condition expression.
+     *
+     * @return The condition expression.
+     */
+    const expression_node_p& condition() const { return m_cond; }
+
+    /**
+     * @brief Returns this node's body handle.
+     *
+     * @return The body handle.
+     */
+    const statement_node_p& body() const { return m_body; }
+public:
+    /**
+     * @brief Returns this node's statement type.
+     *
+     * @return statement_node_t::while.
+     */
+    statement_node_t statement_type() const override { return statement_node_t::While; }
+public:
+    void accept(visitor& visitor) const override;
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    expression_node_p m_cond; /**< The condition expression. */
+    statement_node_p  m_body; /**< The body handle. */
 };
 
 } // namespace ast

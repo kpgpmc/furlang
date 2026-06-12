@@ -1,5 +1,7 @@
 #include "furc/front/lexer.hpp"
 
+#include "furc/front/token.hpp"
+
 #include <cctype>
 #include <limits>
 #include <map>
@@ -97,6 +99,7 @@ token_r lexer::next_token() {
                 { "return", keyword_token::Return },
                 { "if", keyword_token::If },
                 { "else", keyword_token::Else },
+                { "while", keyword_token::While },
             };
 
             if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second };

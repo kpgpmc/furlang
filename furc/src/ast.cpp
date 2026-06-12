@@ -186,6 +186,18 @@ bool compound_statement_node::equal(const node& rhs) const {
     return statement_node::equal(rhs) && m_body == dynamic_cast<const compound_statement_node&>(rhs).m_body;
 }
 
+void while_statement_node::accept(visitor& visitor) const {
+    visitor.visit(*this);
+}
+
+std::ostream& while_statement_node::print(std::ostream& os) const {
+    return os << m_body;
+}
+
+bool while_statement_node::equal(const node& rhs) const {
+    return statement_node::equal(rhs) && m_body == dynamic_cast<const while_statement_node&>(rhs).m_body;
+}
+
 void program_node::accept(visitor& visitor) const {
     for (const auto& decl : m_declarations) {
         decl->accept(visitor);
