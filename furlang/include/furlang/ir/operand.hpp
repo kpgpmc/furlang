@@ -203,6 +203,13 @@ public:
      *
      * @return The register value.
      */
+    register_operand& reg() { return m_value.reg; }
+
+    /**
+     * @brief Returns this operand's register value.
+     *
+     * @return The register value.
+     */
     register_operand reg() const { return m_value.reg; }
 
     /**

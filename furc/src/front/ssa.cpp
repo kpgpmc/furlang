@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <memory>
+#include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -26,6 +28,10 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_t>> regUses;
 
     std::unordered_map<furlang::ir::block_index, furlang::ir::block_index> idoms;
+
+    std::unordered_map<furlang::ir::register_t, std::uint32_t>                          regVers;
+    std::unordered_map<furlang::ir::register_t, std::stack<std::uint32_t>>              regVerStacks;
+    std::unordered_map<furlang::ir::block_index, std::vector<furlang::ir::block_index>> domTree;
 
     for (furlang::ir::block_index i = 0; i < func->blocks().size(); ++i) {
         const auto& block = func->blocks()[i];
@@ -164,6 +170,69 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
             block->instructions().emplace(block->instructions().begin(), std::move(phiInstr));
         }
     }
+
+    for (const auto& [block, idom] : idoms) {
+        if (block != idom) domTree[idom].push_back(block);
+    }
+
+    std::function<void(furlang::ir::block_index)> renameBlock = [&](furlang::ir::block_index blockIndex) -> void {
+        std::unordered_map<furlang::ir::register_t, std::uint32_t> pushed;
+
+        const auto& block = func->blocks()[blockIndex];
+        for (auto& instr : block->instructions()) {
+            if (instr->type() != furlang::ir::instruction_t::Phi) continue;
+            auto          orig             = instr->destination().reg();
+            std::uint32_t newVer           = regVers[orig]++;
+            instr->destination().reg().ver = newVer;
+            regVerStacks[orig].push(newVer);
+            ++pushed[orig];
+        }
+
+        for (auto& instr : block->instructions()) {
+            if (instr->type() == furlang::ir::instruction_t::Phi) continue;
+
+            for (auto& operand : instr->sources()) {
+                if (operand->type() != furlang::ir::operand_t::Register) continue;
+                auto orig = operand->reg();
+                if (!regVerStacks[orig].empty()) {
+                    operand->reg().ver = regVerStacks[orig].top();
+                }
+            }
+
+            if (instr->has_destination() || instr->destination().type() == furlang::ir::operand_t::Register) {
+                auto          orig             = instr->destination().reg();
+                std::uint32_t newVer           = regVers[orig]++;
+                instr->destination().reg().ver = newVer;
+                regVerStacks[orig].push(newVer);
+                ++pushed[orig];
+            }
+        }
+
+        for (auto succIndex : successors[blockIndex]) {
+            const auto& succ = func->blocks()[succIndex];
+            for (auto& instr : succ->instructions()) {
+                if (instr->type() != furlang::ir::instruction_t::Phi) break;
+                auto& phi = dynamic_cast<furlang::ir::phi_instruction&>(*instr);
+                for (auto& [op, bl] : phi.labels()) {
+                    if (bl != blockIndex) continue;
+                    if (regVerStacks[op.reg()].empty()) continue;
+                    op.reg().ver = regVerStacks[op.reg()].top();
+                }
+            }
+        }
+
+        for (const auto& child : domTree[blockIndex]) {
+            renameBlock(child);
+        }
+
+        for (const auto& [reg, count] : pushed) {
+            for (std::uint32_t i = 0; i < count; ++i) {
+                regVerStacks[reg].pop();
+            }
+        }
+    };
+
+    renameBlock(entry);
 }
 
 void ssa::dfs_rpo(furlang::ir::block_index        block,
