@@ -118,6 +118,10 @@ void executor::step() {
         switch (function->type()) {
         case function_t::Normal: push_frame(function); break;
         case function_t::Native: function->native()(*this); break;
+        case function_t::Import: {
+            const mod_p& impMod = m_context->m_modules.at(function->imported_module());
+            push_frame(impMod->function_at(function->imported_function()));
+        } break;
         }
     } break;
     case instruction_t::Return: {

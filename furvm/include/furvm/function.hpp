@@ -12,6 +12,7 @@ namespace furvm {
 enum class function_t : std::uint8_t {
     Normal = 0, /**< A normal bytecode function. */
     Native,     /**< A native function implemented through furvm API. */
+    Import,     /**< A function imported from another module. */
 };
 
 using native_function = std::function<void(executor&)>;
@@ -117,6 +118,26 @@ public:
         if (m_type != function_t::Native) throw std::runtime_error("function type mismatch");
         return m_value.native;
     }
+
+    /**
+     * @brief Returns a module of imported function.
+     *
+     * @return A handle to the module.
+     */
+    module_handle imported_module() const {
+        if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
+        return m_value.imp.mod;
+    }
+
+    /**
+     * @brief Returns a module of imported function.
+     *
+     * @return A handle to the module.
+     */
+    function_handle imported_function() const {
+        if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
+        return m_value.imp.function;
+    }
 private:
     function_handle m_id;
     function_t      m_type;
@@ -125,6 +146,10 @@ private:
     union value {
         std::size_t     position = 0;
         native_function native;
+        struct {
+            module_handle   mod;
+            function_handle function;
+        } imp;
 
         value() = default;
 
@@ -133,6 +158,9 @@ private:
 
         value(const native_function& native)
           : native(native) {}
+
+        value(module_handle mod, function_handle function)
+          : imp({ mod, function }) {}
 
         ~value() {}
 
