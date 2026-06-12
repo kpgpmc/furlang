@@ -3,6 +3,7 @@
 #include "furc/ast/program.hpp"
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
+#include "furc/front/ssa.hpp"
 
 #include <iostream>
 
@@ -34,6 +35,8 @@ int main(void) {
         program->accept(generator);
 
         auto module = std::move(generator.move_module());
+        furc::front::ssa::optimize(module);
+
         std::cout << "Generated IR:\n";
         for (const auto& function : module.functions()) {
             std::cout << function->name() << ":\n";
