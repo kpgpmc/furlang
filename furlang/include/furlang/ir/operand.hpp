@@ -20,10 +20,32 @@ enum class operand_t {
 };
 
 /**
+ * @brief Alias to a register type.
+ */
+using register_t = std::uint32_t;
+
+/**
  * @brief Register operand alias.
  * @see operand_t::Register
  */
-using register_operand = std::uint32_t;
+struct register_operand {
+    register_t    reg;
+    std::uint32_t ver = 0;
+
+    register_operand(register_t reg)
+      : reg(reg) {}
+
+    register_operand(register_t reg, std::uint32_t ver)
+      : reg(reg), ver(ver) {}
+
+    operator std::uint32_t&() { return reg; }
+    operator const std::uint32_t&() const { return reg; }
+
+    friend std::ostream& operator<<(std::ostream& os, const register_operand& op) {
+        return os << op.reg << '_' << op.ver;
+    }
+};
+
 /**
  * @brief Variable operand alias.
  * @see operand_t::Variable
@@ -108,10 +130,10 @@ public:
      * @param value Value of the new register operand.
      * @return The register operand.
      */
-    static operand new_reg(register_operand value) {
+    static operand new_reg(register_t value) {
         operand operand;
         operand.m_type      = operand_t::Register;
-        operand.m_value.reg = value;
+        operand.m_value.reg = { value, 0 };
         return operand;
     }
 

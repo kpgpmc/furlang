@@ -22,8 +22,8 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     block_map_t predecessors;
     block_map_t successors;
 
-    std::unordered_map<furlang::ir::register_operand, std::unordered_set<furlang::ir::block_index>> regSites;
-    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_operand>> regUses;
+    std::unordered_map<furlang::ir::register_t, std::unordered_set<furlang::ir::block_index>> regSites;
+    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_t>> regUses;
 
     std::unordered_map<furlang::ir::block_index, furlang::ir::block_index> idoms;
 
@@ -139,7 +139,7 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
         }
     }
 
-    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_operand>> phis;
+    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_t>> phis;
 
     for (const auto& [reg, blocks] : regSites) {
         std::vector<furlang::ir::block_index> worklist(blocks.begin(), blocks.end());
