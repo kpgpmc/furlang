@@ -1,9 +1,11 @@
 #include "furc/front/ssa.hpp"
 
 #include "furlang/ir/instruction.hpp"
+#include "furlang/ir/operand.hpp"
 
 #include <algorithm>
 #include <cstddef>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -20,19 +22,46 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     block_map_t predecessors;
     block_map_t successors;
 
+    std::unordered_map<furlang::ir::register_operand, std::unordered_set<furlang::ir::block_index>> regSites;
+    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_operand>> regUses;
+
     std::unordered_map<furlang::ir::block_index, furlang::ir::block_index> idoms;
 
     for (furlang::ir::block_index i = 0; i < func->blocks().size(); ++i) {
         const auto& block = func->blocks()[i];
-        const auto& exit  = block->exit();
+
+        for (const auto& instr : block->instructions()) {
+            switch (instr->type()) {
+            case furlang::ir::instruction_t::Assign: {
+                const auto& assign = dynamic_cast<const furlang::ir::assign_instruction&>(*instr);
+                regSites[assign.destination().reg()].insert(i);
+                if (assign.source().type() == furlang::ir::operand_t::Register) {
+                    regUses[i].insert(assign.source().reg());
+                }
+            } break;
+            case furlang::ir::instruction_t::BinaryOp: {
+                const auto& binOp = dynamic_cast<const furlang::ir::binary_op_instruction&>(*instr);
+                regSites[binOp.dst().reg()].insert(i);
+                if (binOp.lhs().type() == furlang::ir::operand_t::Register) {
+                    regUses[i].insert(binOp.lhs().reg());
+                }
+                if (binOp.rhs().type() == furlang::ir::operand_t::Register) {
+                    regUses[i].insert(binOp.rhs().reg());
+                }
+            } break;
+            default: break;
+            }
+        }
+
+        const auto& exit = block->exit();
         switch (exit->type()) {
         case furlang::ir::instruction_t::Branch: {
-            const auto& br = reinterpret_cast<const furlang::ir::branch_instruction&>(*exit);
+            const auto& br = dynamic_cast<const furlang::ir::branch_instruction&>(*exit);
             predecessors[br.block()].push_back(i);
             successors[i].push_back(br.block());
         } break;
         case furlang::ir::instruction_t::BranchCond: {
-            const auto& br = reinterpret_cast<const furlang::ir::branch_cond_instruction&>(*exit);
+            const auto& br = dynamic_cast<const furlang::ir::branch_cond_instruction&>(*exit);
             predecessors[br.if_block()].push_back(i);
             predecessors[br.else_block()].push_back(i);
             successors[i].push_back(br.if_block());
@@ -107,6 +136,42 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
                 df[runner].insert(block);
                 runner = idoms[runner];
             }
+        }
+    }
+
+    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_operand>> phis;
+
+    for (const auto& [reg, blocks] : regSites) {
+        std::vector<furlang::ir::block_index> worklist(blocks.begin(), blocks.end());
+
+        std::unordered_set<furlang::ir::block_index> added;
+        while (!worklist.empty()) {
+            auto block = worklist.back();
+            worklist.pop_back();
+            for (auto frontier : df[block]) {
+                if (added.find(frontier) != added.end()) continue;
+                phis[frontier].insert(reg);
+                added.insert(frontier);
+                if (blocks.find(frontier) == blocks.end()) {
+                    worklist.push_back(frontier);
+                }
+            }
+        }
+    }
+
+    for (furlang::ir::block_index i = 0; i < func->blocks().size(); ++i) {
+        if (phis.find(i) == phis.end()) continue;
+        const auto& block = func->blocks()[i];
+        const auto& preds = predecessors[i];
+
+        for (auto reg : phis[i]) {
+            if (regUses[i].find(reg) == regUses[i].end()) continue;
+
+            auto phiInstr = std::make_unique<furlang::ir::phi_instruction>(reg);
+            for (auto pred : preds) {
+                phiInstr->labels().emplace_back(furlang::ir::operand::new_reg(reg), pred);
+            }
+            block->instructions().emplace(block->instructions().begin(), std::move(phiInstr));
         }
     }
 }

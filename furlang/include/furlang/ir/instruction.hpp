@@ -468,8 +468,8 @@ protected:
  */
 class phi_instruction final : public instruction {
 public:
-    phi_instruction(std::vector<std::pair<operand, block_index>>&& labels)
-      : m_labels(std::move(labels)) {}
+    phi_instruction(register_operand dst)
+      : m_dst(dst) {}
 
     ~phi_instruction() override = default;
 
@@ -495,17 +495,35 @@ public:
     instruction_t type() const override { return instruction_t::Phi; }
 
     /**
+     * @brief Returns this instruction's destination register.
+     *
+     * @return The register.
+     */
+    register_operand destination() const { return m_dst; }
+
+    /**
+     * @brief Returns this instruction's labels.
+     *
+     * @return The labels.
+     */
+    std::vector<std::pair<operand, block_index>>& labels() { return m_labels; }
+
+    /**
      * @brief Returns this instruction's labels.
      *
      * @return The labels.
      */
     const std::vector<std::pair<operand, block_index>>& labels() const { return m_labels; }
 private:
+    register_operand                             m_dst;
     std::vector<std::pair<operand, block_index>> m_labels;
 protected:
     std::ostream& print(std::ostream& os) const override {
-        os << "phi";
+        os << "phi " << m_dst << " =";
+        bool first = true;
         for (const auto& pair : m_labels) {
+            if (!first) os << ',';
+            first = false;
             os << ' ' << pair.second << ": " << pair.first;
         }
         return os;
