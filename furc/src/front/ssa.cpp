@@ -25,7 +25,6 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     block_map_t successors;
 
     std::unordered_map<furlang::ir::register_t, std::unordered_set<furlang::ir::block_index>> regSites;
-    std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_t>> regUses;
 
     std::unordered_map<furlang::ir::block_index, furlang::ir::block_index> idoms;
 
@@ -41,11 +40,6 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
                 if (instr->destination().type() == furlang::ir::operand_t::Register) {
                     regSites[instr->destination().reg()].insert(i);
                 }
-            }
-
-            for (const furlang::ir::operand* src : instr->sources()) {
-                if (src->type() != furlang::ir::operand_t::Register) continue;
-                regUses[i].insert(src->reg());
             }
         }
 
@@ -161,8 +155,6 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
         const auto& preds = predecessors[i];
 
         for (auto reg : phis[i]) {
-            if (regUses[i].find(reg) == regUses[i].end()) continue;
-
             auto phiInstr = std::make_unique<furlang::ir::phi_instruction>(reg);
             for (auto pred : preds) {
                 phiInstr->labels().emplace_back(furlang::ir::operand::new_reg(reg), pred);
