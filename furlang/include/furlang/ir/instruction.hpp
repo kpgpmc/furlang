@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <optional>
 #include <ostream>
+#include <utility>
+#include <vector>
 
 namespace furlang {
 namespace ir {
@@ -21,6 +23,7 @@ enum class instruction_t {
     Branch,     /**< Branch */
     BranchCond, /**< Conditional branch */
     Return,     /**< Return */
+    Phi,        /**< Phi function */
 };
 
 /**
@@ -454,6 +457,57 @@ protected:
     std::ostream& print(std::ostream& os) const override {
         os << "return";
         if (m_value.has_value()) os << ' ' << m_value.value();
+        return os;
+    }
+};
+
+/**
+ * @brief Phi instruction
+ *
+ * Used to implement the phi node in the SSA graph.
+ */
+class phi_instruction final : public instruction {
+public:
+    phi_instruction(std::vector<std::pair<operand, block_index>>&& labels)
+      : m_labels(std::move(labels)) {}
+
+    ~phi_instruction() override = default;
+
+    /**
+     * @brief Move constructor.
+     */
+    phi_instruction(phi_instruction&&) noexcept = default;
+
+    /**
+     * @brief Move constructor.
+     */
+    phi_instruction& operator=(phi_instruction&&) noexcept = default;
+
+    phi_instruction(const phi_instruction&) = delete;
+
+    phi_instruction& operator=(const phi_instruction&) = delete;
+public:
+    /**
+     * @brief Returns this instruction's type.
+     *
+     * @return instruction_t::Phi.
+     */
+    instruction_t type() const override { return instruction_t::Phi; }
+
+    /**
+     * @brief Returns this instruction's labels.
+     *
+     * @return The labels.
+     */
+    const std::vector<std::pair<operand, block_index>>& labels() const { return m_labels; }
+private:
+    std::vector<std::pair<operand, block_index>> m_labels;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        os << "phi";
+        for (const auto& pair : m_labels) {
+            os << ' ' << pair.second << ": " << pair.first;
+        }
         return os;
     }
 };
