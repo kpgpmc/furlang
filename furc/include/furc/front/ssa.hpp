@@ -20,6 +20,8 @@ public:
 private:
     static void optimize(const std::unique_ptr<furlang::ir::function>& func);
 
+    static void constant_propagation(const std::unique_ptr<furlang::ir::function>& func);
+
     static void dfs_rpo(furlang::ir::block_index      block,
         const block_map_t&                            successors,
         std::unordered_set<furlang::ir::block_index>& visited,

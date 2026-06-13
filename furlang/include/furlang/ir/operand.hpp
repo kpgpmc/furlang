@@ -44,6 +44,8 @@ struct register_operand {
     friend std::ostream& operator<<(std::ostream& os, const register_operand& op) {
         return os << op.reg << '_' << op.ver;
     }
+
+    bool operator==(const register_operand& rhs) const { return reg == rhs.reg && ver == rhs.ver; }
 };
 
 /**
@@ -269,5 +271,18 @@ private:
 
 } // namespace ir
 } // namespace furlang
+
+namespace std {
+
+template <>
+struct hash<furlang::ir::register_operand> {
+    std::size_t operator()(const furlang::ir::register_operand& op) const noexcept {
+        std::size_t h1 = std::hash<decltype(op.reg)>{}(op.reg);
+        std::size_t h2 = std::hash<std::uint32_t>{}(op.ver);
+        return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    }
+};
+
+} // namespace std
 
 #endif // FURLANG_IR_OPERAND_HPP
