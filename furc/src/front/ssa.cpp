@@ -191,7 +191,7 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
                 }
             }
 
-            if (instr->has_destination() || instr->destination().type() == furlang::ir::operand_t::Register) {
+            if (instr->has_destination() && instr->destination().type() == furlang::ir::operand_t::Register) {
                 auto          orig             = instr->destination().reg();
                 std::uint32_t newVer           = regVers[orig]++;
                 instr->destination().reg().ver = newVer;
