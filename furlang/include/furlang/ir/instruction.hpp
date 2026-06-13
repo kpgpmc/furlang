@@ -574,6 +574,8 @@ public:
      */
     instruction_t type() const override { return instruction_t::Phi; }
 
+    bool has_destination() const override { return true; }
+
     /**
      * @brief Returns this instruction's destination register.
      *
@@ -587,6 +589,14 @@ public:
      * @return The register.
      */
     const operand& destination() const override { return m_dst; }
+
+    std::vector<const operand*> sources() const override {
+        std::vector<const operand*> srcs;
+        srcs.reserve(m_labels.size());
+        for (const auto& [op, _block] : m_labels)
+            srcs.push_back(&op);
+        return srcs;
+    }
 
     /**
      * @brief Returns this instruction's labels.

@@ -20,6 +20,7 @@ void ssa::optimize(furlang::ir::module& mod) {
     for (const auto& func : mod.functions()) {
         ssa::optimize(func);
         ssa::constant_propagation(func);
+        ssa::dead_code_elimination(func);
     }
 }
 
@@ -478,6 +479,58 @@ void ssa::constant_propagation(const std::unique_ptr<furlang::ir::function>& fun
         if (cond.type != lattice_t::Constant) continue;
         block_idx target = (cond.value != 0) ? br.if_block() : br.else_block();
         block->exit()    = std::make_unique<furlang::ir::branch_instruction>(target);
+    }
+}
+
+void ssa::dead_code_elimination(const std::unique_ptr<furlang::ir::function>& func) {
+    using block_idx = furlang::ir::block_index;
+    using reg_t     = furlang::ir::register_operand;
+
+    std::unordered_map<reg_t, furlang::ir::instruction*> defMap;
+    std::unordered_set<furlang::ir::instruction*>        alive;
+    std::queue<furlang::ir::instruction*>                worklist;
+
+    for (block_idx blockIdx = 0; blockIdx < func->blocks().size(); ++blockIdx) {
+        const auto& block = func->blocks()[blockIdx];
+
+        for (auto& instr : block->instructions()) {
+            if (instr->has_destination() && instr->destination().type() == furlang::ir::operand_t::Register) {
+                defMap[instr->destination().reg()] = instr.get();
+            }
+        }
+
+        auto* exit = block->exit().get();
+        alive.insert(exit);
+        worklist.push(exit);
+    }
+
+    while (!worklist.empty()) {
+        const auto* instr = worklist.front();
+        worklist.pop();
+
+        for (const auto& op : instr->sources()) {
+            if (op->type() != furlang::ir::operand_t::Register) continue;
+            auto src = op->reg();
+
+            if (defMap.find(src) == defMap.end()) continue;
+            auto* defInstr = defMap[src];
+            if (alive.insert(defInstr).second) {
+                worklist.push(defInstr);
+            }
+        }
+    }
+
+    for (block_idx blockIdx = 0; blockIdx < func->blocks().size(); ++blockIdx) {
+        const auto& block  = func->blocks()[blockIdx];
+        auto&       instrs = block->instructions();
+
+        for (auto it = instrs.begin(); it != instrs.end();) {
+            if (alive.find(it->get()) == alive.end()) {
+                it = instrs.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 }
 
