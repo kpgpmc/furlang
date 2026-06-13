@@ -61,6 +61,29 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
         }
     }
 
+    std::unordered_set<furlang::ir::register_t> globalRegs;
+    for (furlang::ir::block_index i = 0; i < func->blocks().size(); ++i) {
+        const auto& block = func->blocks()[i];
+        for (const auto& instr : block->instructions()) {
+            for (const auto& operand : instr->sources()) {
+                if (operand->type() == furlang::ir::operand_t::Register) {
+                    auto reg = operand->reg();
+                    if (regSites[reg].find(i) == regSites[reg].end()) {
+                        globalRegs.insert(reg);
+                    }
+                }
+            }
+        }
+        for (const auto& operand : block->exit()->sources()) {
+            if (operand->type() == furlang::ir::operand_t::Register) {
+                auto reg = operand->reg();
+                if (regSites[reg].find(i) == regSites[reg].end()) {
+                    globalRegs.insert(reg);
+                }
+            }
+        }
+    }
+
     std::unordered_set<furlang::ir::block_index> visited;
     std::vector<furlang::ir::block_index>        rpoOrder;
     dfs_rpo(0, successors, visited, rpoOrder);
@@ -83,6 +106,7 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
         return block1;
     };
 
+    if (rpoOrder.empty()) return;
     auto entry   = rpoOrder.front();
     idoms[entry] = entry;
 
@@ -132,8 +156,9 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     std::unordered_map<furlang::ir::block_index, std::unordered_set<furlang::ir::register_t>> phis;
 
     for (const auto& [reg, blocks] : regSites) {
-        std::vector<furlang::ir::block_index> worklist(blocks.begin(), blocks.end());
+        if (globalRegs.find(reg) == globalRegs.end()) continue;
 
+        std::vector<furlang::ir::block_index>        worklist(blocks.begin(), blocks.end());
         std::unordered_set<furlang::ir::block_index> added;
         while (!worklist.empty()) {
             auto block = worklist.back();
