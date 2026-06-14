@@ -133,6 +133,11 @@ using thing_handle = std::uint32_t;
 // executor.hpp
 
 /**
+ * @brief A variable index type.
+ */
+using variable_t = std::uint16_t;
+
+/**
  * @enum executor_flags
  * @brief Flags of an executor.
  */

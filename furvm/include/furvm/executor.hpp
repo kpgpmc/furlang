@@ -4,6 +4,7 @@
 #include "furvm/fwd.hpp"
 
 #include <stack>
+#include <vector>
 
 namespace furvm {
 
@@ -44,6 +45,8 @@ public:
         mod_p       mod;       /**< Shared pointer to a module with the bytecode. */
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
+
+        std::vector<thing_p> variables; /**< Frame variables. */
     };
 public:
     /**
@@ -139,6 +142,30 @@ public:
      * @return The thing.
      */
     thing_p thing() const;
+public:
+    /**
+     * @brief Stores a thing in a variable.
+     *
+     * @param variable Variable to store the thing in.
+     * @param thing Thing to store.
+     */
+    void store_thing(variable_t variable, const thing_p& thing);
+
+    /**
+     * @brief Stores a thing in a variable.
+     *
+     * @param variable Variable to store the thing in.
+     * @param thing Thing to store.
+     */
+    void store_thing(variable_t variable, thing_p&& thing);
+
+    /**
+     * @brief Returns a thing stored in a variable.
+     *
+     * @param variable Variable where the thing is stored.
+     * @return The thing stored in the variable.
+     */
+    thing_p load_thing(variable_t variable) const;
 public:
     /**
      * @brief Executes next instruction.

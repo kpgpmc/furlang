@@ -66,6 +66,20 @@ enum class instruction_t : byte {
     Mod,
 
     /**
+     * @brief Pushes a variable onto the stack.
+     *
+     * Fetches a variable denoted by next two bytes in little-endian and pushes it onto the stack.
+     */
+    Load,
+
+    /**
+     * @brief Stores an element from the stack in a variable.
+     *
+     * Pops a thing from the stack and stores it in a variable denoted by next two bytes in little-endian.
+     */
+    Store,
+
+    /**
      * @brief Calls a function.
      *
      * Calls a function denoted by next two bytes in little-endian from current frame's module.
