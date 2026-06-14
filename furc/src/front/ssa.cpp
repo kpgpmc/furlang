@@ -21,6 +21,8 @@ void ssa::optimize(furlang::ir::module& mod) {
         ssa::optimize(func);
         ssa::constant_propagation(func);
         ssa::dead_code_elimination(func);
+        ssa::copy_propagation(func);
+        ssa::dead_code_elimination(func);
     }
 }
 
@@ -530,6 +532,59 @@ void ssa::dead_code_elimination(const std::unique_ptr<furlang::ir::function>& fu
             } else {
                 ++it;
             }
+        }
+    }
+}
+
+void ssa::copy_propagation(const std::unique_ptr<furlang::ir::function>& func) {
+    using block_idx = furlang::ir::block_index;
+    using reg_t     = furlang::ir::register_operand;
+
+    std::unordered_map<reg_t, reg_t> aliasMap;
+
+    std::function<reg_t(const reg_t&)> findRep = [&](const reg_t& reg) -> reg_t {
+        auto it = aliasMap.find(reg);
+        if (it == aliasMap.end()) return reg;
+        reg_t act     = findRep(it->second);
+        aliasMap[reg] = act;
+        return act;
+    };
+
+    for (block_idx blockIdx = 0; blockIdx < func->blocks().size(); ++blockIdx) {
+        const auto& block = func->blocks()[blockIdx];
+        for (auto& instr : block->instructions()) {
+            if (instr->type() != furlang::ir::instruction_t::Assign) continue;
+            auto& srcOp = *instr->sources().front();
+            if (srcOp.type() != furlang::ir::operand_t::Register ||
+                instr->destination().type() != furlang::ir::operand_t::Register)
+                continue;
+            reg_t dstReg = instr->destination().reg();
+            reg_t srcReg = srcOp.reg();
+            reg_t repSrc = findRep(srcReg);
+            reg_t repDst = findRep(dstReg);
+            if (repSrc == repDst) continue;
+            aliasMap[repDst] = repSrc;
+        }
+    }
+
+    for (block_idx blockIdx = 0; blockIdx < func->blocks().size(); ++blockIdx) {
+        const auto& block = func->blocks()[blockIdx];
+        for (auto& instr : block->instructions()) {
+            for (auto& op : instr->sources()) {
+                if (op->type() != furlang::ir::operand_t::Register) continue;
+                op->reg() = findRep(op->reg());
+            }
+            if (instr->type() != furlang::ir::instruction_t::Phi) continue;
+            auto& phi = dynamic_cast<furlang::ir::phi_instruction&>(*instr);
+            for (auto& [op, label] : phi.labels()) {
+                if (op.type() != furlang::ir::operand_t::Register) continue;
+                op.reg() = findRep(op.reg());
+            }
+        }
+
+        for (auto& op : block->exit()->sources()) {
+            if (op->type() != furlang::ir::operand_t::Register) continue;
+            op->reg() = findRep(op->reg());
         }
     }
 }

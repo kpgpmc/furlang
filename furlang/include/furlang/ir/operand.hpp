@@ -29,8 +29,10 @@ using register_t = std::uint32_t;
  * @see operand_t::Register
  */
 struct register_operand {
-    register_t    reg;
+    register_t    reg = 0;
     std::uint32_t ver = 0;
+
+    register_operand() = default;
 
     register_operand(register_t reg)
       : reg(reg) {}
