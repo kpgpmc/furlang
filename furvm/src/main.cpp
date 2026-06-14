@@ -4,10 +4,12 @@
 #include "furvm/executor.hpp"
 #include "furvm/function.hpp"
 #include "furvm/instruction.hpp"
+#include "furvm/serializer.hpp"
 #include "furvm/thing.hpp"
 
 #include <array>
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <memory>
 
@@ -16,15 +18,8 @@ static constexpr std::array<furvm::byte, 8> s_bytecode = {
     67,
     furvm::byte(furvm::instruction_t::Clone),
     furvm::byte(furvm::instruction_t::Add),
-    furvm::byte(furvm::instruction_t::Call),
-    1,
-    0,
     furvm::byte(furvm::instruction_t::Return),
 };
-
-void print(furvm::executor& exec) {
-    std::cout << exec.pop_thing()->int32() << '\n';
-}
 
 int main(void) {
     auto context = std::make_shared<furvm::context>();
@@ -33,7 +28,8 @@ int main(void) {
 
     auto mainFunction = furvm::function::create(mainModule, 0);
 
-    auto printFunction = furvm::function::create(mainModule, print);
+    std::ofstream file("./test.furm", std::ios::binary);
+    furvm::serializer::serialize_module(file, mainModule);
 
     auto executor = furvm::executor::create(context);
     executor->push_frame(mainFunction);
