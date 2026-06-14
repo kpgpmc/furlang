@@ -9,6 +9,7 @@ namespace furvm {
 
 class mod {
     friend class function;
+    friend class serializer;
 public:
     using bytecode_t = std::vector<byte>; /**< An alias to a vector of bytes. */
 public:
