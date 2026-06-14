@@ -20,6 +20,8 @@ public:
 private:
     static void optimize(const std::unique_ptr<furlang::ir::function>& func);
 
+    static void de_ssa(const std::unique_ptr<furlang::ir::function>& func);
+
     static void constant_propagation(const std::unique_ptr<furlang::ir::function>& func);
 
     static void dead_code_elimination(const std::unique_ptr<furlang::ir::function>& func);

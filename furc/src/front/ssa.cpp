@@ -23,6 +23,7 @@ void ssa::optimize(furlang::ir::module& mod) {
         ssa::dead_code_elimination(func);
         ssa::copy_propagation(func);
         ssa::dead_code_elimination(func);
+        ssa::de_ssa(func);
     }
 }
 
@@ -264,6 +265,38 @@ void ssa::optimize(const std::unique_ptr<furlang::ir::function>& func) {
     };
 
     renameBlock(entry);
+}
+
+void ssa::de_ssa(const std::unique_ptr<furlang::ir::function>& func) {
+    using namespace furlang::ir;
+
+    std::unordered_map<block_index, std::vector<std::unique_ptr<instruction>>> copies;
+    for (block_index blockIdx = 0; blockIdx < func->blocks().size(); ++blockIdx) {
+        const auto& block  = func->blocks()[blockIdx];
+        auto&       instrs = block->instructions();
+        for (auto it = instrs.begin(); it != instrs.end();) {
+            if ((*it)->type() != furlang::ir::instruction_t::Phi) {
+                ++it;
+                continue;
+            }
+            auto& phi    = dynamic_cast<phi_instruction&>(**it);
+            auto  dstReg = phi.destination().reg();
+            for (auto& [srcOp, label] : phi.labels()) {
+                copies[label].emplace_back(
+                    std::make_unique<assign_instruction>(std::move(srcOp), operand::new_reg(dstReg)));
+            }
+            it = instrs.erase(it);
+        }
+    }
+
+    for (auto& [blockIdx, cpys] : copies) {
+        if (blockIdx >= func->blocks().size()) continue;
+        const auto& block  = func->blocks()[blockIdx];
+        auto&       instrs = block->instructions();
+        for (auto& copy : cpys) {
+            instrs.push_back(std::move(copy));
+        }
+    }
 }
 
 enum class lattice_t {
