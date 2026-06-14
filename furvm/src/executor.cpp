@@ -136,6 +136,36 @@ void executor::step() {
         auto lhs = pop_thing();
         push_thing(lhs % rhs);
     } break;
+    case instruction_t::Equals: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs == rhs);
+    } break;
+    case instruction_t::NotEquals: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs != rhs);
+    } break;
+    case instruction_t::LessThan: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs < rhs);
+    } break;
+    case instruction_t::GreaterThan: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs > rhs);
+    } break;
+    case instruction_t::LessEqual: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs <= rhs);
+    } break;
+    case instruction_t::GreaterEqual: {
+        auto rhs = pop_thing();
+        auto lhs = pop_thing();
+        push_thing(lhs >= rhs);
+    } break;
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                               (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);

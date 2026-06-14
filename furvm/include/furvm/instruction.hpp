@@ -66,6 +66,36 @@ enum class instruction_t : byte {
     Mod,
 
     /**
+     * @brief Compares two top-most things from the stack for equality.
+     */
+    Equals,
+
+    /**
+     * @brief Compares two top-most things from the stack for inequality.
+     */
+    NotEquals,
+
+    /**
+     * @brief Compares if the first top-most thing is less than the second top-most thing.
+     */
+    LessThan,
+
+    /**
+     * @brief Compares if the first top-most thing is greater than the second top-most thing.
+     */
+    GreaterThan,
+
+    /**
+     * @brief Compares if the first top-most thing is less than or equal to the second top-most thing.
+     */
+    LessEqual,
+
+    /**
+     * @brief Compares if the first top-most thing is greater than or equal to the second top-most thing.
+     */
+    GreaterEqual,
+
+    /**
      * @brief Pushes a variable onto the stack.
      *
      * Fetches a variable denoted by next two bytes in little-endian and pushes it onto the stack.

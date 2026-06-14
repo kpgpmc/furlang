@@ -135,6 +135,59 @@ public:
      * @return Shared pointer to result thing.
      */
     friend thing_p operator%(const thing_p& lhs, const thing_p& rhs);
+
+    /**
+     * @brief Compares two things for equality.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator==(const thing_p& lhs, const thing_p& rhs);
+
+    /**
+     * @brief Compares two things for equality.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator!=(const thing_p& lhs, const thing_p& rhs);
+    /**
+     * @brief Compares if the left thing is less than the right thing.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator<(const thing_p& lhs, const thing_p& rhs);
+
+    /**
+     * @brief Compares if the left thing is greater than the right thing.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator>(const thing_p& lhs, const thing_p& rhs);
+
+    /**
+     * @brief Compares if the left thing is less than or equal to the right thing.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator<=(const thing_p& lhs, const thing_p& rhs);
+
+    /**
+     * @brief Compares if the left thing is greater than or equal to the right thing.
+     *
+     * @param lhs Left-hand-side thing.
+     * @param rhs Right-hand-side thing.
+     * @return Shared pointer to result thing.
+     */
+    friend thing_p operator>=(const thing_p& lhs, const thing_p& rhs);
 public:
     /**
      * @brief Returns a new thing.
