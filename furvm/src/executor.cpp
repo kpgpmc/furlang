@@ -139,11 +139,13 @@ void executor::step() {
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                               (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        frame.position     += 2;
         push_thing(load_thing(variable));
     } break;
     case instruction_t::Store: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                               (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        frame.position     += 2;
         store_thing(variable, std::move(pop_thing()));
     } break;
     case instruction_t::Call: {
@@ -160,6 +162,14 @@ void executor::step() {
             push_frame(impMod->function_at(function->imported_function()));
         } break;
         }
+    } break;
+    case instruction_t::Jump: {
+        frame.position += frame.mod->byte(frame.position++);
+    } break;
+    case instruction_t::JumpNotZero: {
+        byte offset = frame.mod->byte(frame.position++);
+        auto cond   = pop_thing();
+        if (cond->int32() != 0) frame.position += offset;
     } break;
     case instruction_t::Return: {
         pop_frame();

@@ -87,6 +87,21 @@ enum class instruction_t : byte {
     Call,
 
     /**
+     * @brief Jumps to an instruction relative to the current instruction.
+     *
+     * Jumps to an instruction relative to the current instruction with offset denoted by next byte.
+     */
+    Jump,
+
+    /**
+     * @brief Jumps to an instruction relative to the current instruction if top thing on the stack is not zero.
+     *
+     * Jumps to an instruction relative to the current instruction with offset denoted by next byte if the top thing on
+     * the stack is not zero (is true).
+     */
+    JumpNotZero,
+
+    /**
      * @brief Pops the current call frame.
      */
     Return,
