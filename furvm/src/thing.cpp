@@ -141,6 +141,72 @@ thing_p operator%(const thing_p& lhs, const thing_p& rhs) {
     }
 }
 
+thing_p operator==(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() == rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
+thing_p operator!=(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() != rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
+thing_p operator<(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() < rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
+thing_p operator>(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() > rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
+thing_p operator<=(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() <= rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
+thing_p operator>=(const thing_p& lhs, const thing_p& rhs) {
+    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        auto res     = thing::create(lhs->m_context, thing_t::Int32);
+        res->int32() = static_cast<std::int32_t>(lhs->int32() >= rhs->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unexpected operator");
+    }
+}
+
 thing_p thing::clone(const thing_p& thing) {
     thing_handle id = thing->m_context->m_things.size();
     if (!thing->m_context->m_deadThings.empty()) {

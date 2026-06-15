@@ -17,6 +17,10 @@ function::function(function&& other) noexcept
     case function_t::Native: {
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
+    case function_t::Import: {
+        m_value.imp.mod      = other.m_value.imp.mod;
+        m_value.imp.function = other.m_value.imp.function;
+    } break;
     }
     other.m_value.position = 0;
 }
@@ -33,6 +37,10 @@ function& function::operator=(function&& other) noexcept {
     } break;
     case function_t::Native: {
         new (&m_value.native) native_function(std::move(other.m_value.native));
+    } break;
+    case function_t::Import: {
+        m_value.imp.mod      = other.m_value.imp.mod;
+        m_value.imp.function = other.m_value.imp.function;
     } break;
     }
     other.m_value.position = 0;
