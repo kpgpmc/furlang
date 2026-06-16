@@ -25,14 +25,13 @@ int main(void) {
     auto context = std::make_shared<furvm::context>();
 
     auto mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
-
-    auto mainFunction = furvm::function::create(mainModule, 0);
+    mainModule->emplace_function("main", 0);
 
     std::ofstream file("./test.furm", std::ios::binary);
     furvm::serializer::serialize_module(file, mainModule);
 
     auto executor = furvm::executor::create(context);
-    executor->push_frame(mainFunction);
+    executor->push_frame(mainModule, 0);
 
     static constexpr std::size_t FPC = 3; // Frames per collection
 

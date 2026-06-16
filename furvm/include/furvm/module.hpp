@@ -1,9 +1,15 @@
 #ifndef FURVM_MODULE_HPP
 #define FURVM_MODULE_HPP
 
+#include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 
+#include <algorithm>
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -83,14 +89,48 @@ public:
     /**
      * @brief Returns a function from this module.
      *
+     * @param name Name of the function.
+     * @return The function.
+     */
+    template <typename Name>
+    constexpr const function_p& function_at(Name&& name) const {
+        return m_functions.at(std::forward<Name>(name));
+    }
+
+    /**
+     * @brief Returns a function from this module.
+     *
      * @param id Id of the function.
      * @return The function.
      */
     constexpr const function_p& function_at(function_handle id) const { return m_functions.at(id); }
+
+    /**
+     * @brief Returns an id of a function.
+     *
+     * @param function Function to get the id of.
+     * @return The function's id.
+     */
+    function_handle function_id(const function_p& function) const {
+        if (auto it = std::find(m_functions.begin(), m_functions.end(), function); it != m_functions.end())
+            return it - m_functions.begin();
+        throw std::runtime_error("function not in the module");
+    }
+
+    template <typename... Args>
+    function_handle emplace_function(Args&&... args) {
+        function_p function = std::make_shared<class function>(std::forward<Args>(args)...);
+        m_functionMap.emplace(function->name(), function);
+        function_handle id = m_functions.size();
+        m_functions.emplace_back(std::move(function));
+        return id;
+    }
 private:
-    std::string             m_name;
-    bytecode_t              m_bytecode;
-    std::vector<function_p> m_functions;
+    std::string m_name;
+    bytecode_t  m_bytecode;
+
+    std::unordered_map<std::string, function_p> m_functionMap;
+    std::vector<function_p>                     m_functions;
 };
 
 } // namespace furvm

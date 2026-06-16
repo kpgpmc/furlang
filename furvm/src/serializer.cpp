@@ -1,6 +1,8 @@
 #include "furvm/serializer.hpp"
 
 #include "furvm/function.hpp" // IWYU pragma: keep
+#include "furvm/fwd.hpp"
+#include "furvm/module.hpp" // IWYU pragma: keep
 
 #include <array>
 #include <cstring>
@@ -73,8 +75,9 @@ bool serializer::serialize_module(std::ostream& os, const mod_p& mod) {
     write_u32(os, VERSION);
 
     write_u32(os, mod->m_functions.size());
-    for (const auto& func : mod->m_functions) {
-        write_u16(os, func->id());
+    for (function_handle id = 0; id < static_cast<function_handle>(mod->m_functions.size()); ++id) {
+        const auto& func = mod->m_functions[id];
+        write_u16(os, id);
         write_u8(os, static_cast<std::uint8_t>(func->type()));
         switch (func->type()) {
         case function_t::Normal: {

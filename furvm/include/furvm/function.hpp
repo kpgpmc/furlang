@@ -2,7 +2,6 @@
 #define FURVM_FUNCTION_HPP
 
 #include "furvm/fwd.hpp"
-#include "furvm/module.hpp" // IWYU pragma: keep
 
 #include <functional>
 #include <stdexcept>
@@ -20,33 +19,30 @@ enum class function_t : std::uint8_t {
 using native_function = std::function<void(executor&)>;
 
 class function {
-private:
-    /**
-     * @brief A private token for the private constructor.
-     *
-     * Also `funkcja` in Polish translates to `function` from what I heard.
-     */
-    struct funkcja {
-        explicit funkcja() = default;
-    };
 public:
-    /**
-     * @brief Private constructor.
-     *
-     * @param id
-     * @param position
-     * @param mod
-     */
-    function(funkcja, function_handle id, std::size_t position, const mod_p& mod);
+    template <typename Name>
+    function(Name&& name, bytecode_pos position)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_value(position) {}
 
-    /**
-     * @brief Private constructor.
-     *
-     * @param id
-     * @param native
-     * @param mod
-     */
-    function(funkcja, function_handle id, const native_function& native, const mod_p& mod);
+    function(const char* name, bytecode_pos position)
+      : m_name(name), m_type(function_t::Normal), m_value(position) {}
+
+    template <typename Name>
+    function(Name&& name, const native_function& native)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Native), m_value(native) {}
+
+    function(const char* name, const native_function& native)
+      : m_name(name), m_type(function_t::Native), m_value(native) {}
+
+    template <typename Name, typename ModuleName>
+    function(Name&& name, ModuleName&& moduleName, function_handle function)
+      : m_name(std::forward<Name>(name)),
+        m_type(function_t::Import),
+        m_value(std::forward<ModuleName>(moduleName), function) {}
+
+    template <typename ModuleName>
+    function(const char* name, ModuleName&& moduleName, function_handle function)
+      : m_name(name), m_type(function_t::Import), m_value(std::forward<ModuleName>(moduleName), function) {}
 
     ~function();
 
@@ -64,28 +60,11 @@ public:
     function& operator=(const function&) = delete;
 public:
     /**
-     * @brief Returns a new function.
+     * @brief Returns a name of this function.
      *
-     * @param mod Module.
-     * @param args Arguments to pass to the function constructor.
-     * @return The new function.
+     * @return The name.
      */
-    template <typename... Args,
-        typename = std::enable_if_t<std::is_constructible_v<function, funkcja, function_handle, Args..., const mod_p&>>>
-    static function_p create(const mod_p& mod, Args&&... args) {
-        function_handle id = mod->m_functions.size();
-
-        auto func = std::make_shared<function>(funkcja{}, id, std::forward<Args>(args)..., mod);
-        mod->m_functions.emplace(mod->m_functions.begin() + id, func);
-        return std::move(func);
-    }
-public:
-    /**
-     * @brief Returns an id of this function.
-     *
-     * @return The id.
-     */
-    constexpr function_handle id() const { return m_id; }
+    constexpr const std::string& name() const { return m_name; }
 
     /**
      * @brief Returns a type of this function.
@@ -93,13 +72,6 @@ public:
      * @return The type.
      */
     constexpr function_t type() const { return m_type; }
-
-    /**
-     * @brief Returns a parent module of this function.
-     *
-     * @return A shared pointer to the module.
-     */
-    const mod_p& mod() const { return m_module; }
 public:
     /**
      * @brief Returns a value for normal function.
@@ -141,9 +113,8 @@ public:
         return m_value.imp.function;
     }
 private:
-    function_handle m_id;
-    function_t      m_type;
-    mod_p           m_module;
+    std::string m_name;
+    function_t  m_type;
 
     union value {
         std::size_t     position = 0;

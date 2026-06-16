@@ -97,9 +97,10 @@ public:
     /**
      * @brief Pushes a new frame.
      *
-     * @param function Function.
+     * @param mod Module.
+     * @param function Function handle.
      */
-    void push_frame(const function_p& function);
+    void push_frame(const mod_p& mod, function_handle function);
 
     /**
      * @brief Pops the top frame.

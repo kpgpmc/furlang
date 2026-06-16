@@ -25,9 +25,10 @@ executor_p executor::create(const context_p& context) {
     return std::move(ex);
 }
 
-void executor::push_frame(const function_p& function) {
-    if (function->type() != function_t::Normal) return;
-    m_frames.emplace((struct executor::frame){ function->mod(), function->position(), m_stack.size() });
+void executor::push_frame(const mod_p& mod, function_handle function) {
+    const auto& func = mod->function_at(function);
+    if (func->type() != function_t::Normal) throw std::runtime_error("unexpected function type");
+    m_frames.emplace((struct executor::frame){ mod, func->position(), m_stack.size() });
 }
 
 struct executor::frame executor::pop_frame() {
@@ -185,11 +186,11 @@ void executor::step() {
 
         const function_p& function = frame.mod->function_at(funcId);
         switch (function->type()) {
-        case function_t::Normal: push_frame(function); break;
+        case function_t::Normal: push_frame(frame.mod, funcId); break;
         case function_t::Native: function->native()(*this); break;
         case function_t::Import: {
             const mod_p& impMod = m_context->m_modules.at(function->imported_module());
-            push_frame(impMod->function_at(function->imported_function()));
+            push_frame(frame.mod, function->imported_function());
         } break;
         }
     } break;

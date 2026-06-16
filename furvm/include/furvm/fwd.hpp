@@ -17,6 +17,11 @@ namespace furvm {
  */
 using byte = std::uint8_t;
 
+/**
+ * @brief An offset into bytecode.
+ */
+using bytecode_pos = std::uint64_t;
+
 // constant.hpp
 
 /**
