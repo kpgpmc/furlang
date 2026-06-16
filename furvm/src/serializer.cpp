@@ -4,10 +4,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp" // IWYU pragma: keep
 
-#include <array>
-#include <cstring>
 #include <istream>
-#include <optional>
 #include <ostream>
 #include <stdexcept>
 

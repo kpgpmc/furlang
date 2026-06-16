@@ -4,9 +4,7 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 
-#include <algorithm>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>

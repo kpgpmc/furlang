@@ -1,9 +1,12 @@
 #ifndef FURVM_FWD_HPP
 #define FURVM_FWD_HPP
 
+#include "furvm/handle.hpp"
+
 #include <cstddef> // IWYU pragma: export
 #include <cstdint> // IWYU pragma: export
 #include <memory>
+#include <string>
 
 /**
  * @brief Furlang's virtual machine.
@@ -83,6 +86,11 @@ using function_p = std::shared_ptr<function>;
  */
 using function_id = std::uint16_t;
 
+/**
+ * @brief A handle to a furvm function.
+ */
+using function_h = handle<function_id, function>;
+
 // module.hpp
 
 /**
@@ -97,6 +105,16 @@ class mod;
  * @brief An alias to a module shared pointer.
  */
 using mod_p = std::shared_ptr<mod>;
+
+/**
+ * @brief An alias for a module's identifier.
+ */
+using mod_id = std::string;
+
+/**
+ * @brief A handle to a furvm module.
+ */
+using mod_h = handle<mod_id, mod_p>;
 
 // thing.hpp
 
@@ -130,6 +148,11 @@ using thing_p = std::shared_ptr<thing>;
  */
 using thing_id = std::uint32_t;
 
+/**
+ * @brief A handle to a furvm's thing.
+ */
+using thing_h = handle<thing_id, thing>;
+
 // executor.hpp
 
 /**
@@ -160,6 +183,11 @@ using executor_p = std::shared_ptr<executor>;
  * @brief Furvm executor's index.
  */
 using executor_id = std::uint32_t;
+
+/**
+ * @brief A handle to a furvm's executor.
+ */
+using executor_h = handle<executor_id, executor>;
 
 // context.hpp
 
