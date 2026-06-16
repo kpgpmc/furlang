@@ -53,28 +53,12 @@ public:
 
 class thing final {
     friend class executor;
-private:
-    /**
-     * @brief A private token for the private constructor.
-     *
-     * Also `rzecz` in Polish translates to `thing` I think.
-     */
-    struct rzecz {
-        explicit rzecz() = default;
-    };
 public:
     using nref_t = std::size_t; /**< Type of reference count. */
 
     static constexpr thing_handle GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
 public:
-    /**
-     * @brief Private constructor.
-     *
-     * @param id
-     * @param type
-     * @param context
-     */
-    thing(rzecz, thing_handle id, thing_t type, const context_p& context);
+    thing(const context_p& context, thing_t type);
 
     ~thing();
 
@@ -190,29 +174,6 @@ public:
     friend thing_p operator>=(const thing_p& lhs, const thing_p& rhs);
 public:
     /**
-     * @brief Returns a new thing.
-     *
-     * @param context Furvm context.
-     * @param args Arguments to forward to the thing constructor.
-     * @return Shared pointer to the new thing.
-     */
-    template <typename... Args,
-        typename = std::enable_if_t<std::is_constructible_v<thing, rzecz, thing_handle, Args..., const context_p&>>>
-    static thing_p create(const context_p& context, Args&&... args) {
-        thing_handle id = context->m_things.size();
-        if (!context->m_deadThings.empty()) {
-            id = context->m_deadThings.front();
-            context->m_deadThings.pop();
-            id += 1 << GENERATION_SIZE;
-        }
-        thing_handle idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
-
-        auto th = std::make_shared<thing>(rzecz{}, id, std::forward<Args>(args)..., context);
-        context->m_things.emplace(context->m_things.begin() + idx, th);
-        return std::move(th);
-    }
-
-    /**
      * @brief Returns a clone of the thing.
      *
      * @param thing Thing to clone.
@@ -251,9 +212,8 @@ public:
      */
     constexpr nref_t reference_count() const { return m_refCount; }
 private:
-    thing_handle m_id;
-    thing_t      m_type;
-    context_p    m_context;
+    context_p m_context;
+    thing_t   m_type;
 
     nref_t m_refCount = 0;
     void*  m_data     = nullptr;

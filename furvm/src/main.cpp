@@ -27,9 +27,6 @@ int main(void) {
     auto mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
     mainModule->emplace_function("main", 0);
 
-    std::ofstream file("./test.furm", std::ios::binary);
-    furvm::serializer::serialize_module(file, mainModule);
-
     auto executor = context->emplace_executor(context);
     executor->push_frame(mainModule, 0);
 

@@ -8,6 +8,7 @@
 #include "furvm/thing.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 
 namespace furvm {
@@ -86,7 +87,7 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        auto thing     = thing::create(m_context, thing_t::Int32);
+        auto thing     = std::make_shared<class thing>(m_context, thing_t::Int32);
         thing->int32() = frame.mod->byte(frame.position++);
         push_thing(std::move(thing));
     } break;
