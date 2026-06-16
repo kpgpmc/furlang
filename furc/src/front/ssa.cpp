@@ -16,7 +16,7 @@
 
 namespace furc::front {
 
-void ssa::optimize(furlang::ir::module& mod) {
+void ssa::optimize(furlang::ir::mod& mod) {
     for (const auto& func : mod.functions()) {
         ssa::optimize(func);
         ssa::constant_propagation(func);

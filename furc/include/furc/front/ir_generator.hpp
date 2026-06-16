@@ -22,7 +22,7 @@ public:
     ir_generator(const ir_generator&)            = delete;
     ir_generator& operator=(const ir_generator&) = delete;
 public:
-    furlang::ir::module&& move_module() { return std::move(m_module); }
+    furlang::ir::mod&& move_module() { return std::move(m_module); }
 public:
     void visit(const ast::function_definition_node& funcDef) override;
     void visit(const ast::return_statement_node& returnStmt) override;
@@ -45,7 +45,7 @@ private:
 
     furlang::ir::block_index push_block(bool validate = true);
 private:
-    furlang::ir::module                    m_module;
+    furlang::ir::mod                    m_module;
     std::unique_ptr<furlang::ir::function> m_currentFunction;
     std::shared_ptr<furlang::ir::block>    m_currentBlock;
     ir_register                            m_registerCounter = 0;

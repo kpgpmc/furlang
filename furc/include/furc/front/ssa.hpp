@@ -16,7 +16,7 @@ namespace front {
 class ssa {
     using block_map_t = std::unordered_map<furlang::ir::block_index, std::vector<furlang::ir::block_index>>;
 public:
-    static void optimize(furlang::ir::module& mod);
+    static void optimize(furlang::ir::mod& mod);
 private:
     static void optimize(const std::unique_ptr<furlang::ir::function>& func);
 

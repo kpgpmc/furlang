@@ -12,11 +12,11 @@ namespace ir {
 /**
  * @brief IR module
  */
-class module {
+class mod {
 public:
     using value_type = std::unique_ptr<function>; /**< Value type. */
 public:
-    module() = default;
+    mod() = default;
 public:
     /**
      * @brief Pushes and returns a new IR function.
