@@ -6,6 +6,8 @@
 
 #include <functional>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace furvm {
 
@@ -46,7 +48,7 @@ public:
      */
     function(funkcja, function_handle id, const native_function& native, const mod_p& mod);
 
-    ~function() = default;
+    ~function();
 
     /**
      * @brief Move constructor.
@@ -120,13 +122,13 @@ public:
     }
 
     /**
-     * @brief Returns a module of imported function.
+     * @brief Returns a name of the function's module.
      *
-     * @return A handle to the module.
+     * @return The name.
      */
-    module_handle imported_module() const {
+    const std::string& imported_module() const {
         if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
-        return m_value.imp.mod;
+        return m_value.imp.moduleName;
     }
 
     /**
@@ -147,7 +149,7 @@ private:
         std::size_t     position = 0;
         native_function native;
         struct {
-            module_handle   mod;
+            std::string     moduleName;
             function_handle function;
         } imp;
 
@@ -159,8 +161,9 @@ private:
         value(const native_function& native)
           : native(native) {}
 
-        value(module_handle mod, function_handle function)
-          : imp({ mod, function }) {}
+        template <typename Name>
+        value(Name&& moduleName, function_handle function)
+          : imp({ std::forward<Name>(moduleName), function }) {}
 
         ~value() {}
 

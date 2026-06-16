@@ -3,6 +3,7 @@
 
 #include "furvm/fwd.hpp"
 
+#include <string>
 #include <vector>
 
 namespace furvm {
@@ -16,12 +17,24 @@ public:
     /**
      * @brief Construct a new module.
      *
-     * @param id Id of this module.
+     * @param name Name of this module.
+     * @param args Arguments to forward to bytecode's constructor.
+     */
+    template <typename Name,
+        typename... Args,
+        typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
+    mod(Name&& name, Args&&... args)
+      : m_name(std::forward<Name>(name)), m_bytecode(std::forward<Args>(args)...) {}
+
+    /**
+     * @brief Construct a new module.
+     *
+     * @param name C-string name of this module.
      * @param args Arguments to forward to bytecode's constructor.
      */
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
-    mod(module_handle id, Args&&... args)
-      : m_id(id), m_bytecode(std::forward<Args>(args)...) {}
+    mod(const char* name, Args&&... args)
+      : m_name(name), m_bytecode(std::forward<Args>(args)...) {}
 
     ~mod() = default;
 
@@ -39,11 +52,11 @@ public:
     mod& operator=(const mod&) = delete;
 public:
     /**
-     * @brief Returns an id of this module.
+     * @brief Returns this module's name.
      *
-     * @return The id.
+     * @return The name.
      */
-    constexpr module_handle id() const { return m_id; }
+    constexpr const std::string& name() const { return m_name; }
 
     /**
      * @brief Returns a byte from bytecode of this module.
@@ -52,6 +65,20 @@ public:
      * @return The byte.
      */
     constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
+
+    /**
+     * @brief Returns a reference to the module's bytecode.
+     *
+     * @return The reference to bytecode.
+     */
+    constexpr bytecode_t& bytecode() { return m_bytecode; }
+
+    /**
+     * @brief Returns a const reference to the module's bytecode.
+     *
+     * @return The reference to bytecode.
+     */
+    constexpr const bytecode_t& bytecode() const { return m_bytecode; }
 public:
     /**
      * @brief Returns a function from this module.
@@ -61,7 +88,7 @@ public:
      */
     constexpr const function_p& function_at(function_handle id) const { return m_functions.at(id); }
 private:
-    module_handle           m_id;
+    std::string             m_name;
     bytecode_t              m_bytecode;
     std::vector<function_p> m_functions;
 };

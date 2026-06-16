@@ -24,7 +24,7 @@ static constexpr std::array<furvm::byte, 8> s_bytecode = {
 int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    auto mainModule = context->emplace(s_bytecode.begin(), s_bytecode.end());
+    auto mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
 
     auto mainFunction = furvm::function::create(mainModule, 0);
 

@@ -93,11 +93,6 @@ class mod;
  */
 using mod_p = std::shared_ptr<mod>;
 
-/**
- * @brief Furvm module's index.
- */
-using module_handle = std::uint32_t;
-
 // thing.hpp
 
 /**

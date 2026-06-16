@@ -6,7 +6,10 @@
 #include "furvm/module.hpp"
 
 #include <queue>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -33,73 +36,64 @@ public:
     context& operator=(const context&) = delete;
 public:
     /**
-     * @brief Adds a module to this context.
+     * @brief Emplaces a new module in this context.
      *
      * @param args Arguments to forward to module's constructor.
      * @return An index to the emplaced module.
      */
-    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, module_handle, Args...>>>
-    constexpr const auto& emplace(Args&&... args) {
-        module_handle id = static_cast<module_handle>(m_modules.size());
-        return m_modules.emplace_back(std::make_unique<mod>(id, std::forward<Args>(args)...));
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, Args...>>>
+    auto& emplace_module(Args&&... args) {
+        mod_p mod = std::make_shared<class mod>(std::forward<Args>(args)...);
+        return m_modules.emplace(mod->name(), std::move(mod)).first->second;
     }
 
     /**
      * @brief Erases a module from this context.
      *
-     * @param index Index to the module.
-     * @return Old value.
+     * @param name Name of the module to erase.
+     * @return A shared pointer to the erased module.
      */
-    mod_p erase(module_handle index) {
-        if (index >= m_modules.size()) return nullptr;
-        return std::move(m_modules[index]);
+    template <typename Name>
+    mod_p erase_module(Name&& name) {
+        return std::move(m_modules.erase(std::forward<Name>(name))->second);
     }
 
     /**
      * @brief Returns a module of this context.
      *
-     * @param index Position of the module.
+     * @param name Name of the module.
      * @return The module.
      */
-    constexpr mod_p& operator[](module_handle index) { return m_modules[index]; }
+    template <typename Name>
+    constexpr mod_p& module_at(Name&& name) {
+        return m_modules.at(std::forward<Name>(name));
+    }
 
     /**
      * @brief Returns a module of this context.
      *
-     * @param index Position of the module.
+     * @param name Name of the module.
      * @return The module.
      */
-    constexpr const mod_p& operator[](module_handle index) const { return m_modules[index]; }
-
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param index Position of the module.
-     * @return The module.
-     */
-    constexpr mod_p& at(module_handle index) { return m_modules.at(index); }
-
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param index Position of the module.
-     * @return The module.
-     */
-    constexpr const mod_p& at(module_handle index) const { return m_modules.at(index); }
+    template <typename Name>
+    constexpr const mod_p& module_at(Name&& name) const {
+        return m_modules.at(std::forward<Name>(name));
+    }
 
     /**
      * @brief Returns how many does this context have modules.
      *
      * @return The module count.
      */
-    constexpr size_t size() const { return m_modules.size(); }
+    constexpr size_t module_count() const { return m_modules.size(); }
 public:
     /**
      * @brief Removes unreferenced things from the thing list.
      */
     void collect();
 private:
-    std::vector<mod_p>      m_modules;
+    std::unordered_map<std::string, mod_p> m_modules;
+
     std::vector<thing_p>    m_things;
     std::vector<executor_p> m_executors;
 

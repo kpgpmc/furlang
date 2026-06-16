@@ -1,5 +1,7 @@
 #include "furvm/function.hpp"
 
+#include <utility>
+
 namespace furvm {
 
 function::function(funkcja, function_handle id, std::size_t position, const mod_p& mod)
@@ -7,6 +9,17 @@ function::function(funkcja, function_handle id, std::size_t position, const mod_
 
 function::function(funkcja, function_handle id, const native_function& native, const mod_p& mod)
   : m_id(id), m_type(function_t::Native), m_module(mod), m_value(native) {}
+
+function::~function() {
+    switch (m_type) {
+    case function_t::Normal:
+    case function_t::Native:
+    default: break;
+    case function_t::Import: {
+        m_value.imp.moduleName.~basic_string();
+    } break;
+    }
+}
 
 function::function(function&& other) noexcept
   : m_id(other.m_id), m_type(other.m_type), m_module(std::move(other.m_module)) {
@@ -18,8 +31,8 @@ function::function(function&& other) noexcept
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp.mod      = other.m_value.imp.mod;
-        m_value.imp.function = other.m_value.imp.function;
+        m_value.imp.moduleName = std::move(other.m_value.imp.moduleName);
+        m_value.imp.function   = other.m_value.imp.function;
     } break;
     }
     other.m_value.position = 0;
@@ -39,8 +52,8 @@ function& function::operator=(function&& other) noexcept {
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp.mod      = other.m_value.imp.mod;
-        m_value.imp.function = other.m_value.imp.function;
+        m_value.imp.moduleName = std::move(other.m_value.imp.moduleName);
+        m_value.imp.function   = other.m_value.imp.function;
     } break;
     }
     other.m_value.position = 0;
