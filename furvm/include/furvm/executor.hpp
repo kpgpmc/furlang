@@ -26,15 +26,6 @@ static inline executor_flags operator~(executor_flags flags) {
 }
 
 class executor {
-private:
-    /**
-     * @brief A private token for the private constructor.
-     *
-     * Also `egzekutor` in Polish translates to `executor` I think.
-     */
-    struct egzekutor {
-        explicit egzekutor() = default;
-    };
 public:
     /**
      * @brief Executor frame.
@@ -50,14 +41,14 @@ public:
     };
 public:
     /**
-     * @brief Private constructor.
+     * @brief Returns a new executor.
      *
-     * @param id
-     * @param context
+     * @param context Context.
      */
-    executor(egzekutor, executor_handle id, const context_p& context);
+    executor(const context_p& context)
+      : m_context(context) {}
 
-    ~executor();
+    ~executor() = default;
 
     /**
      * @brief Move constructor.
@@ -72,21 +63,6 @@ public:
     executor(const executor&)            = delete;
     executor& operator=(const executor&) = delete;
 public:
-    /**
-     * @brief Returns a new executor.
-     *
-     * @param context Furvm context.
-     * @return Shared pointer to the new executor.
-     */
-    static executor_p create(const context_p& context);
-public:
-    /**
-     * @brief Returns an id of this executor.
-     *
-     * @return The id.
-     */
-    executor_handle id() const { return m_id; }
-
     /**
      * @brief Returns flags of this executor.
      *
@@ -173,9 +149,8 @@ public:
      */
     void step();
 private:
-    executor_handle m_id;
-    executor_flags  m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
-    context_p       m_context;
+    executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
+    context_p      m_context;
 
     std::stack<struct frame> m_frames;
     std::stack<thing_p>      m_stack;

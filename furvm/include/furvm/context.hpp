@@ -5,6 +5,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp"
 
+#include <memory>
 #include <queue>
 #include <string>
 #include <type_traits>
@@ -86,6 +87,12 @@ public:
      * @return The module count.
      */
     constexpr size_t module_count() const { return m_modules.size(); }
+public:
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<executor, Args...>>>
+    auto& emplace_executor(Args&&... args) {
+        executor_p executor = std::make_shared<class executor>(std::forward<Args>(args)...);
+        return m_executors.emplace_back(std::move(executor));
+    }
 public:
     /**
      * @brief Removes unreferenced things from the thing list.

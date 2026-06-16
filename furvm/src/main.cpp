@@ -30,7 +30,7 @@ int main(void) {
     std::ofstream file("./test.furm", std::ios::binary);
     furvm::serializer::serialize_module(file, mainModule);
 
-    auto executor = furvm::executor::create(context);
+    auto executor = context->emplace_executor(context);
     executor->push_frame(mainModule, 0);
 
     static constexpr std::size_t FPC = 3; // Frames per collection
