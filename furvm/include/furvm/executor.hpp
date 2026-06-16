@@ -76,7 +76,7 @@ public:
      * @param mod Module.
      * @param function Function handle.
      */
-    void push_frame(const mod_p& mod, function_handle function);
+    void push_frame(const mod_p& mod, function_id function);
 
     /**
      * @brief Pops the top frame.

@@ -81,7 +81,7 @@ using function_p = std::shared_ptr<function>;
 /**
  * @brief Furvm function's index.
  */
-using function_handle = std::uint16_t;
+using function_id = std::uint16_t;
 
 // module.hpp
 
@@ -128,7 +128,7 @@ using thing_p = std::shared_ptr<thing>;
 /**
  * @brief Furvm thing's index.
  */
-using thing_handle = std::uint32_t;
+using thing_id = std::uint32_t;
 
 // executor.hpp
 
@@ -159,7 +159,7 @@ using executor_p = std::shared_ptr<executor>;
 /**
  * @brief Furvm executor's index.
  */
-using executor_handle = std::uint32_t;
+using executor_id = std::uint32_t;
 
 // context.hpp
 

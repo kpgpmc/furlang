@@ -201,13 +201,13 @@ thing_p operator>=(const thing_p& lhs, const thing_p& rhs) {
 }
 
 thing_p thing::clone(const thing_p& thing) {
-    thing_handle id = thing->m_context->m_things.size();
+    thing_id id = thing->m_context->m_things.size();
     if (!thing->m_context->m_deadThings.empty()) {
         id = thing->m_context->m_deadThings.front();
         thing->m_context->m_deadThings.pop();
         id += 1 << GENERATION_SIZE;
     }
-    thing_handle idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
+    thing_id idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
 
     auto th = std::make_shared<class thing>(thing->m_context, thing->m_type);
     switch (thing->m_type) {

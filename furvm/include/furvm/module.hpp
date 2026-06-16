@@ -103,25 +103,13 @@ public:
      * @param id Id of the function.
      * @return The function.
      */
-    constexpr const function_p& function_at(function_handle id) const { return m_functions.at(id); }
-
-    /**
-     * @brief Returns an id of a function.
-     *
-     * @param function Function to get the id of.
-     * @return The function's id.
-     */
-    function_handle function_id(const function_p& function) const {
-        if (auto it = std::find(m_functions.begin(), m_functions.end(), function); it != m_functions.end())
-            return it - m_functions.begin();
-        throw std::runtime_error("function not in the module");
-    }
+    constexpr const function_p& function_at(function_id id) const { return m_functions.at(id); }
 
     template <typename... Args>
-    function_handle emplace_function(Args&&... args) {
+    function_id emplace_function(Args&&... args) {
         function_p function = std::make_shared<class function>(std::forward<Args>(args)...);
         m_functionMap.emplace(function->name(), function);
-        function_handle id = m_functions.size();
+        function_id id = m_functions.size();
         m_functions.emplace_back(std::move(function));
         return id;
     }

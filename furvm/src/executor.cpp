@@ -13,7 +13,7 @@
 
 namespace furvm {
 
-void executor::push_frame(const mod_p& mod, function_handle function) {
+void executor::push_frame(const mod_p& mod, function_id function) {
     const auto& func = mod->function_at(function);
     if (func->type() != function_t::Normal) throw std::runtime_error("unexpected function type");
     m_frames.emplace((struct executor::frame){ mod, func->position(), m_stack.size() });
@@ -168,9 +168,9 @@ void executor::step() {
         store_thing(variable, std::move(pop_thing()));
     } break;
     case instruction_t::Call: {
-        function_handle funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                                 (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
-        frame.position        += 2;
+        function_id funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
+                             (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        frame.position    += 2;
 
         const function_p& function = frame.mod->function_at(funcId);
         switch (function->type()) {

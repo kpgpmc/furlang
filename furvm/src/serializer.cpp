@@ -75,7 +75,7 @@ bool serializer::serialize_module(std::ostream& os, const mod_p& mod) {
     write_u32(os, VERSION);
 
     write_u32(os, mod->m_functions.size());
-    for (function_handle id = 0; id < static_cast<function_handle>(mod->m_functions.size()); ++id) {
+    for (function_id id = 0; id < static_cast<function_id>(mod->m_functions.size()); ++id) {
         const auto& func = mod->m_functions[id];
         write_u16(os, id);
         write_u8(os, static_cast<std::uint8_t>(func->type()));

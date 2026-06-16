@@ -56,7 +56,7 @@ class thing final {
 public:
     using nref_t = std::size_t; /**< Type of reference count. */
 
-    static constexpr thing_handle GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
+    static constexpr thing_id GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
 public:
     thing(const context_p& context, thing_t type);
 

@@ -104,9 +104,9 @@ private:
     std::vector<thing_p>    m_things;
     std::vector<executor_p> m_executors;
 
-    std::queue<thing_handle> m_deadThings;
-    std::vector<void*>       m_deadThingData;
-    furlang::arena           m_thingArena;
+    std::queue<thing_id> m_deadThings;
+    std::vector<void*>   m_deadThingData;
+    furlang::arena       m_thingArena;
 };
 
 } // namespace furvm

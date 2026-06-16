@@ -35,13 +35,13 @@ public:
       : m_name(name), m_type(function_t::Native), m_value(native) {}
 
     template <typename Name, typename ModuleName>
-    function(Name&& name, ModuleName&& moduleName, function_handle function)
+    function(Name&& name, ModuleName&& moduleName, function_id function)
       : m_name(std::forward<Name>(name)),
         m_type(function_t::Import),
         m_value(std::forward<ModuleName>(moduleName), function) {}
 
     template <typename ModuleName>
-    function(const char* name, ModuleName&& moduleName, function_handle function)
+    function(const char* name, ModuleName&& moduleName, function_id function)
       : m_name(name), m_type(function_t::Import), m_value(std::forward<ModuleName>(moduleName), function) {}
 
     ~function();
@@ -108,7 +108,7 @@ public:
      *
      * @return A handle to the module.
      */
-    function_handle imported_function() const {
+    function_id imported_function() const {
         if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
         return m_value.imp.function;
     }
@@ -120,8 +120,8 @@ private:
         std::size_t     position = 0;
         native_function native;
         struct {
-            std::string     moduleName;
-            function_handle function;
+            std::string moduleName;
+            function_id function;
         } imp;
 
         value() = default;
@@ -133,7 +133,7 @@ private:
           : native(native) {}
 
         template <typename Name>
-        value(Name&& moduleName, function_handle function)
+        value(Name&& moduleName, function_id function)
           : imp({ std::forward<Name>(moduleName), function }) {}
 
         ~value() {}
