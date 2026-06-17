@@ -1,7 +1,6 @@
 #ifndef FURVM_THING_HPP
 #define FURVM_THING_HPP
 
-#include "furvm/context.hpp" // IWYU pragma: keep
 #include "furvm/fwd.hpp"
 
 namespace furvm {
@@ -58,7 +57,9 @@ public:
 
     static constexpr thing_id GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
 public:
-    thing(const context_p& context, thing_t type);
+    thing(thing_t type);
+
+    thing(thing_t type, void* data);
 
     ~thing();
 
@@ -76,110 +77,12 @@ public:
     thing& operator=(const thing&) = delete;
 public:
     /**
-     * @brief Adds two things together.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator+(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Subtracts two things together.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator-(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Multiplies two things together.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator*(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Divides two things together.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator/(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Modulos two things together.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator%(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Compares two things for equality.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator==(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Compares two things for equality.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator!=(const thing_p& lhs, const thing_p& rhs);
-    /**
-     * @brief Compares if the left thing is less than the right thing.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator<(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Compares if the left thing is greater than the right thing.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator>(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Compares if the left thing is less than or equal to the right thing.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator<=(const thing_p& lhs, const thing_p& rhs);
-
-    /**
-     * @brief Compares if the left thing is greater than or equal to the right thing.
-     *
-     * @param lhs Left-hand-side thing.
-     * @param rhs Right-hand-side thing.
-     * @return Shared pointer to result thing.
-     */
-    friend thing_p operator>=(const thing_p& lhs, const thing_p& rhs);
-public:
-    /**
      * @brief Returns a clone of the thing.
      *
      * @param thing Thing to clone.
      * @return Shared pointer to a clone of the thing.
      */
-    static thing_p clone(const thing_p& thing);
+    static thing_h clone(const context_p& context, const thing_h& thing);
 public:
     /**
      * @brief Returns an int32 value from this thing.
@@ -194,6 +97,18 @@ public:
      * @return The value.
      */
     const std::int32_t& int32() const;
+public:
+    thing_h add(const context_p& context, const thing_h& rhs) const;
+    thing_h sub(const context_p& context, const thing_h& rhs) const;
+    thing_h mul(const context_p& context, const thing_h& rhs) const;
+    thing_h div(const context_p& context, const thing_h& rhs) const;
+    thing_h mod(const context_p& context, const thing_h& rhs) const;
+    thing_h equals(const context_p& context, const thing_h& rhs) const;
+    thing_h not_equals(const context_p& context, const thing_h& rhs) const;
+    thing_h less_than(const context_p& context, const thing_h& rhs) const;
+    thing_h greater_than(const context_p& context, const thing_h& rhs) const;
+    thing_h less_equals(const context_p& context, const thing_h& rhs) const;
+    thing_h greater_equals(const context_p& context, const thing_h& rhs) const;
 public:
     /**
      * @brief Increments reference count of this thing by one.
@@ -212,11 +127,10 @@ public:
      */
     constexpr nref_t reference_count() const { return m_refCount; }
 private:
-    context_p m_context;
-    thing_t   m_type;
-
-    nref_t m_refCount = 0;
-    void*  m_data     = nullptr;
+    thing_t m_type;
+    bool    m_ownData  = true;
+    nref_t  m_refCount = 0;
+    void*   m_data     = nullptr;
 };
 
 } // namespace furvm

@@ -1,9 +1,25 @@
 #ifndef FURVM_HANDLE_HPP
 #define FURVM_HANDLE_HPP
 
+#include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace furvm {
+
+namespace detail {
+
+template <typename Id, typename = void>
+struct dead_id {
+    static constexpr Id value = {};
+};
+
+template <typename Id>
+struct dead_id<Id, std::enable_if_t<std::is_integral_v<Id>>> {
+    static constexpr Id value = std::numeric_limits<Id>::max();
+};
+
+} // namespace detail
 
 template <typename Id, typename T>
 class handle {
@@ -25,6 +41,9 @@ public:
     template <typename IdF, typename Value>
     handle(IdF&& id, Value&& value)
       : m_id(std::forward<IdF>(id)), m_value(std::forward<Value>(value)) {}
+
+    handle()
+      : m_id(detail::dead_id<Id>::value), m_value() {}
 public:
     handle& operator=(value_type&& value) noexcept {
         m_value = std::move(value);

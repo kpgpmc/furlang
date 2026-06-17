@@ -151,7 +151,7 @@ using thing_id = std::uint32_t;
 /**
  * @brief A handle to a furvm's thing.
  */
-using thing_h = handle<thing_id, thing>;
+using thing_h = handle<thing_id, thing_p>;
 
 // executor.hpp
 

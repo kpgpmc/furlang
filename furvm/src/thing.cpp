@@ -17,26 +17,27 @@ std::size_t thing_type_size(thing_t type) {
     return 0;
 }
 
-thing::thing(const context_p& context, thing_t type)
-  : m_context(context), m_type(type) {
+thing::thing(thing_t type)
+  : m_type(type) {
     std::size_t size = thing_type_size(type);
-    std::byte*  data = nullptr;
-    if (!m_context->m_deadThingData.empty()) {
-        thing_t itType{};
-        for (auto it = m_context->m_deadThingData.rbegin(); it != m_context->m_deadThingData.rend(); ++it) {
-            std::memcpy(&itType, static_cast<std::byte*>(*it) - sizeof(itType), sizeof(itType));
-            if (size == thing_type_size(itType)) {
-                data = static_cast<std::byte*>(*it);
-                m_context->m_deadThingData.erase(std::next(it).base());
-                break;
-            }
-        }
-    }
-    if (data == nullptr) data = m_context->m_thingArena.allocate<std::byte>(sizeof(type) + size);
-
+    byte*       data = new byte[size];
     if (data == nullptr) throw std::runtime_error("failed to allocate data for new thing");
     std::memcpy(data, &type, sizeof(type));
     m_data = data + sizeof(type);
+
+    switch (m_type) {
+    // Primitives are zero-initialized.
+    default:
+    case thing_t::Int32: std::memset(m_data, 0, size);
+    }
+}
+
+thing::thing(thing_t type, void* data)
+  : m_type(type), m_ownData(false) {
+    std::size_t size = thing_type_size(type);
+    if (data == nullptr) throw std::runtime_error("failed to allocate data for new thing");
+    std::memcpy(data, &type, sizeof(type));
+    m_data = static_cast<char*>(data) + sizeof(type);
 
     switch (m_type) {
     // Primitives are zero-initialized.
@@ -52,19 +53,19 @@ thing::~thing() {
     case thing_t::Int32: break;
     }
 
-    m_context->m_deadThingData.push_back(m_data);
+    if (m_ownData) delete[] static_cast<char*>(m_data);
 }
 
 thing::thing(thing&& other) noexcept
-  : m_context(std::move(other.m_context)), m_type(other.m_type), m_refCount(other.m_refCount), m_data(other.m_data) {
+  : m_type(other.m_type), m_refCount(other.m_refCount), m_data(other.m_data) {
     other.m_type     = {};
+    other.m_ownData  = false;
     other.m_refCount = {};
     other.m_data     = nullptr;
 }
 
 thing& thing::operator=(thing&& other) noexcept {
     if (this == &other) return *this;
-    m_context  = std::move(other.m_context);
     m_type     = other.m_type;
     m_refCount = other.m_refCount;
     m_data     = other.m_data;
@@ -79,145 +80,15 @@ static constexpr std::uint16_t thing_type_pair(thing_t lhs, thing_t rhs) {
     return (static_cast<std::uint16_t>(lhs) << 8) | static_cast<std::uint16_t>(rhs);
 }
 
-thing_p operator+(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = lhs->int32() + rhs->int32();
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator-(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = lhs->int32() - rhs->int32();
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator*(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = lhs->int32() * rhs->int32();
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator/(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = lhs->int32() / rhs->int32();
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator%(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = lhs->int32() % rhs->int32();
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator==(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() == rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator!=(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() != rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator<(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() < rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator>(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() > rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator<=(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() <= rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p operator>=(const thing_p& lhs, const thing_p& rhs) {
-    switch (thing_type_pair(lhs->m_type, rhs->m_type)) {
-    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
-        auto res     = std::make_shared<thing>(lhs->m_context, thing_t::Int32);
-        res->int32() = static_cast<std::int32_t>(lhs->int32() >= rhs->int32());
-        return res;
-    }
-    default: throw std::runtime_error("unexpected operator");
-    }
-}
-
-thing_p thing::clone(const thing_p& thing) {
-    thing_id id = thing->m_context->m_things.size();
-    if (!thing->m_context->m_deadThings.empty()) {
-        id = thing->m_context->m_deadThings.front();
-        thing->m_context->m_deadThings.pop();
-        id += 1 << GENERATION_SIZE;
-    }
-    thing_id idx = id & ((1ULL << ((sizeof(id) * 8) - GENERATION_SIZE)) - 1);
-
-    auto th = std::make_shared<class thing>(thing->m_context, thing->m_type);
-    switch (thing->m_type) {
+thing_h thing::clone(const context_p& context, const thing_h& thing) {
+    auto th = context->emplace_thing((*thing)->m_type);
+    switch ((*thing)->m_type) {
     // Primitives
     default: {
-        memcpy(th->m_data, thing->m_data, thing_type_size(thing->m_type));
+        memcpy((*th)->m_data, (*thing)->m_data, thing_type_size((*thing)->m_type));
     }
     }
 
-    thing->m_context->m_things.emplace(thing->m_context->m_things.begin() + idx, th);
     return std::move(th);
 }
 
@@ -229,6 +100,127 @@ std::int32_t& thing::int32() {
 const std::int32_t& thing::int32() const {
     if (m_type != thing_t::Int32) throw bad_thing_access();
     return *static_cast<std::int32_t*>(m_data);
+}
+
+thing_h thing::add(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = int32() + (*rhs)->int32();
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::sub(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = int32() - (*rhs)->int32();
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::mul(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = int32() * (*rhs)->int32();
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::div(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = int32() / (*rhs)->int32();
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::mod(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = int32() % (*rhs)->int32();
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::equals(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() == (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::not_equals(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() != (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::less_than(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() < (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::greater_than(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() > (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::less_equals(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() <= (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
+}
+
+thing_h thing::greater_equals(const context_p& context, const thing_h& rhs) const {
+    switch (thing_type_pair(m_type, (*rhs)->m_type)) {
+    case thing_type_pair(thing_t::Int32, thing_t::Int32): {
+        thing_h res     = context->emplace_thing(thing_t::Int32);
+        (*res)->int32() = static_cast<std::int32_t>(int32() >= (*rhs)->int32());
+        return res;
+    }
+    default: throw std::runtime_error("unreachable");
+    }
 }
 
 } // namespace furvm

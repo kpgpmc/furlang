@@ -37,7 +37,7 @@ public:
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
-        std::vector<thing_p> variables; /**< Frame variables. */
+        std::vector<thing_h> variables; /**< Frame variables. */
     };
 public:
     /**
@@ -104,28 +104,28 @@ public:
      *
      * @param thing The thing to push.
      */
-    void push_thing(const thing_p& thing);
+    void push_thing(const thing_h& thing);
 
     /**
      * @brief Pushes a thing onto the stack.
      *
      * @param thing The thing to push.
      */
-    void push_thing(thing_p&& thing);
+    void push_thing(thing_h&& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
      * @return The popped thing.
      */
-    thing_p pop_thing();
+    thing_h pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
      * @return The thing.
      */
-    thing_p thing() const;
+    thing_h thing() const;
 public:
     /**
      * @brief Stores a thing in a variable.
@@ -133,7 +133,7 @@ public:
      * @param variable Variable to store the thing in.
      * @param thing Thing to store.
      */
-    void store_thing(variable_t variable, const thing_p& thing);
+    void store_thing(variable_t variable, const thing_h& thing);
 
     /**
      * @brief Stores a thing in a variable.
@@ -141,7 +141,7 @@ public:
      * @param variable Variable to store the thing in.
      * @param thing Thing to store.
      */
-    void store_thing(variable_t variable, thing_p&& thing);
+    void store_thing(variable_t variable, thing_h&& thing);
 
     /**
      * @brief Returns a thing stored in a variable.
@@ -149,7 +149,7 @@ public:
      * @param variable Variable where the thing is stored.
      * @return The thing stored in the variable.
      */
-    thing_p load_thing(variable_t variable) const;
+    thing_h load_thing(variable_t variable) const;
 public:
     /**
      * @brief Executes next instruction.
@@ -160,7 +160,7 @@ private:
     context_p      m_context;
 
     std::stack<struct frame> m_frames;
-    std::stack<thing_p>      m_stack;
+    std::stack<thing_h>      m_stack;
 };
 
 } // namespace furvm

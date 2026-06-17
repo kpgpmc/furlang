@@ -5,7 +5,9 @@
 #include "furvm/executor.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp"
+#include "furvm/thing.hpp"
 
+#include <cstring>
 #include <memory>
 #include <queue>
 #include <string>
@@ -102,6 +104,31 @@ public:
      * @brief Removes unreferenced things from the thing list.
      */
     void collect();
+public:
+    thing_h emplace_thing(thing_t type) {
+        thing_id id = m_things.size();
+        if (!m_deadThings.empty()) {
+            id = m_deadThings.front();
+            m_deadThings.pop();
+        }
+
+        size_t size = thing_type_size(type);
+        void*  data = nullptr;
+        for (auto it = m_deadThingData.begin(); it != m_deadThingData.end(); ++it) {
+            thing_t curType{};
+            std::memcpy(&curType, static_cast<char*>(*it) - sizeof(curType), sizeof(curType));
+            if (thing_type_size(curType) != size) continue;
+            data = *it;
+            m_deadThingData.erase(it);
+            break;
+        }
+        if (data == nullptr) data = m_thingArena.allocate<char>(sizeof(thing_t) + size);
+        memcpy(data, &type, sizeof(type));
+        data = static_cast<char*>(data) + sizeof(type);
+
+        thing_p thing = std::make_shared<class thing>(type, data);
+        return { id, m_things.emplace_back(std::move(thing)) };
+    }
 private:
     std::unordered_map<std::string, mod_p> m_modules;
 

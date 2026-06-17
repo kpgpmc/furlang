@@ -8,7 +8,6 @@
 #include "furvm/thing.hpp"
 
 #include <cstdint>
-#include <memory>
 #include <stdexcept>
 
 namespace furvm {
@@ -29,50 +28,50 @@ struct executor::frame executor::frame() const {
     return m_frames.top();
 }
 
-void executor::push_thing(const thing_p& thing) {
-    thing->add_reference();
+void executor::push_thing(const thing_h& thing) {
+    (*thing)->add_reference();
     m_stack.push(thing);
 }
 
-void executor::push_thing(thing_p&& thing) {
-    thing->add_reference();
+void executor::push_thing(thing_h&& thing) {
+    (*thing)->add_reference();
     m_stack.push(std::move(thing));
 }
 
-thing_p executor::pop_thing() {
+thing_h executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
-    thing_p top = std::move(m_stack.top());
+    thing_h top = std::move(m_stack.top());
     m_stack.pop();
-    top->remove_reference();
+    (*top)->remove_reference();
     return top;
 }
 
-thing_p executor::thing() const {
+thing_h executor::thing() const {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     return m_stack.top();
 }
 
-void executor::store_thing(variable_t variable, const thing_p& thing) {
+void executor::store_thing(variable_t variable, const thing_h& thing) {
     auto& frame = m_frames.top();
     frame.variables.resize(variable + 1);
-    if (frame.variables[variable] != nullptr) {
-        frame.variables[variable]->remove_reference();
+    if (*frame.variables[variable] != nullptr) {
+        (*frame.variables[variable])->remove_reference();
     }
     frame.variables[variable] = thing;
-    thing->add_reference();
+    (*thing)->add_reference();
 }
 
-void executor::store_thing(variable_t variable, thing_p&& thing) {
+void executor::store_thing(variable_t variable, thing_h&& thing) {
     auto& frame = m_frames.top();
     frame.variables.resize(variable + 1);
-    if (frame.variables[variable] != nullptr) {
-        frame.variables[variable]->remove_reference();
+    if ((*frame.variables[variable]) != nullptr) {
+        (*frame.variables[variable])->remove_reference();
     }
-    thing->add_reference();
+    (*thing)->add_reference();
     frame.variables[variable] = std::move(thing);
 }
 
-thing_p executor::load_thing(variable_t variable) const {
+thing_h executor::load_thing(variable_t variable) const {
     const auto& frame = m_frames.top();
     return frame.variables[variable];
 }
@@ -86,8 +85,8 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        auto thing     = std::make_shared<class thing>(m_context, thing_t::Int32);
-        thing->int32() = (*frame.mod)->byte(frame.position++);
+        auto thing        = m_context->emplace_thing(thing_t::Int32);
+        (*thing)->int32() = (*frame.mod)->byte(frame.position++);
         push_thing(std::move(thing));
     } break;
     case instruction_t::Drop: {
@@ -97,62 +96,62 @@ void executor::step() {
         push_thing(thing());
     } break;
     case instruction_t::Clone: {
-        push_thing(std::move(thing::clone(thing())));
+        push_thing(std::move(thing::clone(m_context, thing())));
     } break;
     case instruction_t::Add: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs + rhs);
+        push_thing((*lhs)->add(m_context, rhs));
     } break;
     case instruction_t::Sub: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs - rhs);
+        push_thing((*lhs)->sub(m_context, rhs));
     } break;
     case instruction_t::Mul: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs * rhs);
+        push_thing((*lhs)->mul(m_context, rhs));
     } break;
     case instruction_t::Div: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs / rhs);
+        push_thing((*lhs)->div(m_context, rhs));
     } break;
     case instruction_t::Mod: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs % rhs);
+        push_thing((*lhs)->mod(m_context, rhs));
     } break;
     case instruction_t::Equals: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs == rhs);
+        push_thing((*lhs)->equals(m_context, rhs));
     } break;
     case instruction_t::NotEquals: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs != rhs);
+        push_thing((*lhs)->not_equals(m_context, rhs));
     } break;
     case instruction_t::LessThan: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs < rhs);
+        push_thing((*lhs)->less_than(m_context, rhs));
     } break;
     case instruction_t::GreaterThan: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs > rhs);
+        push_thing((*lhs)->greater_than(m_context, rhs));
     } break;
     case instruction_t::LessEqual: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs <= rhs);
+        push_thing((*lhs)->less_equals(m_context, rhs));
     } break;
     case instruction_t::GreaterEqual: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();
-        push_thing(lhs >= rhs);
+        push_thing((*lhs)->greater_equals(m_context, rhs));
     } break;
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>((*frame.mod)->byte(frame.position)) |
@@ -188,7 +187,7 @@ void executor::step() {
     case instruction_t::JumpNotZero: {
         byte offset = (*frame.mod)->byte(frame.position++);
         auto cond   = pop_thing();
-        if (cond->int32() != 0) frame.position += offset;
+        if ((*cond)->int32() != 0) frame.position += offset;
     } break;
     case instruction_t::Return: {
         pop_frame();
