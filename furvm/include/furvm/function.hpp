@@ -56,8 +56,15 @@ public:
      */
     function& operator=(function&&) noexcept;
 
-    function(const function&)            = delete;
-    function& operator=(const function&) = delete;
+    /**
+     * @brief Copy constructor.
+     */
+    function(const function&);
+
+    /**
+     * @brief Copy constructor.
+     */
+    function& operator=(const function&);
 public:
     /**
      * @brief Returns a name of this function.

@@ -4,7 +4,7 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 
-#include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -91,8 +91,9 @@ public:
      * @return The function.
      */
     template <typename Name>
-    constexpr const function_p& function_at(Name&& name) const {
-        return m_functions.at(std::forward<Name>(name));
+    function_h function_at(Name&& name) const {
+        if (auto it = m_functionMap.find(std::forward<Name>(name)); it != m_functionMap.end()) return it->second;
+        throw std::runtime_error("invalid function");
     }
 
     /**
@@ -101,22 +102,23 @@ public:
      * @param id Id of the function.
      * @return The function.
      */
-    constexpr const function_p& function_at(function_id id) const { return m_functions.at(id); }
+    function_h function_at(function_id id) const { return { id, m_functions.at(id) }; }
 
     template <typename... Args>
-    function_id emplace_function(Args&&... args) {
-        function_p function = std::make_shared<class function>(std::forward<Args>(args)...);
-        m_functionMap.emplace(function->name(), function);
-        function_id id = m_functions.size();
-        m_functions.emplace_back(std::move(function));
-        return id;
+    function_h emplace_function(Args&&... args) {
+        function    function(std::forward<Args>(args)...);
+        std::string name   = function.name();
+        function_id id     = m_functions.size();
+        function_h  handle = { id, m_functions.emplace_back(std::move(function)) };
+        m_functionMap.emplace(std::move(name), handle);
+        return handle;
     }
 private:
     std::string m_name;
     bytecode_t  m_bytecode;
 
-    std::unordered_map<std::string, function_p> m_functionMap;
-    std::vector<function_p>                     m_functions;
+    std::unordered_map<std::string, function_h> m_functionMap;
+    std::vector<function>                       m_functions;
 };
 
 } // namespace furvm

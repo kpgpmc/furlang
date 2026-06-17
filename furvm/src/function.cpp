@@ -54,4 +54,41 @@ function& function::operator=(function&& other) noexcept {
     return *this;
 }
 
+function::function(const function& other)
+  : m_name(other.m_name), m_type(other.m_type) {
+    switch (m_type) {
+    case function_t::Normal: {
+        m_value.position = other.m_value.position;
+    } break;
+    case function_t::Native: {
+        new (&m_value.native) native_function(other.m_value.native);
+    } break;
+    case function_t::Import: {
+        m_value.imp.moduleName = other.m_value.imp.moduleName;
+        m_value.imp.function   = other.m_value.imp.function;
+    } break;
+    }
+}
+
+function& function::operator=(const function& other) {
+    if (this == &other) return *this;
+
+    m_name = other.m_name;
+    m_type = other.m_type;
+    switch (m_type) {
+    case function_t::Normal: {
+        m_value.position = other.m_value.position;
+    } break;
+    case function_t::Native: {
+        new (&m_value.native) native_function(other.m_value.native);
+    } break;
+    case function_t::Import: {
+        m_value.imp.moduleName = other.m_value.imp.moduleName;
+        m_value.imp.function   = other.m_value.imp.function;
+    } break;
+    }
+
+    return *this;
+}
+
 } // namespace furvm

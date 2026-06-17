@@ -2,6 +2,7 @@
 #define FURVM_CONTEXT_HPP
 
 #include "furlang/arena.hpp"
+#include "furvm/executor.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp"
 
@@ -40,12 +41,13 @@ public:
      * @brief Emplaces a new module in this context.
      *
      * @param args Arguments to forward to module's constructor.
-     * @return An index to the emplaced module.
+     * @return A handle to the module.
      */
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, Args...>>>
-    auto& emplace_module(Args&&... args) {
-        mod_p mod = std::make_shared<class mod>(std::forward<Args>(args)...);
-        return m_modules.emplace(mod->name(), std::move(mod)).first->second;
+    mod_h emplace_module(Args&&... args) {
+        mod_p       mod  = std::make_shared<class mod>(std::forward<Args>(args)...);
+        std::string name = mod->name();
+        return { name, m_modules[name] = std::move(mod) };
     }
 
     /**
@@ -89,9 +91,11 @@ public:
     constexpr size_t module_count() const { return m_modules.size(); }
 public:
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<executor, Args...>>>
-    auto& emplace_executor(Args&&... args) {
-        executor_p executor = std::make_shared<class executor>(std::forward<Args>(args)...);
-        return m_executors.emplace_back(std::move(executor));
+    executor_h emplace_executor(Args&&... args) {
+        executor    executor(std::forward<Args>(args)...);
+        executor_id id = m_executors.size();
+        m_executors.emplace_back(std::move(executor));
+        return { id, m_executors[id] };
     }
 public:
     /**
@@ -101,8 +105,8 @@ public:
 private:
     std::unordered_map<std::string, mod_p> m_modules;
 
-    std::vector<thing_p>    m_things;
-    std::vector<executor_p> m_executors;
+    std::vector<thing_p>  m_things;
+    std::vector<executor> m_executors;
 
     std::queue<thing_id> m_deadThings;
     std::vector<void*>   m_deadThingData;

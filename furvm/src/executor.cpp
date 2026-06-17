@@ -13,10 +13,9 @@
 
 namespace furvm {
 
-void executor::push_frame(const mod_p& mod, function_id function) {
-    const auto& func = mod->function_at(function);
-    if (func->type() != function_t::Normal) throw std::runtime_error("unexpected function type");
-    m_frames.emplace((struct executor::frame){ mod, func->position(), m_stack.size() });
+void executor::push_frame(const mod_h& mod, const function_h& function) {
+    if (function->type() != function_t::Normal) throw std::runtime_error("unexpected function type");
+    m_frames.emplace((struct executor::frame){ mod, function->position(), m_stack.size() });
 }
 
 struct executor::frame executor::pop_frame() {
@@ -83,12 +82,12 @@ void executor::step() {
 
     struct frame& frame = m_frames.top();
 
-    instruction_t instr = static_cast<instruction_t>(frame.mod->byte(frame.position++));
+    instruction_t instr = static_cast<instruction_t>((*frame.mod)->byte(frame.position++));
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
         auto thing     = std::make_shared<class thing>(m_context, thing_t::Int32);
-        thing->int32() = frame.mod->byte(frame.position++);
+        thing->int32() = (*frame.mod)->byte(frame.position++);
         push_thing(std::move(thing));
     } break;
     case instruction_t::Drop: {
@@ -156,37 +155,38 @@ void executor::step() {
         push_thing(lhs >= rhs);
     } break;
     case instruction_t::Load: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        variable_t variable = static_cast<std::uint16_t>((*frame.mod)->byte(frame.position)) |
+                              (static_cast<std::uint16_t>((*frame.mod)->byte(frame.position + 1)) << 8);
         frame.position     += 2;
         push_thing(load_thing(variable));
     } break;
     case instruction_t::Store: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        variable_t variable = static_cast<std::uint16_t>((*frame.mod)->byte(frame.position)) |
+                              (static_cast<std::uint16_t>((*frame.mod)->byte(frame.position + 1)) << 8);
         frame.position     += 2;
         store_thing(variable, std::move(pop_thing()));
     } break;
     case instruction_t::Call: {
-        function_id funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                             (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        function_id funcId = static_cast<std::uint16_t>((*frame.mod)->byte(frame.position)) |
+                             (static_cast<std::uint16_t>((*frame.mod)->byte(frame.position + 1)) << 8);
         frame.position    += 2;
 
-        const function_p& function = frame.mod->function_at(funcId);
+        const function_h& function = (*frame.mod)->function_at(funcId);
         switch (function->type()) {
-        case function_t::Normal: push_frame(frame.mod, funcId); break;
+        case function_t::Normal: push_frame(frame.mod, function); break;
         case function_t::Native: function->native()(*this); break;
         case function_t::Import: {
-            const mod_p& impMod = m_context->m_modules.at(function->imported_module());
-            push_frame(frame.mod, function->imported_function());
+            // const mod_p& impMod = m_context->m_modules.at(function->imported_module());
+            // push_frame(frame.mod, function->imported_function());
+            throw std::runtime_error("unimplemented");
         } break;
         }
     } break;
     case instruction_t::Jump: {
-        frame.position += frame.mod->byte(frame.position++);
+        frame.position += (*frame.mod)->byte(frame.position++);
     } break;
     case instruction_t::JumpNotZero: {
-        byte offset = frame.mod->byte(frame.position++);
+        byte offset = (*frame.mod)->byte(frame.position++);
         auto cond   = pop_thing();
         if (cond->int32() != 0) frame.position += offset;
     } break;

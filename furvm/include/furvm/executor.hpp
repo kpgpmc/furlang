@@ -33,7 +33,7 @@ public:
      * Call frame.
      */
     struct frame {
-        mod_p       mod;       /**< Shared pointer to a module with the bytecode. */
+        mod_h       mod;       /**< Shared pointer to a module with the bytecode. */
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
@@ -60,8 +60,15 @@ public:
      */
     executor& operator=(executor&&) noexcept = default;
 
-    executor(const executor&)            = delete;
-    executor& operator=(const executor&) = delete;
+    /**
+     * @brief Copy constructor.
+     */
+    executor(const executor&) = default;
+
+    /**
+     * @brief Copy constructor.
+     */
+    executor& operator=(const executor&) = default;
 public:
     /**
      * @brief Returns flags of this executor.
@@ -76,7 +83,7 @@ public:
      * @param mod Module.
      * @param function Function handle.
      */
-    void push_frame(const mod_p& mod, function_id function);
+    void push_frame(const mod_h& mod, const function_h& function);
 
     /**
      * @brief Pops the top frame.

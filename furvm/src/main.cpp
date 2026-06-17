@@ -3,6 +3,7 @@
 #include "furvm/context.hpp"
 #include "furvm/executor.hpp"
 #include "furvm/function.hpp"
+#include "furvm/fwd.hpp"
 #include "furvm/instruction.hpp"
 #include "furvm/serializer.hpp"
 #include "furvm/thing.hpp"
@@ -24,11 +25,11 @@ static constexpr std::array<furvm::byte, 8> s_bytecode = {
 int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    auto mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
-    mainModule->emplace_function("main", 0);
+    furvm::mod_h      mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
+    furvm::function_h mainFunc   = (*mainModule)->emplace_function("main", 0);
 
-    auto executor = context->emplace_executor(context);
-    executor->push_frame(mainModule, 0);
+    furvm::executor_h executor = context->emplace_executor(context);
+    executor->push_frame(mainModule, mainFunc);
 
     static constexpr std::size_t FPC = 3; // Frames per collection
 
