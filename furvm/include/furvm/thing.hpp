@@ -1,7 +1,14 @@
 #ifndef FURVM_THING_HPP
 #define FURVM_THING_HPP
 
+#include "furlang/arena.hpp"
 #include "furvm/fwd.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <utility>
+#include <vector>
 
 namespace furvm {
 
@@ -15,7 +22,12 @@ enum class thing_t : std::uint8_t {
  * @param type Type of the thing.
  * @return The data size of the thing.
  */
-std::size_t thing_type_size(thing_t type);
+static inline std::size_t thing_type_size(thing_t type) {
+    switch (type) {
+    case thing_t::Int32: return sizeof(std::int32_t);
+    default: return 0;
+    }
+}
 
 class bad_thing_access : public std::exception {
 public:
@@ -50,28 +62,40 @@ public:
     const char* what() const noexcept override { return "bad thing access"; }
 };
 
+template <template <typename> typename Allocator>
 class thing final {
     friend class executor;
 public:
-    using nref_t = std::size_t; /**< Type of reference count. */
-
-    static constexpr thing_id GENERATION_SIZE = 12; /**< Bit size of generation part in thing_handle. */
+    using allocator_type = Allocator<std::byte>;
 public:
-    thing(thing_t type);
+    thing(thing_t type, const allocator_type& allocator = {})
+      : m_type(type), m_allocator(allocator) {
+        m_data = m_allocator.allocate(thing_type_size(type));
+    }
 
-    thing(thing_t type, void* data);
-
-    ~thing();
-
-    /**
-     * @brief Move constructor.
-     */
-    thing(thing&&) noexcept;
+    ~thing() { m_allocator.deallocate(m_data, thing_type_size(thing_t::Int32)); }
 
     /**
      * @brief Move constructor.
      */
-    thing& operator=(thing&&) noexcept;
+    thing(thing&& other) noexcept
+      : m_type(other.m_type), m_data(other.m_data), m_allocator(std::move(other.m_allocator)) {
+        other.m_type = {};
+        other.m_data = nullptr;
+    }
+
+    /**
+     * @brief Move constructor.
+     */
+    thing& operator=(thing&& other) noexcept {
+        if (this == &other) return *this;
+        m_type       = other.m_type;
+        m_data       = other.m_data;
+        m_allocator  = std::move(other.m_allocator);
+        other.m_type = {};
+        other.m_data = nullptr;
+        return *this;
+    }
 
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
@@ -82,55 +106,158 @@ public:
      * @param thing Thing to clone.
      * @return Shared pointer to a clone of the thing.
      */
-    static thing_h clone(const context_p& context, const thing_h& thing);
+    thing clone() const {
+        class thing res(m_type, m_allocator);
+        switch (m_type) {
+        default: {
+            std::memcpy(res.m_data, m_data, thing_type_size(m_type));
+        } break;
+        }
+        return std::move(res);
+    }
 public:
     /**
      * @brief Returns an int32 value from this thing.
      *
      * @return The value.
      */
-    std::int32_t& int32();
+    std::int32_t& int32() {
+        if (m_type != thing_t::Int32) throw bad_thing_access();
+        return *reinterpret_cast<std::int32_t*>(m_data);
+    }
 
     /**
      * @brief Returns an int32 value from this thing.
      *
      * @return The value.
      */
-    const std::int32_t& int32() const;
+    const std::int32_t& int32() const {
+        if (m_type != thing_t::Int32) throw bad_thing_access();
+        return *reinterpret_cast<std::int32_t*>(m_data);
+    }
 public:
-    thing_h add(const context_p& context, const thing_h& rhs) const;
-    thing_h sub(const context_p& context, const thing_h& rhs) const;
-    thing_h mul(const context_p& context, const thing_h& rhs) const;
-    thing_h div(const context_p& context, const thing_h& rhs) const;
-    thing_h mod(const context_p& context, const thing_h& rhs) const;
-    thing_h equals(const context_p& context, const thing_h& rhs) const;
-    thing_h not_equals(const context_p& context, const thing_h& rhs) const;
-    thing_h less_than(const context_p& context, const thing_h& rhs) const;
-    thing_h greater_than(const context_p& context, const thing_h& rhs) const;
-    thing_h less_equals(const context_p& context, const thing_h& rhs) const;
-    thing_h greater_equals(const context_p& context, const thing_h& rhs) const;
-public:
-    /**
-     * @brief Increments reference count of this thing by one.
-     */
-    void add_reference() { ++m_refCount; }
+    thing add(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() + rhs.int32();
+        return res;
+    }
 
-    /**
-     * @brief Decrements reference count of this thing by one.
-     */
-    void remove_reference() { --m_refCount; }
+    thing sub(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() - rhs.int32();
+        return res;
+    }
 
-    /**
-     * @brief Returns reference count of this thing.
-     *
-     * @return The reference count.
-     */
-    constexpr nref_t reference_count() const { return m_refCount; }
+    thing mul(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() * rhs.int32();
+        return res;
+    }
+
+    thing div(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() / rhs.int32();
+        return res;
+    }
+
+    thing mod(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() % rhs.int32();
+        return res;
+    }
+
+    thing equals(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() == rhs.int32();
+        return res;
+    }
+
+    thing not_equals(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() != rhs.int32();
+        return res;
+    }
+
+    thing less_than(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() < rhs.int32();
+        return res;
+    }
+
+    thing greater_than(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() > rhs.int32();
+        return res;
+    }
+
+    thing less_equals(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() <= rhs.int32();
+        return res;
+    }
+
+    thing greater_equals(const thing& rhs) const {
+        thing res(m_type, m_allocator);
+        res.int32() = int32() >= rhs.int32();
+        return res;
+    }
 private:
-    thing_t m_type;
-    bool    m_ownData  = true;
-    nref_t  m_refCount = 0;
-    void*   m_data     = nullptr;
+    thing_t    m_type{};
+    std::byte* m_data = nullptr;
+
+    allocator_type m_allocator;
+};
+
+template <typename T>
+class thing_allocator {
+    template <typename>
+    friend class thing_allocator;
+public:
+    using value_type = T;
+public:
+    explicit thing_allocator(furlang::arena& arena) noexcept
+      : m_arena(&arena) {}
+
+    template <typename U>
+    thing_allocator(const thing_allocator<U>& other) noexcept
+      : m_arena(other.m_arena), m_deadThings(other.m_deadThings) {}
+
+    template <typename U>
+    thing_allocator& operator=(const thing_allocator<U>& other) noexcept {
+        if (this == &other) return *this;
+        m_arena      = other.m_arena;
+        m_deadThings = other.m_deadThings;
+        return *this;
+    }
+
+    template <typename U>
+    thing_allocator(thing_allocator<U>&& other) noexcept
+      : m_arena(std::move(other.m_arena)) {}
+
+    template <typename U>
+    thing_allocator& operator=(thing_allocator<U>&& other) noexcept {
+        if (this == &other) return *this;
+        m_arena = std::move(other.m_arena);
+        return *this;
+    }
+public:
+    [[nodiscard]] T* allocate(std::size_t count = 1) { return m_arena->allocate<T>(count); }
+
+    void deallocate(T* ptr, std::size_t count) noexcept { m_deadThings.emplace_back(ptr, count); }
+public:
+    template <typename U>
+    bool operator==(const thing_allocator<U>& other) const noexcept {
+        return m_arena == other.m_arena && m_deadThings == other.m_deadThings;
+    }
+
+    template <typename U>
+    bool operator!=(const thing_allocator<U>& other) const noexcept {
+        return m_arena != other.m_arena || m_deadThings != other.m_deadThings;
+    }
+private:
+    furlang::arena* m_arena;
+
+    std::vector<std::pair<T*, std::size_t>> m_deadThings;
 };
 
 } // namespace furvm

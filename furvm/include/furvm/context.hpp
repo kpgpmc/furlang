@@ -4,24 +4,18 @@
 #include "furlang/arena.hpp"
 #include "furvm/executor.hpp"
 #include "furvm/fwd.hpp"
-#include "furvm/module.hpp"
-#include "furvm/thing.hpp"
+#include "furvm/handle.hpp"
+#include "furvm/module.hpp" // IWYU pragma: keep
+#include "furvm/thing.hpp"  // IWYU pragma: keep
 
-#include <cstring>
-#include <memory>
-#include <queue>
-#include <string>
-#include <type_traits>
-#include <unordered_map>
+#include <cstddef>
 #include <utility>
-#include <vector>
 
 namespace furvm {
 
 class context {
 public:
     friend class executor;
-    friend class thing;
 public:
     context();
     ~context() = default;
@@ -39,105 +33,77 @@ public:
     context(const context&)            = delete;
     context& operator=(const context&) = delete;
 public:
-    /**
-     * @brief Emplaces a new module in this context.
-     *
-     * @param args Arguments to forward to module's constructor.
-     * @return A handle to the module.
-     */
-    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, Args...>>>
-    mod_h emplace_module(Args&&... args) {
-        mod_p       mod  = std::make_shared<class mod>(std::forward<Args>(args)...);
-        std::string name = mod->name();
-        return { name, m_modules[name] = std::move(mod) };
+    template <typename... Args>
+    auto emplace_module(Args&&... args) {
+        return m_modules.emplace(std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Erases a module from this context.
-     *
-     * @param name Name of the module to erase.
-     * @return A shared pointer to the erased module.
-     */
-    template <typename Name>
-    mod_p erase_module(Name&& name) {
-        return std::move(m_modules.erase(std::forward<Name>(name))->second);
+    template <typename... Args>
+    auto module_at(Args&&... args) {
+        return m_modules.at(std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param name Name of the module.
-     * @return The module.
-     */
-    template <typename Name>
-    constexpr mod_p& module_at(Name&& name) {
-        return m_modules.at(std::forward<Name>(name));
+    template <typename... Args>
+    auto module_at(Args&&... args) const {
+        return m_modules.at(std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param name Name of the module.
-     * @return The module.
-     */
-    template <typename Name>
-    constexpr const mod_p& module_at(Name&& name) const {
-        return m_modules.at(std::forward<Name>(name));
+    template <typename... Args>
+    auto erase_module(Args&&... args) {
+        return m_modules.erase(std::forward<Args>(args)...);
     }
-
-    /**
-     * @brief Returns how many does this context have modules.
-     *
-     * @return The module count.
-     */
-    constexpr size_t module_count() const { return m_modules.size(); }
 public:
-    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<executor, Args...>>>
-    executor_h emplace_executor(Args&&... args) {
-        executor    executor(std::forward<Args>(args)...);
-        executor_id id = m_executors.size();
-        m_executors.emplace_back(std::move(executor));
-        return { id, m_executors[id] };
+    template <typename... Args>
+    auto emplace_executor(Args&&... args) {
+        return m_executors.emplace_back(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto executor_at(Args&&... args) {
+        return m_executors.at(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto executor_at(Args&&... args) const {
+        return m_executors.at(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto erase_executor(Args&&... args) {
+        return m_executors.erase(std::forward<Args>(args)...);
+    }
+public:
+    template <typename... Args>
+    auto emplace_thing(Args&&... args) {
+        return m_things.emplace_back(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto thing_at(Args&&... args) {
+        return m_things.at(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto thing_at(Args&&... args) const {
+        return m_things.at(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto erase_thing(Args&&... args) {
+        return m_things.erase(std::forward<Args>(args)...);
     }
 public:
     /**
      * @brief Removes unreferenced things from the thing list.
      */
     void collect();
-public:
-    thing_h emplace_thing(thing_t type) {
-        thing_id id = m_things.size();
-        if (!m_deadThings.empty()) {
-            id = m_deadThings.front();
-            m_deadThings.pop();
-        }
-
-        size_t size = thing_type_size(type);
-        void*  data = nullptr;
-        for (auto it = m_deadThingData.begin(); it != m_deadThingData.end(); ++it) {
-            thing_t curType{};
-            std::memcpy(&curType, static_cast<char*>(*it) - sizeof(curType), sizeof(curType));
-            if (thing_type_size(curType) != size) continue;
-            data = *it;
-            m_deadThingData.erase(it);
-            break;
-        }
-        if (data == nullptr) data = m_thingArena.allocate<char>(sizeof(thing_t) + size);
-        memcpy(data, &type, sizeof(type));
-        data = static_cast<char*>(data) + sizeof(type);
-
-        thing_p thing = std::make_shared<class thing>(type, data);
-        return { id, m_things.emplace_back(std::move(thing)) };
-    }
 private:
-    std::unordered_map<std::string, mod_p> m_modules;
+    handle_container<mod_h>      m_modules;
+    handle_container<thing_h>    m_things;
+    handle_container<executor_h> m_executors;
 
-    std::vector<thing_p>  m_things;
-    std::vector<executor> m_executors;
-
-    std::queue<thing_id> m_deadThings;
-    std::vector<void*>   m_deadThingData;
-    furlang::arena       m_thingArena;
+    furlang::arena             m_thingArena;
+    thing_allocator<std::byte> m_thingAllocator;
 };
 
 } // namespace furvm

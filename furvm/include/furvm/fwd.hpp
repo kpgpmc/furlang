@@ -1,8 +1,6 @@
 #ifndef FURVM_FWD_HPP
 #define FURVM_FWD_HPP
 
-#include "furvm/handle.hpp"
-
 #include <cstddef> // IWYU pragma: export
 #include <cstdint> // IWYU pragma: export
 #include <memory>
@@ -24,6 +22,24 @@ using byte = std::uint8_t;
  * @brief An offset into bytecode.
  */
 using bytecode_pos = std::uint64_t;
+
+/**
+ * @brief Handle header with reference count.
+ */
+template <typename Id>
+class refcount_header;
+
+/**
+ * @brief Generic handle header.
+ */
+template <typename Id>
+class generic_header;
+
+/**
+ * @brief Handle.
+ */
+template <typename Value, typename Header>
+class handle;
 
 // constant.hpp
 
@@ -77,11 +93,6 @@ enum class function_t : std::uint8_t;
 class function;
 
 /**
- * @brief An alias to a function shared pointer.
- */
-using function_p = std::shared_ptr<function>;
-
-/**
  * @brief Furvm function's index.
  */
 using function_id = std::uint16_t;
@@ -89,7 +100,7 @@ using function_id = std::uint16_t;
 /**
  * @brief A handle to a furvm function.
  */
-using function_h = handle<function_id, function>;
+using function_h = handle<function, refcount_header<function_id>>;
 
 // module.hpp
 
@@ -114,7 +125,7 @@ using mod_id = std::string;
 /**
  * @brief A handle to a furvm module.
  */
-using mod_h = handle<mod_id, mod_p>;
+using mod_h = handle<mod, refcount_header<mod_id>>;
 
 // thing.hpp
 
@@ -130,18 +141,17 @@ enum class thing_t : std::uint8_t;
  */
 class bad_thing_access;
 
+template <typename T>
+class thing_allocator;
+
 /**
  * @class thing
  * @brief Furvm thing.
  *
  * A stack element. Think of it like of a value in C++ or I guess a class in java.
  */
+template <template <typename> typename Allocator = thing_allocator>
 class thing;
-
-/**
- * @brief An alias to a thing shared pointer.
- */
-using thing_p = std::shared_ptr<thing>;
 
 /**
  * @brief Furvm thing's index.
@@ -149,9 +159,9 @@ using thing_p = std::shared_ptr<thing>;
 using thing_id = std::uint32_t;
 
 /**
- * @brief A handle to a furvm's thing.
+ * @brief A handle to a thing.
  */
-using thing_h = handle<thing_id, thing_p>;
+using thing_h = handle<thing<thing_allocator>, refcount_header<thing_id>>;
 
 // executor.hpp
 
@@ -185,9 +195,9 @@ using executor_p = std::shared_ptr<executor>;
 using executor_id = std::uint32_t;
 
 /**
- * @brief A handle to a furvm's executor.
+ * @brief A handle to an executor.
  */
-using executor_h = handle<executor_id, executor>;
+using executor_h = handle<executor, refcount_header<executor_id>>;
 
 // context.hpp
 

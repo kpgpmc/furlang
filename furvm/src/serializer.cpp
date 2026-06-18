@@ -6,7 +6,6 @@
 
 #include <istream>
 #include <ostream>
-#include <stdexcept>
 
 namespace furvm {
 
@@ -68,32 +67,32 @@ static inline void read_u8(std::istream& is, std::uint8_t& value) {
 }
 
 bool serializer::serialize_module(std::ostream& os, const mod_p& mod) {
-    os.write(reinterpret_cast<const char*>(MODULE_MAGIC), sizeof(MODULE_MAGIC));
-    write_u32(os, VERSION);
+    // os.write(reinterpret_cast<const char*>(MODULE_MAGIC), sizeof(MODULE_MAGIC));
+    // write_u32(os, VERSION);
 
-    write_u32(os, mod->m_functions.size());
-    for (function_id id = 0; id < static_cast<function_id>(mod->m_functions.size()); ++id) {
-        const auto& func = mod->function_at(id);
-        write_u16(os, id);
-        write_u8(os, static_cast<std::uint8_t>(func->type()));
-        switch (func->type()) {
-        case function_t::Normal: {
-            write_u64(os, func->position());
-        } break;
-        case function_t::Native: {
-            // TODO: Replace with a reference to the function's name from constant pool
-            throw std::runtime_error("cannot serialize native functions yet");
-        } break;
-        case function_t::Import: {
-            // TODO: Replace with a reference to the module's and function's name from constant pool
-            throw std::runtime_error("cannot serialize import functions yet");
-        } break;
-        }
-    }
+    // write_u32(os, mod->m_functions.size());
+    // for (function_id id = 0; id < static_cast<function_id>(mod->m_functions.size()); ++id) {
+    // const auto& func = mod->function_at(id);
+    // write_u16(os, id);
+    // write_u8(os, static_cast<std::uint8_t>(func->type()));
+    // switch (func->type()) {
+    // case function_t::Normal: {
+    // write_u64(os, func->position());
+    // } break;
+    // case function_t::Native: {
+    // // TODO: Replace with a reference to the function's name from constant pool
+    // throw std::runtime_error("cannot serialize native functions yet");
+    // } break;
+    // case function_t::Import: {
+    // // TODO: Replace with a reference to the module's and function's name from constant pool
+    // throw std::runtime_error("cannot serialize import functions yet");
+    // } break;
+    // }
+    // }
 
-    write_u64(os, mod->m_bytecode.size());
-    os.write(reinterpret_cast<const char*>(mod->m_bytecode.data()),
-        static_cast<std::streamsize>(mod->m_bytecode.size()));
+    // write_u64(os, mod->m_bytecode.size());
+    // os.write(reinterpret_cast<const char*>(mod->m_bytecode.data()),
+    // static_cast<std::streamsize>(mod->m_bytecode.size()));
 
     return false;
 }

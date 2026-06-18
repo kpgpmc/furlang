@@ -3,8 +3,8 @@
 
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
+#include "furvm/handle.hpp"
 
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -24,21 +24,9 @@ public:
      * @param name Name of this module.
      * @param args Arguments to forward to bytecode's constructor.
      */
-    template <typename Name,
-        typename... Args,
-        typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
-    mod(Name&& name, Args&&... args)
-      : m_name(std::forward<Name>(name)), m_bytecode(std::forward<Args>(args)...) {}
-
-    /**
-     * @brief Construct a new module.
-     *
-     * @param name C-string name of this module.
-     * @param args Arguments to forward to bytecode's constructor.
-     */
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
-    mod(const char* name, Args&&... args)
-      : m_name(name), m_bytecode(std::forward<Args>(args)...) {}
+    mod(Args&&... args)
+      : m_bytecode(std::forward<Args>(args)...) {}
 
     ~mod() = default;
 
@@ -55,13 +43,6 @@ public:
     mod(const mod&)            = delete;
     mod& operator=(const mod&) = delete;
 public:
-    /**
-     * @brief Returns this module's name.
-     *
-     * @return The name.
-     */
-    constexpr const std::string& name() const { return m_name; }
-
     /**
      * @brief Returns a byte from bytecode of this module.
      *
@@ -84,41 +65,37 @@ public:
      */
     constexpr const bytecode_t& bytecode() const { return m_bytecode; }
 public:
-    /**
-     * @brief Returns a function from this module.
-     *
-     * @param name Name of the function.
-     * @return The function.
-     */
-    template <typename Name>
-    function_h function_at(Name&& name) const {
-        if (auto it = m_functionMap.find(std::forward<Name>(name)); it != m_functionMap.end()) return it->second;
-        throw std::runtime_error("invalid function");
-    }
-
-    /**
-     * @brief Returns a function from this module.
-     *
-     * @param id Id of the function.
-     * @return The function.
-     */
-    function_h function_at(function_id id) const { return { id, m_functions.at(id) }; }
-
     template <typename... Args>
     function_h emplace_function(Args&&... args) {
-        function    function(std::forward<Args>(args)...);
-        std::string name   = function.name();
-        function_id id     = m_functions.size();
-        function_h  handle = { id, m_functions.emplace_back(std::move(function)) };
-        m_functionMap.emplace(std::move(name), handle);
-        return handle;
+        function_h function             = m_functions.emplace_back(std::forward<Args>(args)...);
+        m_functionMap[function->name()] = function.id();
+        return std::move(function);
     }
-private:
-    std::string m_name;
-    bytecode_t  m_bytecode;
 
-    std::unordered_map<std::string, function_h> m_functionMap;
-    std::vector<function>                       m_functions;
+    template <typename FunctionHandle>
+    void push_back(FunctionHandle&& handle) {
+        m_functions.emplace_back(std::forward<FunctionHandle>(handle));
+    }
+
+    auto function_at(function_id id) { return m_functions.at(id); }
+    auto function_at(function_id id) const { return m_functions.at(id); }
+
+    template <typename NameFwd>
+    auto function_at(NameFwd&& name) {
+        return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
+    }
+
+    template <typename NameFwd>
+    auto function_at(NameFwd&& name) const {
+        return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
+    }
+
+    void erase_function(function_id id) { m_functions.erase(id); }
+private:
+    bytecode_t m_bytecode;
+
+    std::unordered_map<std::string, function_id> m_functionMap;
+    handle_container<function_h>                 m_functions;
 };
 
 } // namespace furvm

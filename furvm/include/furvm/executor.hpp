@@ -2,8 +2,11 @@
 #define FURVM_EXECUTOR_HPP
 
 #include "furvm/fwd.hpp"
+#include "furvm/module.hpp" // IWYU pragma: keep
+#include "furvm/thing.hpp"  // IWYU pragma: keep
 
 #include <stack>
+#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -99,19 +102,17 @@ public:
      */
     frame frame() const;
 public:
-    /**
-     * @brief Pushes a thing onto the stack.
-     *
-     * @param thing The thing to push.
-     */
-    void push_thing(const thing_h& thing);
+    template <typename HandleFwd>
+    void push_thing(HandleFwd&& handle) {
+        m_stack.emplace(std::forward<HandleFwd>(handle));
+    }
 
     /**
      * @brief Pushes a thing onto the stack.
      *
      * @param thing The thing to push.
      */
-    void push_thing(thing_h&& thing);
+    thing_h push_thing(class thing<>&& thing);
 
     /**
      * @brief Pops a thing from the stack.
