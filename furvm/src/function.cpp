@@ -10,7 +10,7 @@ function::~function() {
     case function_t::Native:
     default: break;
     case function_t::Import: {
-        m_value.imp.moduleName.~basic_string();
+        m_value.imp.~import_function();
     } break;
     }
 }
@@ -25,8 +25,7 @@ function::function(function&& other) noexcept
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp.moduleName = std::move(other.m_value.imp.moduleName);
-        m_value.imp.function   = other.m_value.imp.function;
+        m_value.imp = std::move(other.m_value.imp);
     } break;
     }
     other.m_value.position = 0;
@@ -45,8 +44,7 @@ function& function::operator=(function&& other) noexcept {
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp.moduleName = std::move(other.m_value.imp.moduleName);
-        m_value.imp.function   = other.m_value.imp.function;
+        m_value.imp = std::move(other.m_value.imp);
     } break;
     }
     other.m_value.position = 0;
@@ -64,8 +62,7 @@ function::function(const function& other)
         new (&m_value.native) native_function(other.m_value.native);
     } break;
     case function_t::Import: {
-        m_value.imp.moduleName = other.m_value.imp.moduleName;
-        m_value.imp.function   = other.m_value.imp.function;
+        m_value.imp = other.m_value.imp;
     } break;
     }
 }
@@ -83,8 +80,7 @@ function& function::operator=(const function& other) {
         new (&m_value.native) native_function(other.m_value.native);
     } break;
     case function_t::Import: {
-        m_value.imp.moduleName = other.m_value.imp.moduleName;
-        m_value.imp.function   = other.m_value.imp.function;
+        m_value.imp = other.m_value.imp;
     } break;
     }
 

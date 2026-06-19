@@ -30,7 +30,7 @@ int main(void) {
     furvm::function_h mainFunc   = mainModule->emplace_function("main", 0);
 
     furvm::executor_h executor = context->emplace_executor(context);
-    executor->push_frame(mainModule, mainFunc);
+    executor->push_frame(mainModule, *mainFunc);
 
     static constexpr std::size_t FPC = 3; // Frames per collection
 

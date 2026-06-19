@@ -18,31 +18,24 @@ enum class function_t : std::uint8_t {
 
 using native_function = std::function<void(executor&)>;
 
+struct import_function {
+    mod_id      mod;
+    function_id function;
+};
+
 class function {
 public:
     template <typename Name>
     function(Name&& name, bytecode_pos position)
       : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_value(position) {}
 
-    function(const char* name, bytecode_pos position)
-      : m_name(name), m_type(function_t::Normal), m_value(position) {}
-
     template <typename Name>
     function(Name&& name, const native_function& native)
       : m_name(std::forward<Name>(name)), m_type(function_t::Native), m_value(native) {}
 
-    function(const char* name, const native_function& native)
-      : m_name(name), m_type(function_t::Native), m_value(native) {}
-
-    template <typename Name, typename ModuleName>
-    function(Name&& name, ModuleName&& moduleName, function_id function)
-      : m_name(std::forward<Name>(name)),
-        m_type(function_t::Import),
-        m_value(std::forward<ModuleName>(moduleName), function) {}
-
-    template <typename ModuleName>
-    function(const char* name, ModuleName&& moduleName, function_id function)
-      : m_name(name), m_type(function_t::Import), m_value(std::forward<ModuleName>(moduleName), function) {}
+    template <typename Name>
+    function(Name&& name, const import_function& imp)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Import), m_value(imp) {}
 
     ~function();
 
@@ -105,19 +98,9 @@ public:
      *
      * @return The name.
      */
-    const std::string& imported_module() const {
+    const import_function& imp() const {
         if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
-        return m_value.imp.moduleName;
-    }
-
-    /**
-     * @brief Returns a module of imported function.
-     *
-     * @return A handle to the module.
-     */
-    function_id imported_function() const {
-        if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
-        return m_value.imp.function;
+        return m_value.imp;
     }
 private:
     std::string m_name;
@@ -126,10 +109,7 @@ private:
     union value {
         std::size_t     position = 0;
         native_function native;
-        struct {
-            std::string moduleName;
-            function_id function;
-        } imp;
+        import_function imp;
 
         value() = default;
 
@@ -139,9 +119,8 @@ private:
         value(const native_function& native)
           : native(native) {}
 
-        template <typename Name>
-        value(Name&& moduleName, function_id function)
-          : imp({ std::forward<Name>(moduleName), function }) {}
+        value(const import_function& imp)
+          : imp(imp) {}
 
         ~value() {}
 

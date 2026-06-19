@@ -12,9 +12,17 @@
 
 namespace furvm {
 
-void executor::push_frame(const mod_h& mod, const function_h& function) {
-    if (function->type() != function_t::Normal) throw std::runtime_error("unexpected function type");
-    m_frames.emplace((struct executor::frame){ mod, function->position(), m_stack.size() });
+void executor::push_frame(const mod_h& mod, function function) {
+    while (function.type() == function_t::Import) {
+        function = *m_context->module_at(function.imp().mod)->function_at(function.imp().function);
+    }
+    switch (function.type()) {
+    case function_t::Normal: {
+        m_frames.emplace((struct executor::frame){ mod, function.position(), m_stack.size() });
+    } break;
+    case function_t::Native:
+    default: throw std::runtime_error("unexpected function type");
+    }
 }
 
 struct executor::frame executor::pop_frame() {
@@ -155,13 +163,9 @@ void executor::step() {
 
         const function_h& function = frame.mod->function_at(funcId);
         switch (function->type()) {
-        case function_t::Normal: push_frame(frame.mod, function); break;
+        case function_t::Normal:
+        case function_t::Import: push_frame(frame.mod, *function); break;
         case function_t::Native: function->native()(*this); break;
-        case function_t::Import: {
-            // const mod_p& impMod = m_context->m_modules.at(function->imported_module());
-            // push_frame(frame.mod, function->imported_function());
-            throw std::runtime_error("unimplemented");
-        } break;
         }
     } break;
     case instruction_t::Jump: {
