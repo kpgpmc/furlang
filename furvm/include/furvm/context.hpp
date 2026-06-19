@@ -92,6 +92,8 @@ public:
     auto erase_thing(Args&&... args) {
         return m_things.erase(std::forward<Args>(args)...);
     }
+
+    thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
 public:
     /**
      * @brief Removes unreferenced things from the thing list.
