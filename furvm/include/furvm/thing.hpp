@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -73,7 +74,9 @@ public:
         m_data = m_allocator.allocate(thing_type_size(type));
     }
 
-    ~thing() { m_allocator.deallocate(m_data, thing_type_size(thing_t::Int32)); }
+    ~thing() {
+        if (m_data != nullptr) m_allocator.deallocate(m_data, thing_type_size(thing_t::Int32));
+    }
 
     /**
      * @brief Move constructor.
@@ -203,7 +206,7 @@ public:
     }
 private:
     thing_t    m_type{};
-    std::byte* m_data = nullptr;
+    std::byte* m_data;
 
     allocator_type m_allocator;
 };
@@ -212,11 +215,13 @@ template <typename T>
 class thing_allocator {
     template <typename>
     friend class thing_allocator;
+
+    using dead_things = std::vector<std::pair<T*, std::size_t>>;
 public:
     using value_type = T;
 public:
     explicit thing_allocator(furlang::arena& arena) noexcept
-      : m_arena(&arena) {}
+      : m_arena(&arena), m_deadThings(std::make_shared<dead_things>()) {}
 
     template <typename U>
     thing_allocator(const thing_allocator<U>& other) noexcept
@@ -232,18 +237,26 @@ public:
 
     template <typename U>
     thing_allocator(thing_allocator<U>&& other) noexcept
-      : m_arena(std::move(other.m_arena)) {}
+      : m_arena(std::move(other.m_arena)), m_deadThings(std::move(other.m_deadThings)) {}
 
     template <typename U>
     thing_allocator& operator=(thing_allocator<U>&& other) noexcept {
         if (this == &other) return *this;
-        m_arena = std::move(other.m_arena);
+        m_arena      = std::move(other.m_arena);
+        m_deadThings = std::move(other.m_deadThings);
         return *this;
     }
 public:
-    [[nodiscard]] T* allocate(std::size_t count = 1) { return m_arena->allocate<T>(count); }
+    [[nodiscard]] T* allocate(std::size_t count = 1) {
+        for (auto it = m_deadThings->begin(); it != m_deadThings->end(); ++it) {
+            if (it->second != count) continue;
+            m_deadThings->erase(it);
+            return it->first;
+        }
+        return m_arena->allocate<T>(count);
+    }
 
-    void deallocate(T* ptr, std::size_t count) noexcept { m_deadThings.emplace_back(ptr, count); }
+    void deallocate(T* ptr, std::size_t count) noexcept { m_deadThings->emplace_back(ptr, count); }
 public:
     template <typename U>
     bool operator==(const thing_allocator<U>& other) const noexcept {
@@ -257,7 +270,7 @@ public:
 private:
     furlang::arena* m_arena;
 
-    std::vector<std::pair<T*, std::size_t>> m_deadThings;
+    std::shared_ptr<dead_things> m_deadThings;
 };
 
 } // namespace furvm
