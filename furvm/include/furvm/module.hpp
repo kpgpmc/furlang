@@ -5,6 +5,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
 
+#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -17,6 +18,8 @@ class mod {
     friend class serializer;
 public:
     using bytecode_t = std::vector<byte>; /**< An alias to a vector of bytes. */
+
+    static constexpr char MAGIC[4] = { 'F', 'u', 'r', 'M' }; /** Furvm module file magic. */
 public:
     /**
      * @brief Construct a new module.
@@ -91,6 +94,8 @@ public:
     }
 
     void erase_function(function_id id) { m_functions.erase(id); }
+public:
+    std::ostream& serialize(std::ostream& os) const;
 private:
     bytecode_t m_bytecode;
 

@@ -6,7 +6,6 @@
 #include "furvm/fwd.hpp"
 #include "furvm/instruction.hpp"
 #include "furvm/module.hpp"
-#include "furvm/serializer.hpp"
 #include "furvm/thing.hpp"
 
 #include <array>
@@ -28,6 +27,8 @@ int main(void) {
 
     furvm::mod_h      mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
     furvm::function_h mainFunc   = mainModule->emplace_function("main", 0);
+
+    mainModule->serialize(std::cout);
 
     furvm::executor_h executor = context->emplace_executor(context);
     executor->push_frame(mainModule, *mainFunc);
