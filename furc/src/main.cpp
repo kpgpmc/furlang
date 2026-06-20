@@ -4,6 +4,7 @@
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
 #include "furc/front/ssa.hpp"
+#include "furlang/arena.hpp"
 
 #include <iostream>
 
@@ -19,7 +20,8 @@ int main(void) {
         }
     }
     )";
-        furc::front::parser       parser("<TEMP>", programStr);
+        furlang::arena            arena{};
+        furc::front::parser       parser(arena, "<TEMP>", programStr);
         furc::front::ir_generator generator;
 
         auto programResult = parser.parse();
