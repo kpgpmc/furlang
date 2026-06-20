@@ -17,7 +17,11 @@ class context {
 public:
     friend class executor;
 public:
+    /**
+     * @brief Constructs a context.
+     */
     context();
+
     ~context() = default;
 
     /**
@@ -33,44 +37,90 @@ public:
     context(const context&)            = delete;
     context& operator=(const context&) = delete;
 public:
+    /**
+     * @brief Emplaces a module in the context.
+     *
+     * @param args Arguments forwarded to the module constructor.
+     * @return The emplaced module.
+     */
     template <typename... Args>
     auto emplace_module(Args&&... args) {
         return m_modules.emplace(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns a module from the context.
+     *
+     * @param args Module's id.
+     * @return A handle to the module.
+     */
     template <typename... Args>
     auto module_at(Args&&... args) {
         return m_modules.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns a module from the context.
+     *
+     * @param args Module's id.
+     * @return A handle to the module.
+     */
     template <typename... Args>
     auto module_at(Args&&... args) const {
         return m_modules.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Erases a module from the context.
+     *
+     * @param args Module's id.
+     */
     template <typename... Args>
-    auto erase_module(Args&&... args) {
-        return m_modules.erase(std::forward<Args>(args)...);
+    void erase_module(Args&&... args) {
+        m_modules.erase(std::forward<Args>(args)...);
     }
 public:
+    /**
+     * @brief Emplaces an executor in the context.
+     *
+     * @param args Arguments forwarded to executor's constructor.
+     * @return A handle to the emplaced executor.
+     */
     template <typename... Args>
     auto emplace_executor(Args&&... args) {
         return m_executors.emplace_back(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns an executor from the context.
+     *
+     * @param args Id of the executor.
+     * @return A handle to the executor.
+     */
     template <typename... Args>
     auto executor_at(Args&&... args) {
         return m_executors.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns an executor from the context.
+     *
+     * @param args Id of the executor.
+     * @return A handle to the executor.
+     */
     template <typename... Args>
     auto executor_at(Args&&... args) const {
         return m_executors.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Erases an executor from the context.
+     *
+     * @param args Id of the executor.
+     */
     template <typename... Args>
-    auto erase_executor(Args&&... args) {
-        return m_executors.erase(std::forward<Args>(args)...);
+    void erase_executor(Args&&... args) {
+        m_executors.erase(std::forward<Args>(args)...);
     }
 public:
     template <typename... Args>
@@ -78,21 +128,43 @@ public:
         return m_things.emplace_back(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns a thing from the context.
+     *
+     * @param args Id of the thing.
+     * @return A handle to the thing.
+     */
     template <typename... Args>
     auto thing_at(Args&&... args) {
         return m_things.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns a thing from the context.
+     *
+     * @param args Id of the thing.
+     * @return A handle to the thing.
+     */
     template <typename... Args>
     auto thing_at(Args&&... args) const {
         return m_things.at(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Erases a thing from the context.
+     *
+     * @param args Id of the thing.
+     */
     template <typename... Args>
-    auto erase_thing(Args&&... args) {
-        return m_things.erase(std::forward<Args>(args)...);
+    void erase_thing(Args&&... args) {
+        m_things.erase(std::forward<Args>(args)...);
     }
 
+    /**
+     * @brief Returns context's thing allocator.
+     *
+     * @return The thing allocator.
+     */
     thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
 private:
     handle_container<mod_h>      m_modules;
