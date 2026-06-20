@@ -94,11 +94,6 @@ public:
     }
 
     thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
-public:
-    /**
-     * @brief Removes unreferenced things from the thing list.
-     */
-    void collect();
 private:
     handle_container<mod_h>      m_modules;
     handle_container<thing_h>    m_things;

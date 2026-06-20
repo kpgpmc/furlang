@@ -5,6 +5,7 @@
 #include "furvm/fwd.hpp"
 
 #include <atomic>
+#include <functional>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -24,20 +25,24 @@ public:
     using id_type       = Id;
     using refcount_type = std::uint32_t;
 public:
-    template <typename IdFwd>
-    refcount_header(IdFwd&& id, refcount_type refCount)
-      : m_id(std::forward<IdFwd>(id)), m_refCount(refCount) {}
+    template <typename IdFwd, typename Func>
+    refcount_header(IdFwd&& id, refcount_type refCount, Func&& onRelease)
+      : m_id(std::forward<IdFwd>(id)), m_refCount(refCount), m_onRelease(std::forward<Func>(onRelease)) {}
 public:
     refcount_type reference_count() const { return m_refCount; }
 
     void acquire() { ++m_refCount; }
 
-    void release() { --m_refCount; }
+    void release() {
+        --m_refCount;
+        if (m_refCount == 0) m_onRelease(m_id);
+    }
 public:
     id_type id() const { return m_id; }
 private:
-    id_type                    m_id;
-    std::atomic<refcount_type> m_refCount;
+    id_type                             m_id;
+    std::atomic<refcount_type>          m_refCount;
+    std::function<void(const id_type&)> m_onRelease;
 };
 
 template <typename Id>
@@ -153,7 +158,7 @@ public:
         id_type idFwd = std::forward<IdFwd>(id);
         if (auto it = m_pairs.find(idFwd); it != m_pairs.end()) delete it->second;
         auto pair = new pair_type(std::piecewise_construct,
-            std::forward_as_tuple(idFwd, 0),
+            std::forward_as_tuple(idFwd, 0, [&](const id_type& id) { erase(id); }),
             std::forward_as_tuple(std::forward<Args>(args)...));
         m_pairs.emplace(std::move(idFwd), pair);
         return { pair };
@@ -209,7 +214,7 @@ public:
         }
 
         pair_type* newPair = new pair_type(std::piecewise_construct,
-            std::forward_as_tuple(id, 0),
+            std::forward_as_tuple(id, 0, [&](const id_type& id) { erase(id); }),
             std::forward_as_tuple(std::forward<Args>(args)...));
 
         m_pairs[id] = newPair;
