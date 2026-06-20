@@ -7,6 +7,4 @@ namespace furvm {
 context::context()
   : m_thingAllocator(m_thingArena) {}
 
-void context::collect() {}
-
 } // namespace furvm
