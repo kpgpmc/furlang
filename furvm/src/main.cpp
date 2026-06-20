@@ -1,12 +1,6 @@
 #ifndef LIBFURVM
 
-#include "furvm/context.hpp"
-#include "furvm/executor.hpp"
-#include "furvm/function.hpp"
-#include "furvm/fwd.hpp"
-#include "furvm/instruction.hpp"
-#include "furvm/module.hpp"
-#include "furvm/thing.hpp"
+#include "furvm/furvm.hpp"
 
 #include <array>
 #include <cstddef>
