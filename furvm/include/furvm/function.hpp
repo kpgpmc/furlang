@@ -16,8 +16,14 @@ enum class function_t : std::uint8_t {
     Import,     /**< A function imported from another module. */
 };
 
+/**
+ * @brief A native function.
+ */
 using native_function = std::function<void(executor&)>;
 
+/**
+ * @brief A function import.
+ */
 struct import_function {
     mod_id      mod;
     function_id function;
@@ -25,18 +31,39 @@ struct import_function {
 
 class function {
 public:
+    /**
+     * @brief Constructs a normal function.
+     *
+     * @param name Name of the function.
+     * @param position Offset in bytecode of the function.
+     */
     template <typename Name>
     function(Name&& name, bytecode_pos position)
       : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_value(position) {}
 
+    /**
+     * @brief Constructs a native function.
+     *
+     * @param name Name of the function.
+     * @param native Native function.
+     */
     template <typename Name>
     function(Name&& name, const native_function& native)
       : m_name(std::forward<Name>(name)), m_type(function_t::Native), m_value(native) {}
 
+    /**
+     * @brief Constructs an import function.
+     *
+     * @param name Name of the function.
+     * @param imp Import function.
+     */
     template <typename Name>
     function(Name&& name, const import_function& imp)
       : m_name(std::forward<Name>(name)), m_type(function_t::Import), m_value(imp) {}
 
+    /**
+     * @brief Destructs a function.
+     */
     ~function();
 
     /**
@@ -74,7 +101,7 @@ public:
     constexpr function_t type() const { return m_type; }
 public:
     /**
-     * @brief Returns a value for normal function.
+     * @brief Returns normal function's value.
      *
      * @return The value.
      */
@@ -84,7 +111,7 @@ public:
     }
 
     /**
-     * @brief Returns a value for native function.
+     * @brief Returns native function's value.
      *
      * @return The value.
      */
@@ -94,7 +121,7 @@ public:
     }
 
     /**
-     * @brief Returns a name of the function's module.
+     * @brief Returns import function's value.
      *
      * @return The name.
      */
