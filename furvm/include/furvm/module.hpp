@@ -22,10 +22,10 @@ public:
     static constexpr char MAGIC[4] = { 'F', 'u', 'r', 'M' }; /** Furvm module file magic. */
 public:
     /**
-     * @brief Construct a new module.
+     * @brief Constructs a module.
      *
-     * @param name Name of this module.
-     * @param args Arguments to forward to bytecode's constructor.
+     * @param name Name of the module.
+     * @param args Arguments forwarded to bytecode's constructor.
      */
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<bytecode_t, Args...>>>
     mod(Args&&... args)
@@ -55,19 +55,25 @@ public:
     constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
 
     /**
-     * @brief Returns a reference to the module's bytecode.
+     * @brief Returns the module's bytecode.
      *
-     * @return The reference to bytecode.
+     * @return A reference to the bytecode.
      */
     constexpr bytecode_t& bytecode() { return m_bytecode; }
 
     /**
-     * @brief Returns a const reference to the module's bytecode.
+     * @brief Returns the module's bytecode.
      *
-     * @return The reference to bytecode.
+     * @return A constant reference to the bytecode.
      */
     constexpr const bytecode_t& bytecode() const { return m_bytecode; }
 public:
+    /**
+     * @brief Emplaces a function in the module's function container.
+     *
+     * @param args Arguments forwarded into the container's emplace_back function.
+     * @return A handle to the emplaced function.
+     */
     template <typename... Args>
     function_h emplace_function(Args&&... args) {
         function_h function             = m_functions.emplace_back(std::forward<Args>(args)...);
@@ -75,26 +81,67 @@ public:
         return std::move(function);
     }
 
-    template <typename FunctionHandle>
-    void push_back(FunctionHandle&& handle) {
-        m_functions.emplace_back(std::forward<FunctionHandle>(handle));
+    /**
+     * @brief Inserts a function in the module's function container.
+     *
+     * @param function Function to insert.
+     */
+    template <typename Function>
+    void push_back(Function&& function) {
+        m_functions.emplace_back(std::forward<Function>(function));
     }
 
+    /**
+     * @brief Returns a function from the module.
+     *
+     * @param id Identifier of the function.
+     * @return A handle to the function.
+     */
     auto function_at(function_id id) { return m_functions.at(id); }
+
+    /**
+     * @brief Returns a function from the module.
+     *
+     * @param id Identifier of the function.
+     * @return A handle to the function.
+     */
     auto function_at(function_id id) const { return m_functions.at(id); }
 
+    /**
+     * @brief Returns a function from the module.
+     *
+     * @param name Name of the function.
+     * @return A handle to the function.
+     */
     template <typename NameFwd>
     auto function_at(NameFwd&& name) {
         return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
     }
 
+    /**
+     * @brief Returns a function from the module.
+     *
+     * @param name Name of the function.
+     * @return A handle to the function.
+     */
     template <typename NameFwd>
     auto function_at(NameFwd&& name) const {
         return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
     }
 
+    /**
+     * @brief Erases a function from the module's function container.
+     *
+     * @param id Identifier of the function.
+     */
     void erase_function(function_id id) { m_functions.erase(id); }
 public:
+    /**
+     * @brief Prints the module in a bytecode form to an output stream.
+     *
+     * @param os Output stream.
+     * @return The output stream.
+     */
     std::ostream& serialize(std::ostream& os) const;
 private:
     bytecode_t m_bytecode;
