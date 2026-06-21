@@ -36,7 +36,7 @@ public:
      * Call frame.
      */
     struct frame {
-        mod_h       mod;       /**< Shared pointer to a module with the bytecode. */
+        mod_h       mod;       /**< Handle to the frame's module. */
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
@@ -83,8 +83,8 @@ public:
     /**
      * @brief Pushes a new frame.
      *
-     * @param mod Module.
-     * @param function Function handle.
+     * @param mod Handle to the frame's module.
+     * @param function Frame's function.
      */
     void push_frame(const mod_h& mod, function function);
 
@@ -102,6 +102,11 @@ public:
      */
     frame frame() const;
 public:
+    /**
+     * @brief Pushes a thing handle onto the stack.
+     *
+     * @param handle Thing handle.
+     */
     template <typename HandleFwd>
     void push_thing(HandleFwd&& handle) {
         m_stack.emplace(std::forward<HandleFwd>(handle));
@@ -110,45 +115,48 @@ public:
     /**
      * @brief Pushes a thing onto the stack.
      *
-     * @param thing The thing to push.
+     * Registers a new thing and pushes its handle onto the stack.
+     *
+     * @param thing Thing.
+     * @return The pushed handle.
      */
     thing_h push_thing(class thing<>&& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
-     * @return The popped thing.
+     * @return A handle to the popped thing.
      */
     thing_h pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
-     * @return The thing.
+     * @return A handle to the top thing.
      */
     thing_h thing() const;
 public:
     /**
-     * @brief Stores a thing in a variable.
+     * @brief Stores a thing in a frame variable.
      *
-     * @param variable Variable to store the thing in.
-     * @param thing Thing to store.
+     * @param variable Id of the variable in which the handle will be put.
+     * @param thing Thing handle.
      */
     void store_thing(variable_t variable, const thing_h& thing);
 
     /**
-     * @brief Stores a thing in a variable.
+     * @brief Stores a thing in a frame variable.
      *
-     * @param variable Variable to store the thing in.
-     * @param thing Thing to store.
+     * @param variable Id of the variable in which the handle will be put.
+     * @param thing Thing handle.
      */
     void store_thing(variable_t variable, thing_h&& thing);
 
     /**
      * @brief Returns a thing stored in a variable.
      *
-     * @param variable Variable where the thing is stored.
-     * @return The thing stored in the variable.
+     * @param variable Id of the variable from which the handle will be fetched.
+     * @return A handle stored in the variable.
      */
     thing_h load_thing(variable_t variable) const;
 public:
