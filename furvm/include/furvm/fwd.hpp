@@ -36,10 +36,21 @@ template <typename Id>
 class generic_header;
 
 /**
- * @brief Handle.
+ * @brief Generic furvm object handle.
+ *
+ * @tparam Value Type of the handle's value.
+ * @tparam Header Type of the handle's header.
  */
 template <typename Value, typename Header>
 class handle;
+
+/**
+ * @brief Container for the handles.
+ *
+ * @tparam Handle Type of the container's handle.
+ */
+template <typename Handle, typename = void>
+class handle_container;
 
 // constant.hpp
 
