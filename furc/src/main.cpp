@@ -36,6 +36,7 @@ int main(void) {
 
         furc::front::post_process postProcess;
         postProcess.push_stage(furc::front::post_process::Ssa);
+        postProcess.push_stage(furc::front::post_process::Sccp);
         postProcess.push_stage(furc::front::post_process::DeSsa);
         postProcess.process(mod);
 

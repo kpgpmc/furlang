@@ -15,6 +15,7 @@ class post_process {
 public:
     enum stage { // NOLINT
         Ssa,
+        Sccp,
         DeSsa,
     };
 public:

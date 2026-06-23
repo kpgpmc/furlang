@@ -5,18 +5,22 @@
 #include "furlang/ir/operand.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <memory>
+#include <queue>
+#include <set>
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace furc::front {
 
 using block_idx   = furlang::ir::block_index;
-using reigster_t  = furlang::ir::register_t;
-using reigster_op = furlang::ir::register_operand;
+using register_t  = furlang::ir::register_t;
+using register_op = furlang::ir::register_operand;
 
 static constexpr block_idx INVALID_BLOCK = std::numeric_limits<block_idx>::max();
 
@@ -304,6 +308,232 @@ static void dessa_stage(function_context& ctx) {
     }
 }
 
+struct sccp_lattice {
+    enum lattice_t { // NOLINT
+        Top,
+        Constant,
+        Bottom,
+    } type                 = Top;
+    std::uint64_t constant = 0;
+
+    bool operator==(const sccp_lattice& other) const {
+        return type == other.type && (type != Constant || constant == other.constant);
+    }
+
+    bool operator!=(const sccp_lattice& other) const { return !this->operator==(other); }
+};
+
+sccp_lattice sccp_stage_get_lattice(std::unordered_map<register_op, sccp_lattice>& latticeValues,
+    const furlang::ir::operand&                                                    op) {
+    if (op.type() == furlang::ir::operand_t::Integer) {
+        sccp_lattice lat;
+        lat.type     = sccp_lattice::Constant;
+        lat.constant = op.integer();
+        return lat;
+    }
+    if (op.type() == furlang::ir::operand_t::Register) {
+        auto reg = op.reg();
+        if (auto it = latticeValues.find(reg); it != latticeValues.end()) return it->second;
+        return { sccp_lattice::Top };
+    }
+    return { sccp_lattice::Bottom };
+};
+
+static void sccp_stage(function_context& ctx) {
+    using lattice = sccp_lattice;
+
+    std::unordered_map<register_op, lattice>                               latticeValues;
+    std::unordered_map<register_t, std::vector<furlang::ir::instruction*>> edges;
+    std::unordered_set<block_idx>                                          execBlocks;
+    std::set<std::pair<block_idx, block_idx>>                              execEdges;
+
+    std::queue<std::pair<block_idx, block_idx>> cfgWorklist;
+    std::queue<furlang::ir::instruction*>       ssaWorklist;
+
+    std::unordered_map<furlang::ir::instruction*, block_idx> blockMap;
+
+    for (block_idx idx = 0; idx < ctx.function->blocks().size(); ++idx) {
+        const auto& block  = ctx.function->blocks()[idx];
+        auto&       instrs = block->instructions();
+        for (auto it = instrs.begin(); it != instrs.end(); ++it) {
+            const auto& instr     = *it;
+            blockMap[instr.get()] = idx;
+            for (const auto& op : instr->sources()) {
+                if (op->type() != furlang::ir::operand_t::Register) continue;
+                edges[op->reg()].push_back(instr.get());
+            }
+        }
+
+        blockMap[block->exit().get()] = idx;
+        for (const auto& op : block->exit()->sources()) {
+            if (op->type() != furlang::ir::operand_t::Register) continue;
+            edges[op->reg()].push_back(block->exit().get());
+        }
+    }
+
+    cfgWorklist.push({ 0, 0 });
+    while (!cfgWorklist.empty() || !ssaWorklist.empty()) {
+        if (!cfgWorklist.empty()) {
+            auto edge = cfgWorklist.front();
+            cfgWorklist.pop();
+            block_idx from = edge.first;
+            block_idx to   = edge.second;
+
+            if (execEdges.count(edge) != 0) continue;
+            execEdges.insert(edge);
+
+            bool firstVisit = (execBlocks.find(to) == execBlocks.end());
+            execBlocks.insert(to);
+
+            const auto& block = ctx.function->blocks()[to];
+            if (firstVisit) {
+                for (auto& instr : block->instructions()) {
+                    ssaWorklist.push(instr.get());
+                }
+                ssaWorklist.push(block->exit().get());
+            } else {
+                for (auto& instr : block->instructions()) {
+                    if (instr->type() != furlang::ir::instruction_t::Phi) break;
+                    ssaWorklist.push(instr.get());
+                }
+            }
+        }
+
+        if (!ssaWorklist.empty()) {
+            auto* instr = ssaWorklist.front();
+            ssaWorklist.pop();
+
+            block_idx blockIdx = blockMap[instr];
+            if (execBlocks.find(blockIdx) == execBlocks.end()) continue;
+
+            lattice newLat = { lattice::Top };
+
+            switch (instr->type()) {
+            case furlang::ir::instruction_t::Phi: {
+                auto& phi = dynamic_cast<furlang::ir::phi_instruction&>(*instr);
+                for (const auto& [op, label] : phi.labels()) {
+                    if (execEdges.count({ label, blockIdx }) == 0) continue;
+                    lattice opLat = sccp_stage_get_lattice(latticeValues, op);
+                    if (opLat.type == lattice::Bottom) newLat.type = lattice::Bottom;
+                    if (opLat.type == lattice::Constant) {
+                        if (newLat.type == lattice::Top) {
+                            newLat = opLat;
+                        } else if (newLat.type == lattice::Constant && newLat.constant != opLat.constant) {
+                            newLat.type = lattice::Bottom;
+                        }
+                    }
+                }
+            } break;
+            case furlang::ir::instruction_t::Assign: {
+                newLat = sccp_stage_get_lattice(latticeValues, *instr->sources().front());
+            } break;
+            case furlang::ir::instruction_t::BinaryOp: {
+                lattice lhs = sccp_stage_get_lattice(latticeValues, *instr->sources()[0]);
+                lattice rhs = sccp_stage_get_lattice(latticeValues, *instr->sources()[1]);
+
+                if (lhs.type == lattice::Bottom || rhs.type == lattice::Bottom) {
+                    newLat.type = lattice::Bottom;
+                } else if (lhs.type == lattice::Constant && rhs.type == lattice::Constant) {
+                    newLat.type = lattice::Constant;
+                    switch (dynamic_cast<const furlang::ir::binary_op_instruction&>(*instr).op_type()) {
+                    case furlang::ir::binary_op_instruction_t::Add:
+                        newLat.constant = lhs.constant + rhs.constant;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::Sub:
+                        newLat.constant = lhs.constant - rhs.constant;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::Mul:
+                        newLat.constant = lhs.constant * rhs.constant;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::Div:
+                        newLat.constant = lhs.constant / rhs.constant;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::Mod:
+                        newLat.constant = lhs.constant % rhs.constant;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::Eq:
+                        newLat.constant = (lhs.constant == rhs.constant) ? 1 : 0;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::NotEq:
+                        newLat.constant = (lhs.constant != rhs.constant) ? 1 : 0;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::LessThan:
+                        newLat.constant = (lhs.constant < rhs.constant) ? 1 : 0;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::GreaterThan:
+                        newLat.constant = (lhs.constant > rhs.constant) ? 1 : 0;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::LessEq:
+                        newLat.constant = (lhs.constant <= rhs.constant) ? 1 : 0;
+                        break;
+                    case furlang::ir::binary_op_instruction_t::GreaterEq:
+                        newLat.constant = (lhs.constant >= rhs.constant) ? 1 : 0;
+                        break;
+                    }
+                }
+            } break;
+            default: break;
+            }
+
+            if (instr->has_destination() && instr->destination().type() == furlang::ir::operand_t::Register) {
+                auto dst = instr->destination().reg();
+                if (!(latticeValues[dst] == newLat)) {
+                    latticeValues[dst] = newLat;
+                    for (auto* uInstr : edges[dst])
+                        ssaWorklist.push(uInstr);
+                }
+            }
+
+            if (instr == ctx.function->blocks()[blockIdx]->exit().get()) {
+                auto* exit = ctx.function->blocks()[blockIdx]->exit().get();
+                if (exit->type() == furlang::ir::instruction_t::Branch) {
+                    auto& br = dynamic_cast<furlang::ir::branch_instruction&>(*exit);
+                    cfgWorklist.push({ blockIdx, br.block() });
+                } else if (exit->type() == furlang::ir::instruction_t::BranchCond) {
+                    auto&   br   = dynamic_cast<furlang::ir::branch_cond_instruction&>(*exit);
+                    lattice cond = sccp_stage_get_lattice(latticeValues, *exit->sources()[0]);
+
+                    if (cond.type == lattice::Constant) {
+                        if (cond.constant != 0)
+                            cfgWorklist.push({ blockIdx, br.if_block() });
+                        else
+                            cfgWorklist.push({ blockIdx, br.else_block() });
+                    } else {
+                        cfgWorklist.push({ blockIdx, br.if_block() });
+                        cfgWorklist.push({ blockIdx, br.else_block() });
+                    }
+                }
+            }
+        }
+    }
+
+    for (block_idx i = 0; i < ctx.function->blocks().size(); ++i) {
+        if (execBlocks.find(i) == execBlocks.end()) {
+            ctx.function->blocks()[i]->instructions().clear();
+            continue;
+        }
+
+        const auto& block = ctx.function->blocks()[i];
+
+        for (auto& instr : block->instructions()) {
+            for (auto& op : instr->sources()) {
+                if (op->type() != furlang::ir::operand_t::Register) continue;
+                auto reg = op->reg();
+                if (latticeValues[reg].type != lattice::Constant) continue;
+                *op = furlang::ir::operand::new_integer(latticeValues[reg].constant);
+            }
+        }
+
+        auto* exit = block->exit().get();
+        if (exit->type() != furlang::ir::instruction_t::BranchCond) continue;
+        auto&   br   = dynamic_cast<furlang::ir::branch_cond_instruction&>(*exit);
+        lattice cond = sccp_stage_get_lattice(latticeValues, *exit->sources()[0]);
+        if (cond.type != lattice::Constant) continue;
+        block_idx target = (cond.constant != 0) ? br.if_block() : br.else_block();
+        block->exit()    = std::make_unique<furlang::ir::branch_instruction>(target);
+    }
+}
+
 void post_process::process(furlang::ir::mod& mod) {
     for (const auto& func : mod.functions()) {
         if (!func || func->blocks().empty()) continue;
@@ -312,6 +542,7 @@ void post_process::process(furlang::ir::mod& mod) {
         for (const auto& stage : m_stages) {
             switch (stage) {
             case Ssa: ssa_stage(ctx); break;
+            case Sccp: sccp_stage(ctx); break;
             case DeSsa: dessa_stage(ctx); break;
             }
         }
