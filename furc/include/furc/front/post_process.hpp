@@ -16,6 +16,7 @@ public:
     enum stage { // NOLINT
         Ssa,
         Sccp,
+        Adce,
         DeSsa,
     };
 public:

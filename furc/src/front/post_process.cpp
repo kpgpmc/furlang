@@ -534,6 +534,52 @@ static void sccp_stage(function_context& ctx) {
     }
 }
 
+static void adce_stage(function_context& ctx) {
+    std::unordered_map<register_op, furlang::ir::instruction*> defMap;
+    std::unordered_set<furlang::ir::instruction*>              alive;
+    std::queue<furlang::ir::instruction*>                      worklist;
+
+    for (block_idx blockIdx = 0; blockIdx < ctx.function->blocks().size(); ++blockIdx) {
+        const auto& block = ctx.function->blocks()[blockIdx];
+
+        for (auto& instr : block->instructions()) {
+            if (instr->has_destination() && instr->destination().type() == furlang::ir::operand_t::Register) {
+                defMap[instr->destination().reg()] = instr.get();
+            }
+        }
+
+        auto* exit = block->exit().get();
+        alive.insert(exit);
+        worklist.push(exit);
+    }
+
+    while (!worklist.empty()) {
+        const auto* instr = worklist.front();
+        worklist.pop();
+
+        for (const auto& op : instr->sources()) {
+            if (op->type() != furlang::ir::operand_t::Register) continue;
+            auto src = op->reg();
+
+            if (defMap.find(src) == defMap.end()) continue;
+            auto* defInstr = defMap[src];
+            if (alive.insert(defInstr).second) {
+                worklist.push(defInstr);
+            }
+        }
+    }
+
+    for (block_idx blockIdx = 0; blockIdx < ctx.function->blocks().size(); ++blockIdx) {
+        const auto& block  = ctx.function->blocks()[blockIdx];
+        auto&       instrs = block->instructions();
+
+        auto it = instrs.begin();
+        while (it != instrs.end()) {
+            it = (alive.find(it->get()) != alive.end()) ? it + 1 : instrs.erase(it);
+        }
+    }
+}
+
 void post_process::process(furlang::ir::mod& mod) {
     for (const auto& func : mod.functions()) {
         if (!func || func->blocks().empty()) continue;
@@ -543,6 +589,7 @@ void post_process::process(furlang::ir::mod& mod) {
             switch (stage) {
             case Ssa: ssa_stage(ctx); break;
             case Sccp: sccp_stage(ctx); break;
+            case Adce: adce_stage(ctx); break;
             case DeSsa: dessa_stage(ctx); break;
             }
         }
