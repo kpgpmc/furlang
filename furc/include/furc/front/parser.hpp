@@ -23,7 +23,7 @@ public:
      * @param filename Filename for debugging.
      * @param content Content.
      */
-    parser(std::string_view filename, std::string_view content);
+    parser(furlang::arena& arena, std::string_view filename, std::string_view content);
 
     /**
      * @brief Construct a new parser from file.
@@ -32,7 +32,8 @@ public:
      *
      * @param filename Name of the file.
      */
-    parser(std::string_view filename);
+    parser(furlang::arena& arena, std::string_view filename);
+
     ~parser() = default;
 
     /**
@@ -40,13 +41,12 @@ public:
      */
     parser(parser&&) = default;
 
-    parser(const parser&) = delete;
-
     /**
      * @brief Move constructor.
      */
     parser& operator=(parser&&) = default;
 
+    parser(const parser&)            = delete;
     parser& operator=(const parser&) = delete;
 public:
     /**
@@ -73,7 +73,7 @@ private:
     std::string          m_filename;
     std::string          m_content;
     lexer                m_lexer;
-    furlang::arena       m_arena;
+    furlang::arena*      m_arena;
     std::vector<token_r> m_peekBuffer;
 };
 

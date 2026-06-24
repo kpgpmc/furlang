@@ -4,6 +4,7 @@
 #include <cstddef> // IWYU pragma: export
 #include <cstdint> // IWYU pragma: export
 #include <memory>
+#include <string>
 
 /**
  * @brief Furlang's virtual machine.
@@ -16,6 +17,40 @@ namespace furvm {
  * There's nothing more to it.
  */
 using byte = std::uint8_t;
+
+/**
+ * @brief An offset into bytecode.
+ */
+using bytecode_pos = std::uint64_t;
+
+/**
+ * @brief Handle header with reference count.
+ */
+template <typename Id>
+class refcount_header;
+
+/**
+ * @brief Generic handle header.
+ */
+template <typename Id>
+class generic_header;
+
+/**
+ * @brief Generic furvm object handle.
+ *
+ * @tparam Value Type of the handle's value.
+ * @tparam Header Type of the handle's header.
+ */
+template <typename Value, typename Header>
+class handle;
+
+/**
+ * @brief Container for the handles.
+ *
+ * @tparam Handle Type of the container's handle.
+ */
+template <typename Handle, typename = void>
+class handle_container;
 
 // constant.hpp
 
@@ -69,14 +104,14 @@ enum class function_t : std::uint8_t;
 class function;
 
 /**
- * @brief An alias to a function shared pointer.
- */
-using function_p = std::shared_ptr<function>;
-
-/**
  * @brief Furvm function's index.
  */
-using function_handle = std::uint16_t;
+using function_id = std::uint16_t;
+
+/**
+ * @brief A handle to a furvm function.
+ */
+using function_h = handle<function, refcount_header<function_id>>;
 
 // module.hpp
 
@@ -94,9 +129,14 @@ class mod;
 using mod_p = std::shared_ptr<mod>;
 
 /**
- * @brief Furvm module's index.
+ * @brief An alias for a module's identifier.
  */
-using module_handle = std::uint32_t;
+using mod_id = std::string;
+
+/**
+ * @brief A handle to a furvm module.
+ */
+using mod_h = handle<mod, refcount_header<mod_id>>;
 
 // thing.hpp
 
@@ -112,23 +152,27 @@ enum class thing_t : std::uint8_t;
  */
 class bad_thing_access;
 
+template <typename T>
+class thing_allocator;
+
 /**
  * @class thing
  * @brief Furvm thing.
  *
  * A stack element. Think of it like of a value in C++ or I guess a class in java.
  */
+template <template <typename> typename Allocator = thing_allocator>
 class thing;
-
-/**
- * @brief An alias to a thing shared pointer.
- */
-using thing_p = std::shared_ptr<thing>;
 
 /**
  * @brief Furvm thing's index.
  */
-using thing_handle = std::uint32_t;
+using thing_id = std::uint32_t;
+
+/**
+ * @brief A handle to a thing.
+ */
+using thing_h = handle<thing<thing_allocator>, refcount_header<thing_id>>;
 
 // executor.hpp
 
@@ -159,7 +203,12 @@ using executor_p = std::shared_ptr<executor>;
 /**
  * @brief Furvm executor's index.
  */
-using executor_handle = std::uint32_t;
+using executor_id = std::uint32_t;
+
+/**
+ * @brief A handle to an executor.
+ */
+using executor_h = handle<executor, refcount_header<executor_id>>;
 
 // context.hpp
 

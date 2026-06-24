@@ -3,7 +3,8 @@
 #include "furc/ast/program.hpp"
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
-#include "furc/front/ssa.hpp"
+#include "furc/front/post_process.hpp"
+#include "furlang/arena.hpp"
 
 #include <iostream>
 
@@ -19,7 +20,8 @@ int main(void) {
         }
     }
     )";
-        furc::front::parser       parser("<TEMP>", programStr);
+        furlang::arena            arena{};
+        furc::front::parser       parser(arena, "<TEMP>", programStr);
         furc::front::ir_generator generator;
 
         auto programResult = parser.parse();
@@ -30,11 +32,17 @@ int main(void) {
         const auto& program = *programResult;
         program->accept(generator);
 
-        auto module = std::move(generator.move_module());
-        furc::front::ssa::optimize(module);
+        auto mod = std::move(generator.move_module());
+
+        furc::front::post_process postProcess;
+        postProcess.push_stage(furc::front::post_process::Ssa);
+        postProcess.push_stage(furc::front::post_process::Sccp);
+        postProcess.push_stage(furc::front::post_process::Adce);
+        postProcess.push_stage(furc::front::post_process::DeSsa);
+        postProcess.process(mod);
 
         std::cout << "Generated IR:\n";
-        for (const auto& function : module.functions()) {
+        for (const auto& function : mod.functions()) {
             std::cout << function->name() << ":\n";
             furlang::ir::block_index blockIndex = 0;
             for (const auto& block : function->blocks()) {

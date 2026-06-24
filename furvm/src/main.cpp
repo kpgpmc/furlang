@@ -1,11 +1,6 @@
 #ifndef LIBFURVM
 
-#include "furvm/context.hpp"
-#include "furvm/executor.hpp"
-#include "furvm/function.hpp"
-#include "furvm/instruction.hpp"
-#include "furvm/serializer.hpp"
-#include "furvm/thing.hpp"
+#include "furvm/furvm.hpp"
 
 #include <array>
 #include <cstddef>
@@ -24,22 +19,18 @@ static constexpr std::array<furvm::byte, 8> s_bytecode = {
 int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    auto mainModule = context->emplace(s_bytecode.begin(), s_bytecode.end());
+    furvm::mod_h      mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
+    furvm::function_h mainFunc   = mainModule->emplace_function("main", 0);
 
-    auto mainFunction = furvm::function::create(mainModule, 0);
+    mainModule->serialize(std::cout);
 
-    std::ofstream file("./test.furm", std::ios::binary);
-    furvm::serializer::serialize_module(file, mainModule);
-
-    auto executor = furvm::executor::create(context);
-    executor->push_frame(mainFunction);
+    furvm::executor_h executor = context->emplace_executor(context);
+    executor->push_frame(mainModule, *mainFunc);
 
     static constexpr std::size_t FPC = 3; // Frames per collection
 
-    std::size_t count = 0;
     while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
         executor->step();
-        if ((++count % FPC) == 0) context->collect();
     }
 
     return 0;

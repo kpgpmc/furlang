@@ -2,21 +2,26 @@
 #define FURVM_CONTEXT_HPP
 
 #include "furlang/arena.hpp"
+#include "furvm/executor.hpp"
 #include "furvm/fwd.hpp"
-#include "furvm/module.hpp"
+#include "furvm/handle.hpp"
+#include "furvm/module.hpp" // IWYU pragma: keep
+#include "furvm/thing.hpp"  // IWYU pragma: keep
 
-#include <queue>
-#include <type_traits>
-#include <vector>
+#include <cstddef>
+#include <utility>
 
 namespace furvm {
 
 class context {
 public:
     friend class executor;
-    friend class thing;
 public:
+    /**
+     * @brief Constructs a context.
+     */
     context();
+
     ~context() = default;
 
     /**
@@ -33,79 +38,141 @@ public:
     context& operator=(const context&) = delete;
 public:
     /**
-     * @brief Adds a module to this context.
+     * @brief Emplaces a module in the context.
      *
-     * @param args Arguments to forward to module's constructor.
-     * @return An index to the emplaced module.
+     * @param args Arguments forwarded to the module constructor.
+     * @return The emplaced module.
      */
-    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<mod, module_handle, Args...>>>
-    constexpr const auto& emplace(Args&&... args) {
-        module_handle id = static_cast<module_handle>(m_modules.size());
-        return m_modules.emplace_back(std::make_unique<mod>(id, std::forward<Args>(args)...));
+    template <typename... Args>
+    auto emplace_module(Args&&... args) {
+        return m_modules.emplace(std::forward<Args>(args)...);
     }
 
     /**
-     * @brief Erases a module from this context.
+     * @brief Returns a module from the context.
      *
-     * @param index Index to the module.
-     * @return Old value.
+     * @param args Module's id.
+     * @return A handle to the module.
      */
-    mod_p erase(module_handle index) {
-        if (index >= m_modules.size()) return nullptr;
-        return std::move(m_modules[index]);
+    template <typename... Args>
+    auto module_at(Args&&... args) {
+        return m_modules.at(std::forward<Args>(args)...);
     }
 
     /**
-     * @brief Returns a module of this context.
+     * @brief Returns a module from the context.
      *
-     * @param index Position of the module.
-     * @return The module.
+     * @param args Module's id.
+     * @return A handle to the module.
      */
-    constexpr mod_p& operator[](module_handle index) { return m_modules[index]; }
+    template <typename... Args>
+    auto module_at(Args&&... args) const {
+        return m_modules.at(std::forward<Args>(args)...);
+    }
 
     /**
-     * @brief Returns a module of this context.
+     * @brief Erases a module from the context.
      *
-     * @param index Position of the module.
-     * @return The module.
+     * @param args Module's id.
      */
-    constexpr const mod_p& operator[](module_handle index) const { return m_modules[index]; }
-
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param index Position of the module.
-     * @return The module.
-     */
-    constexpr mod_p& at(module_handle index) { return m_modules.at(index); }
-
-    /**
-     * @brief Returns a module of this context.
-     *
-     * @param index Position of the module.
-     * @return The module.
-     */
-    constexpr const mod_p& at(module_handle index) const { return m_modules.at(index); }
-
-    /**
-     * @brief Returns how many does this context have modules.
-     *
-     * @return The module count.
-     */
-    constexpr size_t size() const { return m_modules.size(); }
+    template <typename... Args>
+    void erase_module(Args&&... args) {
+        m_modules.erase(std::forward<Args>(args)...);
+    }
 public:
     /**
-     * @brief Removes unreferenced things from the thing list.
+     * @brief Emplaces an executor in the context.
+     *
+     * @param args Arguments forwarded to executor's constructor.
+     * @return A handle to the emplaced executor.
      */
-    void collect();
-private:
-    std::vector<mod_p>      m_modules;
-    std::vector<thing_p>    m_things;
-    std::vector<executor_p> m_executors;
+    template <typename... Args>
+    auto emplace_executor(Args&&... args) {
+        return m_executors.emplace_back(std::forward<Args>(args)...);
+    }
 
-    std::queue<thing_handle> m_deadThings;
-    std::vector<void*>       m_deadThingData;
-    furlang::arena           m_thingArena;
+    /**
+     * @brief Returns an executor from the context.
+     *
+     * @param args Id of the executor.
+     * @return A handle to the executor.
+     */
+    template <typename... Args>
+    auto executor_at(Args&&... args) {
+        return m_executors.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns an executor from the context.
+     *
+     * @param args Id of the executor.
+     * @return A handle to the executor.
+     */
+    template <typename... Args>
+    auto executor_at(Args&&... args) const {
+        return m_executors.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Erases an executor from the context.
+     *
+     * @param args Id of the executor.
+     */
+    template <typename... Args>
+    void erase_executor(Args&&... args) {
+        m_executors.erase(std::forward<Args>(args)...);
+    }
+public:
+    template <typename... Args>
+    auto emplace_thing(Args&&... args) {
+        return m_things.emplace_back(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns a thing from the context.
+     *
+     * @param args Id of the thing.
+     * @return A handle to the thing.
+     */
+    template <typename... Args>
+    auto thing_at(Args&&... args) {
+        return m_things.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns a thing from the context.
+     *
+     * @param args Id of the thing.
+     * @return A handle to the thing.
+     */
+    template <typename... Args>
+    auto thing_at(Args&&... args) const {
+        return m_things.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Erases a thing from the context.
+     *
+     * @param args Id of the thing.
+     */
+    template <typename... Args>
+    void erase_thing(Args&&... args) {
+        m_things.erase(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns context's thing allocator.
+     *
+     * @return The thing allocator.
+     */
+    thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
+private:
+    handle_container<mod_h>      m_modules;
+    handle_container<thing_h>    m_things;
+    handle_container<executor_h> m_executors;
+
+    furlang::arena             m_thingArena;
+    thing_allocator<std::byte> m_thingAllocator;
 };
 
 } // namespace furvm

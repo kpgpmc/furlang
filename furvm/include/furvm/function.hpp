@@ -2,10 +2,11 @@
 #define FURVM_FUNCTION_HPP
 
 #include "furvm/fwd.hpp"
-#include "furvm/module.hpp" // IWYU pragma: keep
 
 #include <functional>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace furvm {
 
@@ -15,38 +16,55 @@ enum class function_t : std::uint8_t {
     Import,     /**< A function imported from another module. */
 };
 
+/**
+ * @brief A native function.
+ */
 using native_function = std::function<void(executor&)>;
 
+/**
+ * @brief A function import.
+ */
+struct import_function {
+    mod_id      mod;
+    function_id function;
+};
+
 class function {
-private:
-    /**
-     * @brief A private token for the private constructor.
-     *
-     * Also `funkcja` in Polish translates to `function` from what I heard.
-     */
-    struct funkcja {
-        explicit funkcja() = default;
-    };
 public:
     /**
-     * @brief Private constructor.
+     * @brief Constructs a normal function.
      *
-     * @param id
-     * @param position
-     * @param mod
+     * @param name Name of the function.
+     * @param position Offset in bytecode of the function.
      */
-    function(funkcja, function_handle id, std::size_t position, const mod_p& mod);
+    template <typename Name>
+    function(Name&& name, bytecode_pos position)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_value(position) {}
 
     /**
-     * @brief Private constructor.
+     * @brief Constructs a native function.
      *
-     * @param id
-     * @param native
-     * @param mod
+     * @param name Name of the function.
+     * @param native Native function.
      */
-    function(funkcja, function_handle id, const native_function& native, const mod_p& mod);
+    template <typename Name>
+    function(Name&& name, const native_function& native)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Native), m_value(native) {}
 
-    ~function() = default;
+    /**
+     * @brief Constructs an import function.
+     *
+     * @param name Name of the function.
+     * @param imp Import function.
+     */
+    template <typename Name>
+    function(Name&& name, const import_function& imp)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Import), m_value(imp) {}
+
+    /**
+     * @brief Destructs a function.
+     */
+    ~function();
 
     /**
      * @brief Move constructor.
@@ -58,32 +76,22 @@ public:
      */
     function& operator=(function&&) noexcept;
 
-    function(const function&)            = delete;
-    function& operator=(const function&) = delete;
-public:
     /**
-     * @brief Returns a new function.
-     *
-     * @param mod Module.
-     * @param args Arguments to pass to the function constructor.
-     * @return The new function.
+     * @brief Copy constructor.
      */
-    template <typename... Args,
-        typename = std::enable_if_t<std::is_constructible_v<function, funkcja, function_handle, Args..., const mod_p&>>>
-    static function_p create(const mod_p& mod, Args&&... args) {
-        function_handle id = mod->m_functions.size();
+    function(const function&);
 
-        auto func = std::make_shared<function>(funkcja{}, id, std::forward<Args>(args)..., mod);
-        mod->m_functions.emplace(mod->m_functions.begin() + id, func);
-        return std::move(func);
-    }
+    /**
+     * @brief Copy constructor.
+     */
+    function& operator=(const function&);
 public:
     /**
-     * @brief Returns an id of this function.
+     * @brief Returns a name of this function.
      *
-     * @return The id.
+     * @return The name.
      */
-    constexpr function_handle id() const { return m_id; }
+    constexpr const std::string& name() const { return m_name; }
 
     /**
      * @brief Returns a type of this function.
@@ -91,16 +99,9 @@ public:
      * @return The type.
      */
     constexpr function_t type() const { return m_type; }
-
-    /**
-     * @brief Returns a parent module of this function.
-     *
-     * @return A shared pointer to the module.
-     */
-    const mod_p& mod() const { return m_module; }
 public:
     /**
-     * @brief Returns a value for normal function.
+     * @brief Returns normal function's value.
      *
      * @return The value.
      */
@@ -110,7 +111,7 @@ public:
     }
 
     /**
-     * @brief Returns a value for native function.
+     * @brief Returns native function's value.
      *
      * @return The value.
      */
@@ -120,36 +121,22 @@ public:
     }
 
     /**
-     * @brief Returns a module of imported function.
+     * @brief Returns import function's value.
      *
-     * @return A handle to the module.
+     * @return The name.
      */
-    module_handle imported_module() const {
+    const import_function& imp() const {
         if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
-        return m_value.imp.mod;
-    }
-
-    /**
-     * @brief Returns a module of imported function.
-     *
-     * @return A handle to the module.
-     */
-    function_handle imported_function() const {
-        if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
-        return m_value.imp.function;
+        return m_value.imp;
     }
 private:
-    function_handle m_id;
-    function_t      m_type;
-    mod_p           m_module;
+    std::string m_name;
+    function_t  m_type;
 
     union value {
         std::size_t     position = 0;
         native_function native;
-        struct {
-            module_handle   mod;
-            function_handle function;
-        } imp;
+        import_function imp;
 
         value() = default;
 
@@ -159,8 +146,8 @@ private:
         value(const native_function& native)
           : native(native) {}
 
-        value(module_handle mod, function_handle function)
-          : imp({ mod, function }) {}
+        value(const import_function& imp)
+          : imp(imp) {}
 
         ~value() {}
 

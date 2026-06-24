@@ -11,6 +11,7 @@ Checks: >
   -bugprone-assignment-in-if-condition,
   -bugprone-easily-swappable-parameters,
   -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-unintended-char-ostream-output,
   -readability-function-cognitive-complexity,
   -readability-magic-numbers,
   -readability-redundant-access-specifiers,
@@ -28,7 +29,8 @@ Checks: >
   -cppcoreguidelines-macro-usage,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-non-private-member-variables-in-classes,
-  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay
 
 WarningsAsErrors: "*"
 

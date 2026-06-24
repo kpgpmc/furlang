@@ -16,11 +16,11 @@ namespace furc::front {
 
 using namespace std::string_literals;
 
-parser::parser(std::string_view filename, std::string_view content)
-  : m_filename(filename), m_content(content), m_lexer(m_filename, m_content) {}
+parser::parser(furlang::arena& arena, std::string_view filename, std::string_view content)
+  : m_filename(filename), m_content(content), m_lexer(m_filename, m_content), m_arena(&arena) {}
 
-parser::parser(std::string_view filename)
-  : m_filename(filename) {
+parser::parser(furlang::arena& arena, std::string_view filename)
+  : m_filename(filename), m_arena(&arena) {
     std::ifstream file(m_filename, std::ios_base::binary | std::ios_base::ate);
     if (!file.is_open()) throw std::runtime_error("failed to open file "s.append(m_filename));
     std::streampos size = file.tellg();
@@ -32,7 +32,7 @@ parser::parser(std::string_view filename)
 }
 
 ast::program_node_r parser::parse() & {
-    auto program = m_arena.allocate_shared<ast::program_node>(location{ m_filename });
+    auto program = m_arena->allocate_shared<ast::program_node>(location{ m_filename });
 
     while (peek_token().has_value()) {
         auto decl = parse_declaration();
@@ -67,13 +67,13 @@ ast::declaration_node_r parser::parse_declaration() {
             case token_t::LBrace: {
                 ast::body_r body = parse_body();
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
-                return m_arena.allocate_shared<ast::function_definition_node>(first->location,
+                return m_arena->allocate_shared<ast::function_definition_node>(first->location,
                     name->value.string,
                     std::move(body.value()));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return m_arena.allocate_shared<ast::function_declaration_node>(first->location, name->value.string);
+                return m_arena->allocate_shared<ast::function_declaration_node>(first->location, name->value.string);
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }
@@ -109,13 +109,13 @@ ast::statement_node_r parser::parse_statement() {
             auto tok = next_token();
             if (peek_token()->type == token_t::Semicolon) {
                 next_token();
-                return m_arena.allocate_shared<ast::return_statement_node>(location);
+                return m_arena->allocate_shared<ast::return_statement_node>(location);
             }
 
             auto value = parse_expression();
             auto err   = eat_token(token_t::Semicolon);
             if (err.has_error()) return ast::statement_node_r(ast::error{ err.error().location });
-            return m_arena.allocate_shared<ast::return_statement_node>(location, std::move(value.value()));
+            return m_arena->allocate_shared<ast::return_statement_node>(location, std::move(value.value()));
         }
         case keyword_token::If: {
             auto tok = next_token();
@@ -136,13 +136,13 @@ ast::statement_node_r parser::parse_statement() {
 
                 auto elseBody = parse_statement();
                 if (elseBody.has_error()) return ast::statement_node_r(ast::error{ elseBody.error().location });
-                return m_arena.allocate_shared<ast::if_statement_node>(location,
+                return m_arena->allocate_shared<ast::if_statement_node>(location,
                     std::move(cond.value()),
                     std::move(then.value()),
                     std::move(elseBody.value()));
             }
 
-            return m_arena.allocate_shared<ast::if_statement_node>(location,
+            return m_arena->allocate_shared<ast::if_statement_node>(location,
                 std::move(cond.value()),
                 std::move(then.value()));
         }
@@ -160,7 +160,7 @@ ast::statement_node_r parser::parse_statement() {
             auto body = parse_statement();
             if (body.has_error()) return ast::statement_node_r(ast::error{ body.error().location });
 
-            return m_arena.allocate_shared<ast::while_statement_node>(location,
+            return m_arena->allocate_shared<ast::while_statement_node>(location,
                 std::move(cond.value()),
                 std::move(body.value()));
         }
@@ -172,7 +172,7 @@ ast::statement_node_r parser::parse_statement() {
     case token_t::LBrace: {
         auto body = parse_body();
         if (body.has_error()) return ast::statement_node_r(ast::error{ body.error().location });
-        return m_arena.allocate_shared<ast::compound_statement_node>(location, std::move(body.value()));
+        return m_arena->allocate_shared<ast::compound_statement_node>(location, std::move(body.value()));
     }
     default: break;
     }
@@ -204,7 +204,7 @@ ast::expression_node_r parser::parse_expression_primary() {
     case token_t::Identifier: {
         auto tok = next_token();
         if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
-        return m_arena.allocate_shared<ast::var_read_expression_node>(tok->location, (*tok)->string);
+        return m_arena->allocate_shared<ast::var_read_expression_node>(tok->location, (*tok)->string);
     }
     case token_t::LParen: {
         auto tok  = next_token();
@@ -216,12 +216,12 @@ ast::expression_node_r parser::parse_expression_primary() {
     case token_t::String: {
         auto tok = next_token();
         if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
-        return m_arena.allocate_shared<ast::string_literal_node>(tok->location, (*tok)->string);
+        return m_arena->allocate_shared<ast::string_literal_node>(tok->location, (*tok)->string);
     }
     case token_t::Integer: {
         auto tok = next_token();
         if (tok.has_error()) return ast::expression_node_r(ast::error{ tok.error().location });
-        return m_arena.allocate_shared<ast::integer_literal_node>(tok->location, (*tok)->integer);
+        return m_arena->allocate_shared<ast::integer_literal_node>(tok->location, (*tok)->integer);
     }
     default: {
         return ast::expression_node_r(ast::error{ tok->location });
@@ -262,7 +262,7 @@ ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) 
             expression = std::move(std::move(expr.value()));
         }
 
-        result = m_arena.allocate_shared<ast::unary_op_expression_node>(token->location,
+        result = m_arena->allocate_shared<ast::unary_op_expression_node>(token->location,
             current.type,
             std::move(expression));
     }
@@ -389,18 +389,18 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
 
         switch (current.type) {
         case rhsop_info_t::Unaryop:
-            lhs = m_arena.allocate_shared<ast::unary_op_expression_node>(opToken->location,
+            lhs = m_arena->allocate_shared<ast::unary_op_expression_node>(opToken->location,
                 current.unary,
                 std::move(lhs));
             break;
         case rhsop_info_t::Binop:
-            lhs = m_arena.allocate_shared<ast::binary_op_expression_node>(opToken->location,
+            lhs = m_arena->allocate_shared<ast::binary_op_expression_node>(opToken->location,
                 current.binary,
                 std::move(lhs),
                 std::move(rhs));
             break;
         case rhsop_info_t::Assignment:
-            lhs = m_arena.allocate_shared<ast::var_assign_expression_node>(opToken->location,
+            lhs = m_arena->allocate_shared<ast::var_assign_expression_node>(opToken->location,
                 current.assignment,
                 std::move(lhs),
                 std::move(rhs));

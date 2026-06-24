@@ -106,6 +106,55 @@ private:
     region*     m_tail = nullptr;
 };
 
+template <typename T>
+class arena_allocator {
+    template <typename>
+    friend class arena_allocator;
+public:
+    using value_type = T;
+public:
+    explicit arena_allocator(arena& arena) noexcept
+      : m_arena(&arena) {}
+
+    template <typename U>
+    arena_allocator(const arena_allocator<U>& other) noexcept
+      : m_arena(other.m_arena) {}
+
+    template <typename U>
+    arena_allocator& operator=(const arena_allocator<U>& other) noexcept {
+        if (this == &other) return *this;
+        m_arena = other.m_arena;
+        return *this;
+    }
+
+    template <typename U>
+    arena_allocator(arena_allocator<U>&& other) noexcept
+      : m_arena(std::move(other.m_arena)) {}
+
+    template <typename U>
+    arena_allocator& operator=(arena_allocator<U>&& other) noexcept {
+        if (this == &other) return *this;
+        m_arena = std::move(other.m_arena);
+        return *this;
+    }
+public:
+    [[nodiscard]] T* allocate(std::size_t count = 1) { return m_arena->allocate<T>(count); }
+
+    void deallocate(T* ptr, std::size_t count) noexcept {}
+public:
+    template <typename U>
+    bool operator==(const arena_allocator<U>& other) const noexcept {
+        return m_arena == other.m_arena;
+    }
+
+    template <typename U>
+    bool operator!=(const arena_allocator<U>& other) const noexcept {
+        return m_arena != other.m_arena;
+    }
+private:
+    arena* m_arena;
+};
+
 } // namespace furlang
 
 #endif // FURLANG_ARENA_HPP

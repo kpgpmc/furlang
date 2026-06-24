@@ -4,13 +4,7 @@
 
 namespace furvm {
 
-context::context() {}
-
-void context::collect() {
-    for (auto& ref : m_things) {
-        if (ref->reference_count() != 0) continue;
-        ref = nullptr;
-    }
-}
+context::context()
+  : m_thingAllocator(m_thingArena) {}
 
 } // namespace furvm

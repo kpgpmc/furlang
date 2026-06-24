@@ -2,8 +2,11 @@
 #define FURVM_EXECUTOR_HPP
 
 #include "furvm/fwd.hpp"
+#include "furvm/module.hpp" // IWYU pragma: keep
+#include "furvm/thing.hpp"  // IWYU pragma: keep
 
 #include <stack>
+#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -26,15 +29,6 @@ static inline executor_flags operator~(executor_flags flags) {
 }
 
 class executor {
-private:
-    /**
-     * @brief A private token for the private constructor.
-     *
-     * Also `egzekutor` in Polish translates to `executor` I think.
-     */
-    struct egzekutor {
-        explicit egzekutor() = default;
-    };
 public:
     /**
      * @brief Executor frame.
@@ -42,22 +36,22 @@ public:
      * Call frame.
      */
     struct frame {
-        mod_p       mod;       /**< Shared pointer to a module with the bytecode. */
+        mod_h       mod;       /**< Handle to the frame's module. */
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
-        std::vector<thing_p> variables; /**< Frame variables. */
+        std::vector<thing_h> variables; /**< Frame variables. */
     };
 public:
     /**
-     * @brief Private constructor.
+     * @brief Returns a new executor.
      *
-     * @param id
-     * @param context
+     * @param context Context.
      */
-    executor(egzekutor, executor_handle id, const context_p& context);
+    executor(const context_p& context)
+      : m_context(context) {}
 
-    ~executor();
+    ~executor() = default;
 
     /**
      * @brief Move constructor.
@@ -69,24 +63,16 @@ public:
      */
     executor& operator=(executor&&) noexcept = default;
 
-    executor(const executor&)            = delete;
-    executor& operator=(const executor&) = delete;
-public:
     /**
-     * @brief Returns a new executor.
-     *
-     * @param context Furvm context.
-     * @return Shared pointer to the new executor.
+     * @brief Copy constructor.
      */
-    static executor_p create(const context_p& context);
-public:
-    /**
-     * @brief Returns an id of this executor.
-     *
-     * @return The id.
-     */
-    executor_handle id() const { return m_id; }
+    executor(const executor&) = default;
 
+    /**
+     * @brief Copy constructor.
+     */
+    executor& operator=(const executor&) = default;
+public:
     /**
      * @brief Returns flags of this executor.
      *
@@ -97,9 +83,10 @@ public:
     /**
      * @brief Pushes a new frame.
      *
-     * @param function Function.
+     * @param mod Handle to the frame's module.
+     * @param function Frame's function.
      */
-    void push_frame(const function_p& function);
+    void push_frame(const mod_h& mod, function function);
 
     /**
      * @brief Pops the top frame.
@@ -116,68 +103,73 @@ public:
     frame frame() const;
 public:
     /**
-     * @brief Pushes a thing onto the stack.
+     * @brief Pushes a thing handle onto the stack.
      *
-     * @param thing The thing to push.
+     * @param handle Thing handle.
      */
-    void push_thing(const thing_p& thing);
+    template <typename HandleFwd>
+    void push_thing(HandleFwd&& handle) {
+        m_stack.emplace(std::forward<HandleFwd>(handle));
+    }
 
     /**
      * @brief Pushes a thing onto the stack.
      *
-     * @param thing The thing to push.
+     * Registers a new thing and pushes its handle onto the stack.
+     *
+     * @param thing Thing.
+     * @return The pushed handle.
      */
-    void push_thing(thing_p&& thing);
+    thing_h push_thing(class thing<>&& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
-     * @return The popped thing.
+     * @return A handle to the popped thing.
      */
-    thing_p pop_thing();
+    thing_h pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
-     * @return The thing.
+     * @return A handle to the top thing.
      */
-    thing_p thing() const;
+    thing_h thing() const;
 public:
     /**
-     * @brief Stores a thing in a variable.
+     * @brief Stores a thing in a frame variable.
      *
-     * @param variable Variable to store the thing in.
-     * @param thing Thing to store.
+     * @param variable Id of the variable in which the handle will be put.
+     * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, const thing_p& thing);
+    void store_thing(variable_t variable, const thing_h& thing);
 
     /**
-     * @brief Stores a thing in a variable.
+     * @brief Stores a thing in a frame variable.
      *
-     * @param variable Variable to store the thing in.
-     * @param thing Thing to store.
+     * @param variable Id of the variable in which the handle will be put.
+     * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, thing_p&& thing);
+    void store_thing(variable_t variable, thing_h&& thing);
 
     /**
      * @brief Returns a thing stored in a variable.
      *
-     * @param variable Variable where the thing is stored.
-     * @return The thing stored in the variable.
+     * @param variable Id of the variable from which the handle will be fetched.
+     * @return A handle stored in the variable.
      */
-    thing_p load_thing(variable_t variable) const;
+    thing_h load_thing(variable_t variable) const;
 public:
     /**
      * @brief Executes next instruction.
      */
     void step();
 private:
-    executor_handle m_id;
-    executor_flags  m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
-    context_p       m_context;
+    executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
+    context_p      m_context;
 
     std::stack<struct frame> m_frames;
-    std::stack<thing_p>      m_stack;
+    std::stack<thing_h>      m_stack;
 };
 
 } // namespace furvm
