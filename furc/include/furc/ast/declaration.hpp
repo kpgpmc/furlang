@@ -5,9 +5,24 @@
 #include "furc/ast/statement.hpp"
 
 #include <string>
+#include <type_traits>
 
 namespace furc {
 namespace ast {
+
+/**
+ * @brief Type class for AST declarations.
+ */
+class type {
+public:
+    template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
+    type(NameFwd&& name)
+      : m_name(std::forward<NameFwd>(name)) {}
+public:
+    const std::string& name() const { return m_name; }
+private:
+    std::string m_name;
+};
 
 /**
  * @brief Declaration node type.

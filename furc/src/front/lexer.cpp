@@ -100,6 +100,7 @@ token_r lexer::next_token() {
                 { "if", keyword_token::If },
                 { "else", keyword_token::Else },
                 { "while", keyword_token::While },
+                { "int32", keyword_token::Int32 },
             };
 
             if (auto it = s_keywords.find(value); it != s_keywords.end()) return { location, it->second };
