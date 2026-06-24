@@ -146,6 +146,8 @@ enum class keyword_token {
     If,     /**< `if` */
     Else,   /**< `else` */
     While,  /**< `while` */
+
+    Int32, /**< `int32` */
 };
 
 static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) {
@@ -156,6 +158,7 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::If: return os << "if";
     case keyword_token::Else: return os << "else";
     case keyword_token::While: return os << "while";
+    case keyword_token::Int32: return os << "int32";
     }
     return os;
 }
@@ -168,6 +171,7 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::If: return str + "if";
     case keyword_token::Else: return str + "else";
     case keyword_token::While: return str + "while";
+    case keyword_token::Int32: return str + "int32";
     }
     return str;
 }
