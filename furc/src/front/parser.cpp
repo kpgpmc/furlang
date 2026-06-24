@@ -38,14 +38,11 @@ ast::program_node_r parser::parse() & {
 
     while (peek_token().has_value()) {
         auto decl = parse_declaration();
-        if (decl.has_error()) {
-            program = nullptr;
-        } else if (program != nullptr) {
-            program->push(std::move(decl.value()));
-        }
+        if (decl.has_error()) return ast::program_node_r(ast::error{ decl.error().location });
+        program->push(std::move(decl.value()));
     }
 
-    return program != nullptr ? std::move(program) : ast::program_node_r(ast::error{ location{ m_filename } });
+    return program;
 }
 
 ast::type_r parser::parse_type() {
@@ -59,8 +56,20 @@ ast::declaration_node_r parser::parse_declaration() {
     const auto& first = peek_token();
     switch (first->type) {
     case token_t::Keyword: {
+        ast::function_declaration_node_t funcDeclType{};
+
         auto first = next_token();
         switch ((*first)->keyword) {
+        case keyword_token::Import:
+        case keyword_token::Native: {
+            funcDeclType = ((*first)->keyword == keyword_token::Import) ? ast::function_declaration_node_t::Import
+                                                                        : ast::function_declaration_node_t::Native;
+
+            first = eat_token(token_t::Keyword);
+            if (first.has_error()) return ast::declaration_node_r(ast::error{ first.error().location });
+            if (first->value.keyword != keyword_token::Func)
+                return ast::declaration_node_r(ast::error{ first->location });
+        }
         case keyword_token::Func: {
             auto name = eat_token(token_t::Identifier);
             if (name.has_error()) return ast::declaration_node_r(ast::error{ name.error().location });
@@ -103,6 +112,8 @@ ast::declaration_node_r parser::parse_declaration() {
             case token_t::LBrace: {
                 ast::body_r body = parse_body();
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
+                if (funcDeclType != ast::function_declaration_node_t::Normal)
+                    return ast::declaration_node_r(ast::error{ body->begin });
                 return m_arena->allocate_shared<ast::function_definition_node>(first->location,
                     name->value.string,
                     std::move(returnType),
@@ -114,7 +125,8 @@ ast::declaration_node_r parser::parse_declaration() {
                 return m_arena->allocate_shared<ast::function_declaration_node>(first->location,
                     name->value.string,
                     std::move(returnType),
-                    std::move(params));
+                    std::move(params),
+                    funcDeclType);
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }

@@ -79,6 +79,12 @@ struct function_declaration_param {
     type        type;
 };
 
+enum class function_declaration_node_t {
+    Normal = 0,
+    Import,
+    Native,
+};
+
 /**
  * @brief Function declaration AST node.
  */
@@ -92,11 +98,16 @@ public:
      * @param type Return type of the function.
      */
     template <typename T, typename ParamsFwd>
-    function_declaration_node(struct location location, T&& name, std::optional<type>&& returnType, ParamsFwd&& params)
+    function_declaration_node(struct location location,
+        T&&                                   name,
+        std::optional<type>&&                 returnType,
+        ParamsFwd&&                           params,
+        function_declaration_node_t           type = function_declaration_node_t::Normal)
       : declaration_node(location),
         p_name(std::forward<T>(name)),
         p_returnType(std::move(returnType)),
-        p_params(std::forward<ParamsFwd>(params)) {}
+        p_params(std::forward<ParamsFwd>(params)),
+        p_type(type) {}
 public:
     /**
      * @brief Returns this node's declaration type.
@@ -125,6 +136,13 @@ public:
      * @return Function's parameters.
      */
     const std::vector<function_declaration_param>& params() const { return p_params; }
+
+    /**
+     * @brief Returns function's type.
+     *
+     * @return Function's type.
+     */
+    function_declaration_node_t type() const { return p_type; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -140,12 +158,17 @@ protected:
     /**
      * @brief Return type of the function.
      */
-    std::optional<type> p_returnType;
+    std::optional<class type> p_returnType;
 
     /**
      * @brief Parameters of the function.
      */
     std::vector<function_declaration_param> p_params;
+
+    /**
+     * @brief Type of the function declaration.
+     */
+    function_declaration_node_t p_type;
 };
 
 /**
@@ -164,7 +187,7 @@ public:
     template <typename T, typename ParamsFwd>
     function_definition_node(struct location location,
         T&&                                  name,
-        std::optional<type>&&                type,
+        std::optional<class type>&&          type,
         ParamsFwd&&                          params,
         body&&                               body)
       : function_declaration_node(location, std::forward<T>(name), std::move(type), std::forward<ParamsFwd>(params)),

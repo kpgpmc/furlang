@@ -100,6 +100,8 @@ token_r lexer::next_token() {
                 { "if", keyword_token::If },
                 { "else", keyword_token::Else },
                 { "while", keyword_token::While },
+                { "import", keyword_token::Import },
+                { "native", keyword_token::Native },
                 { "int32", keyword_token::Int32 },
             };
 

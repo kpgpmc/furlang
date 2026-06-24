@@ -13,6 +13,8 @@
 int main(void) {
     try {
         std::string               programStr = R"(
+    native func print(value: int32);
+
     func main() -> int32 {
         x = 0;
         y = 10;
