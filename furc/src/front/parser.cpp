@@ -69,6 +69,14 @@ ast::declaration_node_r parser::parse_declaration() {
             tok = eat_token(token_t::RParen);
             if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
 
+            std::optional<ast::type> returnType;
+            if (peek_token().has_value() && peek_token()->type == token_t::SlimArrow) {
+                auto tok  = next_token();
+                auto type = parse_type();
+                if (type.has_error()) return ast::declaration_node_r(ast::error{ tok->location });
+                returnType = *type;
+            }
+
             const auto& peek = peek_token();
             if (peek.has_error()) return ast::declaration_node_r(ast::error{ peek.error().location });
             switch (peek->type) {
@@ -77,11 +85,14 @@ ast::declaration_node_r parser::parse_declaration() {
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
                 return m_arena->allocate_shared<ast::function_definition_node>(first->location,
                     name->value.string,
+                    std::move(returnType),
                     std::move(body.value()));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return m_arena->allocate_shared<ast::function_declaration_node>(first->location, name->value.string);
+                return m_arena->allocate_shared<ast::function_declaration_node>(first->location,
+                    name->value.string,
+                    std::move(returnType));
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }

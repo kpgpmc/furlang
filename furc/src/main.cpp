@@ -13,7 +13,7 @@
 int main(void) {
     try {
         std::string               programStr = R"(
-    func main() {
+    func main() -> int32 {
         x = 0;
         y = 10;
         z = 1;

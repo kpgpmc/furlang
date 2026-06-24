@@ -4,6 +4,7 @@
 #include "furc/ast/node.hpp"
 #include "furc/ast/statement.hpp"
 
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -79,10 +80,11 @@ public:
      *
      * @param location Node location.
      * @param name Name of the function.
+     * @param type Return type of the function.
      */
     template <typename T>
-    function_declaration_node(struct location location, T&& name)
-      : declaration_node(location), p_name(std::forward<T>(name)) {}
+    function_declaration_node(struct location location, T&& name, std::optional<type>&& returnType)
+      : declaration_node(location), p_name(std::forward<T>(name)), p_returnType(std::move(returnType)) {}
 public:
     /**
      * @brief Returns this node's declaration type.
@@ -97,6 +99,13 @@ public:
      * @return Name of the function.
      */
     std::string name() const { return p_name; }
+
+    /**
+     * @brief Returns function's return type.
+     *
+     * @return Function's return type.
+     */
+    const std::optional<type>& return_type() const { return p_returnType; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -108,6 +117,11 @@ protected:
      * @brief Name of the function.
      */
     std::string p_name;
+
+    /**
+     * @brief Return type of the function.
+     */
+    std::optional<type> p_returnType;
 };
 
 /**
@@ -120,11 +134,12 @@ public:
      *
      * @param location Node location.
      * @param name Name of the function.
+     * @param type Return type of the function.
      * @param body Body of the function.
      */
     template <typename T>
-    function_definition_node(struct location location, T&& name, body&& body)
-      : function_declaration_node(location, std::forward<T>(name)), m_body(std::move(body)) {}
+    function_definition_node(struct location location, T&& name, std::optional<type>&& type, body&& body)
+      : function_declaration_node(location, std::forward<T>(name), std::move(type)), m_body(std::move(body)) {}
 public:
     /**
      * @brief Returns this node's declaration type.
