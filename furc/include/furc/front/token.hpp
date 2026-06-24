@@ -54,6 +54,9 @@ enum class token_t {
     GreaterThan, /**< `>` */
     LessEq,      /**< `<=` */
     GreaterEq,   /**< `>=` */
+
+    SlimArrow, /**< `->` */
+    FatArrow,  /**< `=>` */
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -92,6 +95,8 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::GreaterThan: return os << ">";
     case token_t::LessEq: return os << "<=";
     case token_t::GreaterEq: return os << ">=";
+    case token_t::SlimArrow: return os << "->";
+    case token_t::FatArrow: return os << "=>";
     }
     return os;
 }
@@ -132,6 +137,8 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::GreaterThan: return str + ">";
     case token_t::LessEq: return str + "<=";
     case token_t::GreaterEq: return str + ">=";
+    case token_t::SlimArrow: return str + "->";
+    case token_t::FatArrow: return str + "=>";
     }
     return str;
 }

@@ -144,6 +144,8 @@ token_r lexer::next_token() {
             { ">", token_t::GreaterThan },
             { "<=", token_t::LessEq },
             { ">=", token_t::GreaterEq },
+            { "->", token_t::SlimArrow },
+            { "=>", token_t::FatArrow },
         };
 
         token_t     type   = token_t::None;
