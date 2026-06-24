@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace furc::front {
 
@@ -66,6 +67,25 @@ ast::declaration_node_r parser::parse_declaration() {
 
             auto tok = eat_token(token_t::LParen);
             if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
+
+            std::vector<ast::function_declaration_param> params;
+            if (peek_token().has_value() && peek_token()->type != token_t::RParen) {
+                while (true) {
+                    auto name = eat_token(token_t::Identifier);
+                    if (name.has_error()) return ast::declaration_node_r(ast::error{ name.error().location });
+                    auto colon = eat_token(token_t::Colon);
+                    if (colon.has_error()) return ast::declaration_node_r(ast::error{ colon.error().location });
+                    auto type = parse_type();
+                    if (type.has_error()) return ast::declaration_node_r(ast::error{ type.error().location });
+
+                    params.push_back(
+                        ast::function_declaration_param{ std::string(name->value.string), std::move(*type) });
+
+                    auto comma = eat_token(token_t::Comma);
+                    if (comma.has_error()) break;
+                }
+            }
+
             tok = eat_token(token_t::RParen);
             if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
 
@@ -86,13 +106,15 @@ ast::declaration_node_r parser::parse_declaration() {
                 return m_arena->allocate_shared<ast::function_definition_node>(first->location,
                     name->value.string,
                     std::move(returnType),
+                    std::move(params),
                     std::move(body.value()));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
                 return m_arena->allocate_shared<ast::function_declaration_node>(first->location,
                     name->value.string,
-                    std::move(returnType));
+                    std::move(returnType),
+                    std::move(params));
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }
@@ -465,15 +487,14 @@ const token_r& parser::peek_token() {
 }
 
 token_r parser::eat_token(token_t type) {
-    auto token = next_token();
-    if (token.has_error()) return token;
-    if (token->type != type) {
+    if (const auto& token = peek_token(); token.has_error() || peek_token()->type != type) {
+        if (token.has_error()) return token;
         if (token->type == token_t::None)
             return token_r(token_error{ token->location, token_error_t::UnexpectedToken, ", expected " + type });
         return token_r(
             token_error{ token->location, token_error_t::UnexpectedToken, ""s + token->type + ", expected " + type });
     }
-    return token;
+    return next_token();
 }
 
 } // namespace furc::front

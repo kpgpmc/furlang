@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 namespace furc {
 namespace ast {
@@ -71,6 +72,14 @@ protected:
 };
 
 /**
+ * @brief Parameter of function declaration AST node.
+ */
+struct function_declaration_param {
+    std::string name;
+    type        type;
+};
+
+/**
  * @brief Function declaration AST node.
  */
 class function_declaration_node : public declaration_node {
@@ -82,9 +91,12 @@ public:
      * @param name Name of the function.
      * @param type Return type of the function.
      */
-    template <typename T>
-    function_declaration_node(struct location location, T&& name, std::optional<type>&& returnType)
-      : declaration_node(location), p_name(std::forward<T>(name)), p_returnType(std::move(returnType)) {}
+    template <typename T, typename ParamsFwd>
+    function_declaration_node(struct location location, T&& name, std::optional<type>&& returnType, ParamsFwd&& params)
+      : declaration_node(location),
+        p_name(std::forward<T>(name)),
+        p_returnType(std::move(returnType)),
+        p_params(std::forward<ParamsFwd>(params)) {}
 public:
     /**
      * @brief Returns this node's declaration type.
@@ -106,6 +118,13 @@ public:
      * @return Function's return type.
      */
     const std::optional<type>& return_type() const { return p_returnType; }
+
+    /**
+     * @brief Returns function's parameters.
+     *
+     * @return Function's parameters.
+     */
+    const std::vector<function_declaration_param>& params() const { return p_params; }
 public:
     void accept(visitor& visitor) const override;
 
@@ -122,6 +141,11 @@ protected:
      * @brief Return type of the function.
      */
     std::optional<type> p_returnType;
+
+    /**
+     * @brief Parameters of the function.
+     */
+    std::vector<function_declaration_param> p_params;
 };
 
 /**
@@ -137,9 +161,14 @@ public:
      * @param type Return type of the function.
      * @param body Body of the function.
      */
-    template <typename T>
-    function_definition_node(struct location location, T&& name, std::optional<type>&& type, body&& body)
-      : function_declaration_node(location, std::forward<T>(name), std::move(type)), m_body(std::move(body)) {}
+    template <typename T, typename ParamsFwd>
+    function_definition_node(struct location location,
+        T&&                                  name,
+        std::optional<type>&&                type,
+        ParamsFwd&&                          params,
+        body&&                               body)
+      : function_declaration_node(location, std::forward<T>(name), std::move(type), std::forward<ParamsFwd>(params)),
+        m_body(std::move(body)) {}
 public:
     /**
      * @brief Returns this node's declaration type.
