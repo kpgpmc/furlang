@@ -4,7 +4,7 @@ add_library(libfurc ${FURC_SRCS} ${FURC_HDRS})
 target_include_directories(libfurc PUBLIC include/)
 target_compile_definitions(libfurc PRIVATE LIBFURC)
 set_target_properties(libfurc PROPERTIES PREFIX "")
-target_link_libraries(libfurc PUBLIC furlang)
+target_link_libraries(libfurc PUBLIC furlang libfurvm)
 add_executable(furc src/main.cpp)
 target_link_libraries(furc PRIVATE libfurc)
 
