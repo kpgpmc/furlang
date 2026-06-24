@@ -226,6 +226,11 @@ public:
      * @return The value reference.
      */
     const_reference value() const { return m_value->second; }
+public:
+    /**
+     * @brief Invalidates the handle without releasing.
+     */
+    void dispatch() { m_value = nullptr; }
 private:
     pair_type* m_value = nullptr;
 };
