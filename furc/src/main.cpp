@@ -1,11 +1,13 @@
 #ifndef LIBFURC
 
 #include "furc/ast/program.hpp"
+#include "furc/back/furvm.hpp"
 #include "furc/front/ir_generator.hpp"
 #include "furc/front/parser.hpp"
 #include "furc/front/post_process.hpp"
 #include "furlang/arena.hpp"
 
+#include <fstream>
 #include <iostream>
 
 int main(void) {
@@ -53,6 +55,9 @@ int main(void) {
                 std::cout << "  " << *block->exit() << '\n';
             }
         }
+
+        std::ofstream file("./a.fmod", std::ios::binary);
+        furc::back::furvm_generator::generate(mod).serialize(file);
 
         return 0;
     } catch (...) {
