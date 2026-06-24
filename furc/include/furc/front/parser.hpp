@@ -1,6 +1,7 @@
 #ifndef FURC_FRONT_PARSER_HPP
 #define FURC_FRONT_PARSER_HPP
 
+#include "furc/ast/declaration.hpp"
 #include "furc/ast/fwd.hpp"
 #include "furc/front/lexer.hpp"
 #include "furlang/arena.hpp"
@@ -56,6 +57,8 @@ public:
      */
     ast::program_node_r parse() &;
 private:
+    ast::type_r parse_type();
+
     ast::declaration_node_r parse_declaration();
     ast::statement_node_r   parse_statement();
     ast::expression_node_r  parse_expression(std::uint32_t precedence = 16);

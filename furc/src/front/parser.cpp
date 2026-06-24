@@ -6,6 +6,7 @@
 #include "furc/ast/literal.hpp"   // IWYU pragma: keep
 #include "furc/ast/program.hpp"   // IWYU pragma: keep
 #include "furc/ast/statement.hpp" // IWYU pragma: keep
+#include "furc/front/token.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -44,6 +45,13 @@ ast::program_node_r parser::parse() & {
     }
 
     return program != nullptr ? std::move(program) : ast::program_node_r(ast::error{ location{ m_filename } });
+}
+
+ast::type_r parser::parse_type() {
+    auto token = eat_token(token_t::Keyword);
+    if (token.has_error() || token.value()->keyword != keyword_token::Int32)
+        return ast::type_r(ast::error{ token.error().location });
+    return ast::type("" + token.value()->keyword);
 }
 
 ast::declaration_node_r parser::parse_declaration() {
