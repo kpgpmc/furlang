@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace furc::front {
 
@@ -37,14 +38,11 @@ ast::program_node_r parser::parse() & {
 
     while (peek_token().has_value()) {
         auto decl = parse_declaration();
-        if (decl.has_error()) {
-            program = nullptr;
-        } else if (program != nullptr) {
-            program->push(std::move(decl.value()));
-        }
+        if (decl.has_error()) return ast::program_node_r(ast::error{ decl.error().location });
+        program->push(std::move(decl.value()));
     }
 
-    return program != nullptr ? std::move(program) : ast::program_node_r(ast::error{ location{ m_filename } });
+    return program;
 }
 
 ast::type_r parser::parse_type() {
@@ -58,16 +56,55 @@ ast::declaration_node_r parser::parse_declaration() {
     const auto& first = peek_token();
     switch (first->type) {
     case token_t::Keyword: {
+        ast::function_declaration_node_t funcDeclType{};
+
         auto first = next_token();
         switch ((*first)->keyword) {
+        case keyword_token::Import:
+        case keyword_token::Native: {
+            funcDeclType = ((*first)->keyword == keyword_token::Import) ? ast::function_declaration_node_t::Import
+                                                                        : ast::function_declaration_node_t::Native;
+
+            first = eat_token(token_t::Keyword);
+            if (first.has_error()) return ast::declaration_node_r(ast::error{ first.error().location });
+            if (first->value.keyword != keyword_token::Func)
+                return ast::declaration_node_r(ast::error{ first->location });
+        }
         case keyword_token::Func: {
             auto name = eat_token(token_t::Identifier);
             if (name.has_error()) return ast::declaration_node_r(ast::error{ name.error().location });
 
             auto tok = eat_token(token_t::LParen);
             if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
+
+            std::vector<ast::function_declaration_param> params;
+            if (peek_token().has_value() && peek_token()->type != token_t::RParen) {
+                while (true) {
+                    auto name = eat_token(token_t::Identifier);
+                    if (name.has_error()) return ast::declaration_node_r(ast::error{ name.error().location });
+                    auto colon = eat_token(token_t::Colon);
+                    if (colon.has_error()) return ast::declaration_node_r(ast::error{ colon.error().location });
+                    auto type = parse_type();
+                    if (type.has_error()) return ast::declaration_node_r(ast::error{ type.error().location });
+
+                    params.push_back(
+                        ast::function_declaration_param{ std::string(name->value.string), std::move(*type) });
+
+                    auto comma = eat_token(token_t::Comma);
+                    if (comma.has_error()) break;
+                }
+            }
+
             tok = eat_token(token_t::RParen);
             if (tok.has_error()) return ast::declaration_node_r(ast::error{ tok.error().location });
+
+            std::optional<ast::type> returnType;
+            if (peek_token().has_value() && peek_token()->type == token_t::SlimArrow) {
+                auto tok  = next_token();
+                auto type = parse_type();
+                if (type.has_error()) return ast::declaration_node_r(ast::error{ tok->location });
+                returnType = *type;
+            }
 
             const auto& peek = peek_token();
             if (peek.has_error()) return ast::declaration_node_r(ast::error{ peek.error().location });
@@ -75,13 +112,21 @@ ast::declaration_node_r parser::parse_declaration() {
             case token_t::LBrace: {
                 ast::body_r body = parse_body();
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
+                if (funcDeclType != ast::function_declaration_node_t::Normal)
+                    return ast::declaration_node_r(ast::error{ body->begin });
                 return m_arena->allocate_shared<ast::function_definition_node>(first->location,
                     name->value.string,
+                    std::move(returnType),
+                    std::move(params),
                     std::move(body.value()));
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return m_arena->allocate_shared<ast::function_declaration_node>(first->location, name->value.string);
+                return m_arena->allocate_shared<ast::function_declaration_node>(first->location,
+                    name->value.string,
+                    std::move(returnType),
+                    std::move(params),
+                    funcDeclType);
             }
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }
@@ -454,15 +499,14 @@ const token_r& parser::peek_token() {
 }
 
 token_r parser::eat_token(token_t type) {
-    auto token = next_token();
-    if (token.has_error()) return token;
-    if (token->type != type) {
+    if (const auto& token = peek_token(); token.has_error() || peek_token()->type != type) {
+        if (token.has_error()) return token;
         if (token->type == token_t::None)
             return token_r(token_error{ token->location, token_error_t::UnexpectedToken, ", expected " + type });
         return token_r(
             token_error{ token->location, token_error_t::UnexpectedToken, ""s + token->type + ", expected " + type });
     }
-    return token;
+    return next_token();
 }
 
 } // namespace furc::front

@@ -100,6 +100,8 @@ token_r lexer::next_token() {
                 { "if", keyword_token::If },
                 { "else", keyword_token::Else },
                 { "while", keyword_token::While },
+                { "import", keyword_token::Import },
+                { "native", keyword_token::Native },
                 { "int32", keyword_token::Int32 },
             };
 
@@ -144,6 +146,8 @@ token_r lexer::next_token() {
             { ">", token_t::GreaterThan },
             { "<=", token_t::LessEq },
             { ">=", token_t::GreaterEq },
+            { "->", token_t::SlimArrow },
+            { "=>", token_t::FatArrow },
         };
 
         token_t     type   = token_t::None;

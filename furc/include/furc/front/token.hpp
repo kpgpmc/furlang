@@ -54,6 +54,9 @@ enum class token_t {
     GreaterThan, /**< `>` */
     LessEq,      /**< `<=` */
     GreaterEq,   /**< `>=` */
+
+    SlimArrow, /**< `->` */
+    FatArrow,  /**< `=>` */
 };
 
 static inline std::ostream& operator<<(std::ostream& os, token_t type) {
@@ -92,6 +95,8 @@ static inline std::ostream& operator<<(std::ostream& os, token_t type) {
     case token_t::GreaterThan: return os << ">";
     case token_t::LessEq: return os << "<=";
     case token_t::GreaterEq: return os << ">=";
+    case token_t::SlimArrow: return os << "->";
+    case token_t::FatArrow: return os << "=>";
     }
     return os;
 }
@@ -132,6 +137,8 @@ static inline std::string operator+(const std::string& str, token_t type) {
     case token_t::GreaterThan: return str + ">";
     case token_t::LessEq: return str + "<=";
     case token_t::GreaterEq: return str + ">=";
+    case token_t::SlimArrow: return str + "->";
+    case token_t::FatArrow: return str + "=>";
     }
     return str;
 }
@@ -146,6 +153,8 @@ enum class keyword_token {
     If,     /**< `if` */
     Else,   /**< `else` */
     While,  /**< `while` */
+    Import, /**< `import` */
+    Native, /**< `native` */
 
     Int32, /**< `int32` */
 };
@@ -158,6 +167,8 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::If: return os << "if";
     case keyword_token::Else: return os << "else";
     case keyword_token::While: return os << "while";
+    case keyword_token::Import: return os << "import";
+    case keyword_token::Native: return os << "native";
     case keyword_token::Int32: return os << "int32";
     }
     return os;
@@ -171,6 +182,8 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::If: return str + "if";
     case keyword_token::Else: return str + "else";
     case keyword_token::While: return str + "while";
+    case keyword_token::Import: return str + "import";
+    case keyword_token::Native: return str + "native";
     case keyword_token::Int32: return str + "int32";
     }
     return str;
