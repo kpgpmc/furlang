@@ -71,6 +71,10 @@ using expression_node_p = node_p<expression_node>; /**< Alias for a shared point
 
 using expression_node_r = node_r<expression_node>; /**< Alias for expression_node result */
 
+class type;
+
+using type_r = furlang::result<type, error>; /**< Alias for AST type result */
+
 class declaration_node;
 
 using declaration_node_p = node_p<declaration_node>; /**< Alias for a shared pointer to declaration_node. */
