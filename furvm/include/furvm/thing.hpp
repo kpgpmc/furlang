@@ -96,6 +96,13 @@ public:
     }
 public:
     /**
+     * @brief Returns the thing's type.
+     *
+     * @return The type.
+     */
+    constexpr auto type() const { return m_type; }
+public:
+    /**
      * @brief Returns the thing's int32 value.
      *
      * @return The value.
