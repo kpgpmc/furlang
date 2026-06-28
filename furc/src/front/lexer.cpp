@@ -102,6 +102,8 @@ token_r lexer::next_token() {
                 { "while", keyword_token::While },
                 { "import", keyword_token::Import },
                 { "native", keyword_token::Native },
+                { "public", keyword_token::Public },
+                { "private", keyword_token::Private },
                 { "int32", keyword_token::Int32 },
             };
 

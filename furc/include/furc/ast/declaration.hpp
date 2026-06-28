@@ -26,6 +26,16 @@ private:
     std::string m_name;
 };
 
+enum class declaration_access_t {
+    Implicit = 0, /**< Implicit access. */
+    Public,       /**< Public access. */
+    Private,      /**< Private access. */
+};
+
+static inline bool same_access(declaration_access_t lhs, declaration_access_t rhs) {
+    return lhs == declaration_access_t::Implicit || lhs == rhs;
+}
+
 /**
  * @brief Declaration node type.
  */
@@ -43,9 +53,10 @@ public:
      * @brief Construct a new declaration AST node.
      *
      * @param location Node location.
+     * @param access Declaration access.
      */
-    declaration_node(struct location location)
-      : abstract_node(location) {}
+    declaration_node(struct location location, declaration_access_t access)
+      : abstract_node(location), p_access(access) {}
 public:
     /**
      * @brief Returns this node's category.
@@ -67,8 +78,17 @@ public:
      * @return The declaration type.
      */
     virtual declaration_node_t declaration_type() const = 0;
+
+    /**
+     * @brief Returns the declaration's access.
+     *
+     * @return Access.
+     */
+    declaration_access_t access() const { return p_access; }
 protected:
     bool equal(const node& rhs) const override;
+protected:
+    declaration_access_t p_access;
 };
 
 /**
@@ -99,11 +119,12 @@ public:
      */
     template <typename T, typename ParamsFwd>
     function_declaration_node(struct location location,
+        declaration_access_t                  access,
         T&&                                   name,
         std::optional<type>&&                 returnType,
         ParamsFwd&&                           params,
         function_declaration_node_t           type = function_declaration_node_t::Normal)
-      : declaration_node(location),
+      : declaration_node(location, access),
         p_name(std::forward<T>(name)),
         p_returnType(std::move(returnType)),
         p_params(std::forward<ParamsFwd>(params)),
@@ -186,11 +207,16 @@ public:
      */
     template <typename T, typename ParamsFwd>
     function_definition_node(struct location location,
+        declaration_access_t                 access,
         T&&                                  name,
         std::optional<class type>&&          type,
         ParamsFwd&&                          params,
         body&&                               body)
-      : function_declaration_node(location, std::forward<T>(name), std::move(type), std::forward<ParamsFwd>(params)),
+      : function_declaration_node(location,
+            access,
+            std::forward<T>(name),
+            std::move(type),
+            std::forward<ParamsFwd>(params)),
         m_body(std::move(body)) {}
 public:
     /**

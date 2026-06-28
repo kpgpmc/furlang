@@ -147,14 +147,16 @@ static inline std::string operator+(const std::string& str, token_t type) {
  * @brief Keyword token.
  */
 enum class keyword_token {
-    None,   /**< None */
-    Func,   /**< `func` */
-    Return, /**< `return` */
-    If,     /**< `if` */
-    Else,   /**< `else` */
-    While,  /**< `while` */
-    Import, /**< `import` */
-    Native, /**< `native` */
+    None,    /**< None */
+    Func,    /**< `func` */
+    Return,  /**< `return` */
+    If,      /**< `if` */
+    Else,    /**< `else` */
+    While,   /**< `while` */
+    Import,  /**< `import` */
+    Native,  /**< `native` */
+    Public,  /**< `public` */
+    Private, /**< `private` */
 
     Int32, /**< `int32` */
 };
@@ -169,6 +171,8 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::While: return os << "while";
     case keyword_token::Import: return os << "import";
     case keyword_token::Native: return os << "native";
+    case keyword_token::Public: return os << "public";
+    case keyword_token::Private: return os << "private";
     case keyword_token::Int32: return os << "int32";
     }
     return os;
@@ -184,6 +188,8 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::While: return str + "while";
     case keyword_token::Import: return str + "import";
     case keyword_token::Native: return str + "native";
+    case keyword_token::Public: return str + "public";
+    case keyword_token::Private: return str + "private";
     case keyword_token::Int32: return str + "int32";
     }
     return str;

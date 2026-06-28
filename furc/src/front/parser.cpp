@@ -54,21 +54,40 @@ ast::type_r parser::parse_type() {
 
 ast::declaration_node_r parser::parse_declaration() {
     const auto& first = peek_token();
+    if (first.has_error()) return ast::declaration_node_r(ast::error{ first.error().location });
     switch (first->type) {
     case token_t::Keyword: {
+        token firstToken = *first;
+
+        ast::declaration_access_t accessOverride = ast::declaration_access_t::Implicit;
+        switch ((*first)->keyword) {
+        default: break;
+        case keyword_token::Public:
+        case keyword_token::Private: {
+            if ((*first)->keyword == keyword_token::Public) accessOverride = ast::declaration_access_t::Public;
+            if ((*first)->keyword == keyword_token::Private) accessOverride = ast::declaration_access_t::Private;
+            auto kw = eat_token(token_t::Keyword);
+            if (kw.has_error()) return ast::declaration_node_r(ast::error{ kw.error().location });
+            firstToken = *kw;
+        } break;
+        }
+
         ast::function_declaration_node_t funcDeclType{};
 
-        auto first = next_token();
-        switch ((*first)->keyword) {
+        auto kw = next_token();
+        if (kw.has_error()) return ast::declaration_node_r(ast::error{ kw.error().location });
+        firstToken = *kw;
+        switch (firstToken->keyword) {
         case keyword_token::Import:
         case keyword_token::Native: {
-            funcDeclType = ((*first)->keyword == keyword_token::Import) ? ast::function_declaration_node_t::Import
-                                                                        : ast::function_declaration_node_t::Native;
+            funcDeclType = (firstToken->keyword == keyword_token::Import) ? ast::function_declaration_node_t::Import
+                                                                          : ast::function_declaration_node_t::Native;
 
-            first = eat_token(token_t::Keyword);
-            if (first.has_error()) return ast::declaration_node_r(ast::error{ first.error().location });
-            if (first->value.keyword != keyword_token::Func)
-                return ast::declaration_node_r(ast::error{ first->location });
+            auto kw = eat_token(token_t::Keyword);
+            if (kw.has_error()) return ast::declaration_node_r(ast::error{ kw.error().location });
+            firstToken = *kw;
+            if (firstToken.value.keyword != keyword_token::Func)
+                return ast::declaration_node_r(ast::error{ firstToken.location });
         }
         case keyword_token::Func: {
             auto name = eat_token(token_t::Identifier);
@@ -106,6 +125,12 @@ ast::declaration_node_r parser::parse_declaration() {
                 returnType = *type;
             }
 
+            auto access = (funcDeclType == ast::function_declaration_node_t::Import)
+                              ? ast::declaration_access_t::Private
+                              : accessOverride;
+            if (access == ast::declaration_access_t::Implicit) access = ast::declaration_access_t::Public;
+            if (!ast::same_access(accessOverride, access)) return ast::declaration_node_r(ast::error{ tok->location });
+
             const auto& peek = peek_token();
             if (peek.has_error()) return ast::declaration_node_r(ast::error{ peek.error().location });
             switch (peek->type) {
@@ -114,7 +139,8 @@ ast::declaration_node_r parser::parse_declaration() {
                 if (body.has_error()) return ast::declaration_node_r(ast::error{ body.error().location });
                 if (funcDeclType != ast::function_declaration_node_t::Normal)
                     return ast::declaration_node_r(ast::error{ body->begin });
-                return m_arena->allocate_shared<ast::function_definition_node>(first->location,
+                return m_arena->allocate_shared<ast::function_definition_node>(firstToken.location,
+                    access,
                     name->value.string,
                     std::move(returnType),
                     std::move(params),
@@ -122,7 +148,8 @@ ast::declaration_node_r parser::parse_declaration() {
             }
             case token_t::Semicolon: {
                 m_peekBuffer.clear();
-                return m_arena->allocate_shared<ast::function_declaration_node>(first->location,
+                return m_arena->allocate_shared<ast::function_declaration_node>(firstToken.location,
+                    access,
                     name->value.string,
                     std::move(returnType),
                     std::move(params),
@@ -131,7 +158,7 @@ ast::declaration_node_r parser::parse_declaration() {
             default: return ast::declaration_node_r(ast::error{ tok->location });
             }
         }
-        default: return ast::declaration_node_r(ast::error{ first->location });
+        default: return ast::declaration_node_r(ast::error{ firstToken.location });
         }
     }
     case token_t::None:
