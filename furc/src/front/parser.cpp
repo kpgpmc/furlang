@@ -9,7 +9,6 @@
 #include "furc/front/token.hpp"
 
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -367,6 +366,7 @@ enum class rhsop_info_t {
     Unaryop,
     Binop,
     Assignment,
+    FuncCall,
 };
 
 struct rhsop_info {
@@ -378,6 +378,8 @@ struct rhsop_info {
         ast::binop_expression_node_t   binary;
         ast::binop_expression_node_t   assignment;
     };
+
+    bool has_rhs() const { return type == rhsop_info_t::Binop || type == rhsop_info_t::Assignment; }
 
     static rhsop_info create(ast::unaryop_expression_node_t type, std::uint32_t precedence) {
         rhsop_info info{};
@@ -407,6 +409,14 @@ struct rhsop_info {
         info.assignment    = compound;
         return info;
     }
+
+    static rhsop_info create_function_call() {
+        rhsop_info info{};
+        info.type          = rhsop_info_t::FuncCall;
+        info.precedence    = 1;
+        info.associativity = associativity::Left;
+        return info;
+    }
 };
 
 ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& init, std::uint32_t precedence) {
@@ -431,6 +441,7 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
         { token_t::GreaterThan, rhsop_info::create(ast::binop_expression_node_t::GreaterThan, 9, associativity::Left) },
         { token_t::LessEq, rhsop_info::create(ast::binop_expression_node_t::LessEqual, 9, associativity::Left) },
         { token_t::GreaterEq, rhsop_info::create(ast::binop_expression_node_t::GreaterEqual, 9, associativity::Left) },
+        { token_t::LParen, rhsop_info::create_function_call() },
     };
 
     ast::expression_node_p lhs = std::move(init);
@@ -442,13 +453,28 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
         if (current.precedence >= precedence) return lhs;
         auto opToken = next_token();
 
-        ast::expression_node_p rhs;
-        if (current.type != rhsop_info_t::Unaryop) {
+        ast::expression_node_p              rhs;
+        std::vector<ast::expression_node_p> params;
+        if (current.has_rhs()) {
             auto expr = parse_expression_unary(current.precedence + 1); // unary prefix is always right-associative
             if (expr.has_error()) {
                 return ast::expression_node_r(ast::error{ expr.error().location });
             }
             rhs = std::move(expr.value());
+        } else if (current.type == rhsop_info_t::FuncCall && peek_token().has_value()) {
+            if (peek_token()->type != token_t::RParen) {
+                while (true) {
+                    auto expr = parse_expression_unary(current.precedence + 1);
+                    if (expr.has_error()) {
+                        return ast::expression_node_r(ast::error{ expr.error().location });
+                    }
+                    params.emplace_back(std::move(expr.value()));
+
+                    if (eat_token(token_t::Comma).has_error()) break;
+                }
+            }
+            auto enclosing = eat_token(token_t::RParen);
+            if (enclosing.has_error()) return ast::expression_node_r(ast::error{ enclosing.error().location });
         }
 
         auto nextIt = s_rhsops.find(peek_token()->type);
@@ -484,6 +510,11 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
                 current.assignment,
                 std::move(lhs),
                 std::move(rhs));
+            break;
+        case rhsop_info_t::FuncCall:
+            lhs = m_arena->allocate_shared<ast::function_call_expression_node>(opToken->location,
+                std::move(lhs),
+                std::move(params));
             break;
         }
     }

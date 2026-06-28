@@ -7,6 +7,7 @@
 #include <optional>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -624,6 +625,76 @@ protected:
             os << ' ' << pair.second << ": " << pair.first;
         }
         return os;
+    }
+};
+
+/**
+ * @brief Function call instruction.
+ */
+class call_instruction final : public instruction {
+public:
+    template <typename NameFwd, typename ArgsFwd>
+    call_instruction(NameFwd&& name, operand&& dst, ArgsFwd&& args)
+      : m_name(std::forward<NameFwd>(name)), m_dst(std::move(dst)), m_args(std::forward<ArgsFwd>(args)) {}
+
+    ~call_instruction() override = default;
+
+    call_instruction(call_instruction&&) noexcept            = default;
+    call_instruction& operator=(call_instruction&&) noexcept = default;
+    call_instruction(const call_instruction&)                = delete;
+    call_instruction& operator=(const call_instruction&)     = delete;
+public:
+    /**
+     * @brief Returns this instruction's type.
+     *
+     * @return instruction_t::Call.
+     */
+    instruction_t type() const override { return instruction_t::Call; }
+
+    bool has_destination() const override { return true; }
+
+    /**
+     * @brief Returns this instruction's destination register.
+     *
+     * @return The register.
+     */
+    operand& destination() override { return m_dst; }
+
+    /**
+     * @brief Returns this instruction's destination register.
+     *
+     * @return The register.
+     */
+    const operand& destination() const override { return m_dst; }
+
+    std::vector<const operand*> sources() const override {
+        std::vector<const operand*> srcs;
+        srcs.reserve(m_args.size());
+        for (const auto& op : m_args)
+            srcs.push_back(&op);
+        return srcs;
+    }
+
+    /**
+     * @brief Returns this instruction's callee name.
+     *
+     * @return The name.
+     */
+    const std::string& name() const { return m_name; }
+private:
+    std::string          m_name;
+    operand              m_dst;
+    std::vector<operand> m_args;
+protected:
+    std::ostream& print(std::ostream& os) const override {
+        os << "call " << m_name << '(';
+        bool first = true;
+        for (const auto& op : m_args) {
+            if (!first) os << ", ";
+            first = false;
+            os << op;
+        }
+        return os << ") = " << m_dst;
     }
 };
 

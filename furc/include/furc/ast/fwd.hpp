@@ -151,6 +151,14 @@ using var_assign_expression_node_p =
 using var_assign_expression_node_r =
     node_r<var_assign_expression_node>; /**< Alias for var_assign_expression_node result */
 
+class function_call_expression_node;
+
+using function_call_expression_node_p =
+    node_p<function_call_expression_node>; /**< Alias for a shared pointer to function_call_expression_node. */
+
+using function_call_expression_node_r =
+    node_r<function_call_expression_node>; /**< Alias for function_call_expression_node result. */
+
 /**
  * @brief List of statements.
  */

@@ -108,6 +108,26 @@ bool var_assign_expression_node::equal(const node& rhsNode) const {
     return expression_node::equal(rhsNode) && m_compound == rhs.m_compound && m_lhs == rhs.m_lhs && m_rhs == rhs.m_rhs;
 }
 
+void function_call_expression_node::accept(visitor& visitor) const {
+    visitor.visit(*this);
+}
+
+std::ostream& function_call_expression_node::print(std::ostream& os) const {
+    os << *m_func << '(';
+    bool first = true;
+    for (const auto& arg : m_args) {
+        if (!first) os << ", ";
+        first = false;
+        os << *arg;
+    }
+    return os << ')';
+}
+
+bool function_call_expression_node::equal(const node& rhsNode) const {
+    const auto& rhs = dynamic_cast<const function_call_expression_node&>(rhsNode);
+    return expression_node::equal(rhsNode) && m_func == rhs.m_func && m_args == rhs.m_args;
+}
+
 bool declaration_node::equal(const node& rhs) const {
     return declaration_type() == dynamic_cast<const declaration_node&>(rhs).declaration_type();
 }

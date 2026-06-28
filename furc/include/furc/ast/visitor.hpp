@@ -83,6 +83,14 @@ public:
     virtual void visit(const var_assign_expression_node& node) {}
 
     /**
+     * @brief Visit a function_call_expression_node.
+     * @see function_call_expression_node
+     *
+     * @param node Node.
+     */
+    virtual void visit(const function_call_expression_node& node) {}
+
+    /**
      * @brief Visit a function_declaration_node.
      * @see function_declaration_node
      *

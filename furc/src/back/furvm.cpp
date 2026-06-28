@@ -100,7 +100,15 @@ void furvm_generator::generate_instruction(furvm::mod& mod,
             mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::ReturnValue));
         }
     } break;
-    case furlang::ir::instruction_t::Call:
+    case furlang::ir::instruction_t::Call: {
+        const auto& call = dynamic_cast<const furlang::ir::call_instruction&>(instr);
+
+        // TODO: Implement a queue for unknown functions
+        furvm::function_id func = mod.get_function_id(call.name());
+        mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::Call));
+        mod.bytecode().push_back((func >> 0) & 0xFF);
+        mod.bytecode().push_back((func >> 8) & 0xFF);
+    } break;
     case furlang::ir::instruction_t::Alloca: throw std::runtime_error("unimplemented instruction");
     case furlang::ir::instruction_t::Phi: throw std::runtime_error("unreachable");
     }

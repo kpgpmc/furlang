@@ -25,6 +25,7 @@ public:
     furlang::ir::mod&& move_module() { return std::move(m_module); }
 public:
     void visit(const ast::function_definition_node& funcDef) override;
+    void visit(const ast::function_declaration_node& funcDecl) override;
     void visit(const ast::return_statement_node& returnStmt) override;
     void visit(const ast::if_statement_node& node) override;
     void visit(const ast::while_statement_node& node) override;
@@ -35,6 +36,7 @@ public:
     void visit(const ast::unary_op_expression_node& node) override;
     void visit(const ast::binary_op_expression_node& node) override;
     void visit(const ast::var_assign_expression_node& node) override;
+    void visit(const ast::function_call_expression_node& node) override;
 private:
     template <typename T, typename... Args>
     void push(Args&&... args) {
@@ -45,7 +47,7 @@ private:
 
     furlang::ir::block_index push_block(bool validate = true);
 private:
-    furlang::ir::mod                    m_module;
+    furlang::ir::mod                       m_module;
     std::unique_ptr<furlang::ir::function> m_currentFunction;
     std::shared_ptr<furlang::ir::block>    m_currentBlock;
     ir_register                            m_registerCounter = 0;

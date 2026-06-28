@@ -4,6 +4,8 @@
 #include "furc/ast/node.hpp"
 #include "furc/ast/statement.hpp"
 
+#include <vector>
+
 namespace furc {
 namespace ast {
 
@@ -16,6 +18,7 @@ enum class expression_node_t {
     Unaryop,   /**< Unary operation expression */
     Binop,     /**< Binary operation expression */
     VarAssign, /**< Variable assignment expression */
+    FuncCall,  /**< Function call expression. */
 };
 
 /**
@@ -348,6 +351,54 @@ private:
     binop_expression_node_t m_compound;
     expression_node_p       m_lhs;
     expression_node_p       m_rhs;
+};
+
+/**
+ * @brief Function call expression AST node.
+ */
+class function_call_expression_node final : public expression_node {
+public:
+    /**
+     * @brief Construct a new function call expression AST node.
+     *
+     * @param location Node location.
+     * @param func Left-hand-side expression.
+     * @param args Function arguments.
+     */
+    function_call_expression_node(struct location location,
+        expression_node_p&&                       func,
+        std::vector<expression_node_p>&&          args)
+      : expression_node(location), m_func(std::move(func)), m_args(std::move(args)) {}
+
+    /**
+     * @brief Returns this node's left-hand-side expression.
+     *
+     * @return The left-hand-side expression.
+     */
+    const expression_node_p& func() const { return m_func; }
+
+    /**
+     * @brief Returns this node's argument expressions.
+     *
+     * @return The argument expressions.
+     */
+    const std::vector<expression_node_p>& args() const { return m_args; }
+public:
+    /**
+     * @brief Returns this node's expression type.
+     *
+     * @return expression_node_t::FuncCall.
+     */
+    expression_node_t expression_type() const override { return expression_node_t::FuncCall; }
+public:
+    void accept(visitor& visitor) const override;
+
+    std::ostream& print(std::ostream& os) const override;
+protected:
+    bool equal(const node& rhs) const override;
+private:
+    expression_node_p              m_func;
+    std::vector<expression_node_p> m_args;
 };
 
 } // namespace ast

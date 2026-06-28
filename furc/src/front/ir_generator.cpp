@@ -167,6 +167,21 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
     }
 }
 
+void ir_generator::visit(const ast::function_call_expression_node& node) {
+    std::vector<ir::operand> args;
+    args.reserve(node.args().size());
+    for (const auto& arg : node.args()) {
+        arg->accept(*this);
+        args.push_back(ir::operand::new_reg(m_registerCounter - 1));
+    }
+    if (node.func()->expression_type() != ast::expression_node_t::VarRead)
+        throw std::runtime_error("invalid function call left-hand-side expression");
+
+    push<ir::call_instruction>(dynamic_cast<const ast::var_read_expression_node&>(*node.func()).get_name(),
+        ir::operand::new_reg(m_registerCounter++),
+        std::move(args));
+}
+
 furlang::ir::block_index ir_generator::push_block(bool validate) {
     if (validate && !m_currentFunction->blocks().empty() && !m_currentFunction->blocks().back()->has_exit()) {
         throw std::runtime_error(
