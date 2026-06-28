@@ -395,6 +395,14 @@ public:
         delete m_pairs[id];
         m_pairs[id] = nullptr;
     }
+public:
+    auto begin() { return m_pairs.begin(); }
+    auto begin() const { return m_pairs.begin(); }
+    auto cbegin() const { return m_pairs.cbegin(); }
+
+    auto end() { return m_pairs.end(); }
+    auto end() const { return m_pairs.end(); }
+    auto cend() const { return m_pairs.cend(); }
 private:
     std::vector<pair_type*> m_pairs;
 };
