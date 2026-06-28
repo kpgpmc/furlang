@@ -546,6 +546,10 @@ static void adce_stage(function_context& ctx) {
             if (instr->has_destination() && instr->destination().type() == furlang::ir::operand_t::Register) {
                 defMap[instr->destination().reg()] = instr.get();
             }
+            if (instr->type() == furlang::ir::instruction_t::Call) {
+                // TODO: Check if the function has side effects
+                if (alive.insert(instr.get()).second) worklist.push(instr.get());
+            }
         }
 
         auto* exit = block->exit().get();

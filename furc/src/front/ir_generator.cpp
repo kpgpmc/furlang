@@ -4,10 +4,14 @@
 #include "furc/ast/expression.hpp"  // IWYU pragma: keep
 #include "furc/ast/literal.hpp"     // IWYU pragma: keep
 #include "furc/ast/statement.hpp"   // IWYU pragma: keep
+#include "furlang/ir/function.hpp"
 #include "furlang/ir/instruction.hpp"
+#include "furlang/ir/operand.hpp"
 
 #include <cassert>
 #include <memory>
+#include <stdexcept>
+#include <vector>
 
 namespace furc::front {
 
@@ -16,7 +20,11 @@ namespace ir = furlang::ir;
 }
 
 void ir_generator::visit(const ast::function_definition_node& funcDef) {
-    m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()));
+    furlang::ir::function_access_t access = (funcDef.access() == ast::declaration_access_t::Public)
+                                                ? furlang::ir::function_access_t::Public
+                                                : furlang::ir::function_access_t::Private;
+
+    m_currentFunction = std::make_unique<furlang::ir::function>(std::string(funcDef.name()), access, 0);
 
     push_block();
     for (const auto& stmt : funcDef.body().statements) {
@@ -26,6 +34,21 @@ void ir_generator::visit(const ast::function_definition_node& funcDef) {
     m_currentBlock->emplace<ir::return_instruction>();
 
     m_module.push(std::move(m_currentFunction));
+}
+
+void ir_generator::visit(const ast::function_declaration_node& funcDecl) {
+    if (funcDecl.type() == ast::function_declaration_node_t::Normal) return;
+
+    furlang::ir::function_t type = funcDecl.type() == ast::function_declaration_node_t::Import
+                                       ? furlang::ir::function_t::Import
+                                       : furlang::ir::function_t::Native;
+
+    furlang::ir::function_access_t access = (funcDecl.access() == ast::declaration_access_t::Public)
+                                                ? furlang::ir::function_access_t::Public
+                                                : furlang::ir::function_access_t::Private;
+
+    m_module.push(
+        std::make_unique<furlang::ir::function>(std::string(funcDecl.name()), access, funcDecl.params().size(), type));
 }
 
 void ir_generator::visit(const ast::return_statement_node& returnStmt) {
@@ -149,12 +172,7 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
     assert(node.lhs()->expression_type() == ast::expression_node_t::VarRead);
     auto lhs = std::dynamic_pointer_cast<ast::var_read_expression_node>(node.lhs());
 
-    ir_register reg = 0;
-    if (auto it = m_variables.find(lhs->get_name()); it != m_variables.end()) {
-        reg = it->second;
-    } else {
-        m_variables[lhs->get_name()] = reg = m_registerCounter++;
-    }
+    ir_register reg = m_registerCounter++;
 
     auto compound = node.compound();
     if (compound != ast::binop_expression_node_t::None) {
@@ -164,6 +182,12 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
             ir::operand::new_reg(reg));
     } else {
         push<ir::assign_instruction>(ir::operand::new_reg(rhs), ir::operand::new_reg(reg));
+    }
+
+    if (auto it = m_variables.find(lhs->get_name()); it != m_variables.end()) {
+        push<ir::assign_instruction>(ir::operand::new_reg(reg), ir::operand::new_reg(it->second));
+    } else {
+        m_variables[lhs->get_name()] = reg;
     }
 }
 

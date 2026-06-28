@@ -1,6 +1,9 @@
 #include "furc/back/furvm.hpp"
 
+#include "furlang/ir/function.hpp"
 #include "furlang/ir/instruction.hpp"
+#include "furvm/function.hpp"
+#include "furvm/fwd.hpp"
 
 #include <furvm/instruction.hpp>
 #include <stdexcept>
@@ -18,22 +21,38 @@ furvm::mod furvm_generator::generate(furlang::ir::mod& mod) {
 }
 
 void furvm_generator::generate_function(furvm::mod& mod, const furlang::ir::function& function) {
-    auto func = mod.emplace_function(function.name(), mod.bytecode().size());
-    func.dispatch();
+    switch (function.type()) {
+    case furlang::ir::function_t::Normal: {
+        if (function.access() == furlang::ir::function_access_t::Public)
+            mod.emplace_function(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
+        else
+            mod.emplace_function_private(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
 
-    function_context ctx;
-    for (furlang::ir::block_index idx = 0; idx < function.blocks().size(); ++idx) {
-        if (auto it = ctx.incompleteJumps.find(idx); it != ctx.incompleteJumps.end()) {
-            for (std::size_t offset : it->second) {
-                mod.bytecode()[offset] = mod.bytecode().size() - offset - 1;
+        function_context ctx;
+        for (furlang::ir::block_index idx = 0; idx < function.blocks().size(); ++idx) {
+            if (auto it = ctx.incompleteJumps.find(idx); it != ctx.incompleteJumps.end()) {
+                for (std::size_t offset : it->second) {
+                    mod.bytecode()[offset] = mod.bytecode().size() - offset - 1;
+                }
+                ctx.incompleteJumps.erase(it);
             }
-            ctx.incompleteJumps.erase(it);
-        }
 
-        ctx.blockOffsets[idx] = mod.bytecode().size();
-        for (const auto& instr : function.blocks()[idx]->instructions())
-            generate_instruction(mod, ctx, *instr);
-        generate_instruction(mod, ctx, *function.blocks()[idx]->exit());
+            ctx.blockOffsets[idx] = mod.bytecode().size();
+            for (const auto& instr : function.blocks()[idx]->instructions())
+                generate_instruction(mod, ctx, *instr);
+            generate_instruction(mod, ctx, *function.blocks()[idx]->exit());
+        }
+    } break;
+    case furlang::ir::function_t::Import: {
+        throw std::runtime_error("unimplemented");
+        // mod.emplace_function_private(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
+    } break;
+    case furlang::ir::function_t::Native: {
+        if (function.access() == furlang::ir::function_access_t::Public)
+            mod.emplace_function(function.name(), function.param_count(), function.name()).dispatch();
+        else
+            mod.emplace_function_private(function.name(), function.param_count(), function.name()).dispatch();
+    } break;
     }
 }
 

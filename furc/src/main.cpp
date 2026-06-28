@@ -8,12 +8,13 @@
 #include "furlang/arena.hpp"
 
 #include <fstream>
+#include <furvm/furvm.hpp>
 #include <iostream>
 
 int main(void) {
     try {
         std::string               programStr = R"(
-    native func print(value: int32);
+    private native func print(value: int32);
 
     func main() -> int32 {
         x = 0;
@@ -22,6 +23,7 @@ int main(void) {
         while (x < y) {
             x = x + z;
         }
+        print(x);
     }
     )";
         furlang::arena            arena{};
@@ -58,8 +60,30 @@ int main(void) {
             }
         }
 
+        auto context  = std::make_shared<furvm::context>();
+        auto furvmMod = context->emplace_module("main", furc::back::furvm_generator::generate(mod));
+
         std::ofstream file("./a.fmod", std::ios::binary);
-        furc::back::furvm_generator::generate(mod).serialize(file);
+        furvmMod->serialize(file);
+        file.close();
+
+        furvmMod->set_native_function("print", [](furvm::executor& executor) {
+            furvm::thing_h thing = executor.load_thing(0);
+            switch (thing->type()) {
+            case furvm::thing_t::Int32: {
+                std::cout << thing->int32() << '\n';
+            } break;
+            }
+        });
+
+        furvm::executor_h executor = context->emplace_executor(context);
+        executor->push_frame(furvmMod, *furvmMod->function_at("main"));
+
+        std::cout << "--- Interpreting:\n";
+
+        while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
+            executor->step();
+        }
 
         return 0;
     } catch (...) {
