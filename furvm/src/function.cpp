@@ -1,14 +1,21 @@
 #include "furvm/function.hpp"
 
+#include "furvm/furvm.hpp"
+
 #include <utility>
 
 namespace furvm {
 
+function::function(const mod_h& mod, const function_h& function)
+  : m_type(function_t::Import), m_paramCount(0), m_value(import_function{ mod.id(), function.id() }) {}
+
 function::~function() {
     switch (m_type) {
     case function_t::Normal:
-    case function_t::Native:
     default: break;
+    case function_t::Native: {
+        m_value.native.~native_function();
+    } break;
     case function_t::Import: {
         m_value.imp.~import_function();
     } break;
@@ -16,7 +23,7 @@ function::~function() {
 }
 
 function::function(function&& other) noexcept
-  : m_name(std::move(other.m_name)), m_type(other.m_type) {
+  : m_name(std::move(other.m_name)), m_type(other.m_type), m_paramCount(other.m_paramCount) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -25,8 +32,9 @@ function::function(function&& other) noexcept
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp = std::move(other.m_value.imp);
+        new (&m_value.imp) import_function(std::move(other.m_value.imp));
     } break;
+    default: break;
     }
     other.m_value.position = 0;
 }
@@ -34,8 +42,9 @@ function::function(function&& other) noexcept
 function& function::operator=(function&& other) noexcept {
     if (this == &other) return *this;
 
-    m_name = std::move(other.m_name);
-    m_type = other.m_type;
+    m_name       = std::move(other.m_name);
+    m_type       = other.m_type;
+    m_paramCount = other.m_paramCount;
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -44,8 +53,9 @@ function& function::operator=(function&& other) noexcept {
         new (&m_value.native) native_function(std::move(other.m_value.native));
     } break;
     case function_t::Import: {
-        m_value.imp = std::move(other.m_value.imp);
+        new (&m_value.imp) import_function(std::move(other.m_value.imp));
     } break;
+    default: break;
     }
     other.m_value.position = 0;
 
@@ -53,7 +63,7 @@ function& function::operator=(function&& other) noexcept {
 }
 
 function::function(const function& other)
-  : m_name(other.m_name), m_type(other.m_type) {
+  : m_name(other.m_name), m_type(other.m_type), m_paramCount(other.m_paramCount) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -62,16 +72,18 @@ function::function(const function& other)
         new (&m_value.native) native_function(other.m_value.native);
     } break;
     case function_t::Import: {
-        m_value.imp = other.m_value.imp;
+        new (&m_value.imp) import_function(other.m_value.imp);
     } break;
+    default: break;
     }
 }
 
 function& function::operator=(const function& other) {
     if (this == &other) return *this;
 
-    m_name = other.m_name;
-    m_type = other.m_type;
+    m_name       = other.m_name;
+    m_type       = other.m_type;
+    m_paramCount = other.m_paramCount;
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -80,8 +92,9 @@ function& function::operator=(const function& other) {
         new (&m_value.native) native_function(other.m_value.native);
     } break;
     case function_t::Import: {
-        m_value.imp = other.m_value.imp;
+        new (&m_value.imp) import_function(other.m_value.imp);
     } break;
+    default: break;
     }
 
     return *this;

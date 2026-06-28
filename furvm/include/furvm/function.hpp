@@ -2,10 +2,12 @@
 #define FURVM_FUNCTION_HPP
 
 #include "furvm/fwd.hpp"
+#include "furvm/handle.hpp" // IWYU pragma: keep
 
-#include <functional>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace furvm {
@@ -19,7 +21,7 @@ enum class function_t : std::uint8_t {
 /**
  * @brief A native function.
  */
-using native_function = std::function<void(executor&)>;
+using native_function = std::string;
 
 /**
  * @brief A function import.
@@ -35,31 +37,36 @@ public:
      * @brief Constructs a normal function.
      *
      * @param name Name of the function.
+     * @param paramCount Paremeter count.
      * @param position Offset in bytecode of the function.
      */
     template <typename Name>
-    function(Name&& name, bytecode_pos position)
-      : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_value(position) {}
+    function(Name&& name, std::uint32_t paramCount, bytecode_pos position)
+      : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_paramCount(paramCount), m_value(position) {}
 
     /**
      * @brief Constructs a native function.
      *
      * @param name Name of the function.
-     * @param native Native function.
+     * @param paramCount Paremeter count.
+     * @param native Native function tag.
      */
-    template <typename Name>
-    function(Name&& name, const native_function& native)
-      : m_name(std::forward<Name>(name)), m_type(function_t::Native), m_value(native) {}
+    template <typename Name,
+        typename Native,
+        typename = std::enable_if_t<std::is_constructible_v<native_function, Native>>>
+    function(Name&& name, std::uint32_t paramCount, Native&& native)
+      : m_name(std::forward<Name>(name)),
+        m_type(function_t::Native),
+        m_paramCount(paramCount),
+        m_value(std::forward<Native>(native)) {}
 
     /**
      * @brief Constructs an import function.
      *
-     * @param name Name of the function.
+     * @param paramCount Parameter count.
      * @param imp Import function.
      */
-    template <typename Name>
-    function(Name&& name, const import_function& imp)
-      : m_name(std::forward<Name>(name)), m_type(function_t::Import), m_value(imp) {}
+    function(const mod_h& mod, const function_h& function);
 
     /**
      * @brief Destructs a function.
@@ -99,6 +106,13 @@ public:
      * @return The type.
      */
     constexpr function_t type() const { return m_type; }
+
+    /**
+     * @brief Returns this function's parameter count.
+     *
+     * @return The parameter count.
+     */
+    constexpr std::uint32_t param_count() const { return m_paramCount; }
 public:
     /**
      * @brief Returns normal function's value.
@@ -123,15 +137,16 @@ public:
     /**
      * @brief Returns import function's value.
      *
-     * @return The name.
+     * @return The value.
      */
     const import_function& imp() const {
         if (m_type != function_t::Import) throw std::runtime_error("function type mismatch");
         return m_value.imp;
     }
 private:
-    std::string m_name;
-    function_t  m_type;
+    std::string   m_name;
+    function_t    m_type;
+    std::uint32_t m_paramCount;
 
     union value {
         std::size_t     position = 0;
@@ -143,8 +158,9 @@ private:
         value(std::size_t position)
           : position(position) {}
 
-        value(const native_function& native)
-          : native(native) {}
+        template <typename Native, typename = std::enable_if_t<std::is_constructible_v<native_function, Native>>>
+        value(Native&& native)
+          : native(std::forward<Native>(native)) {}
 
         value(const import_function& imp)
           : imp(imp) {}

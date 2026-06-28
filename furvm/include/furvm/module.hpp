@@ -5,6 +5,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
 
+#include <functional>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -20,6 +21,8 @@ public:
     using bytecode_t = std::vector<byte>; /**< An alias to a vector of bytes. */
 
     static constexpr char MAGIC[4] = { 'F', 'u', 'r', 'M' }; /** Furvm module file magic. */
+
+    using native_function = std::function<void(executor&)>;
 public:
     /**
      * @brief Constructs a module.
@@ -71,11 +74,29 @@ public:
     /**
      * @brief Emplaces a function in the module's function container.
      *
+     * Emplaces the function in module's function container and name to function map and public functions map.
+     *
      * @param args Arguments forwarded into the container's emplace_back function.
      * @return A handle to the emplaced function.
      */
     template <typename... Args>
     function_h emplace_function(Args&&... args) {
+        function_h function                 = m_functions.emplace_back(std::forward<Args>(args)...);
+        m_functionMap[function->name()]     = function.id();
+        m_publicFunctions[function->name()] = function.id();
+        return std::move(function);
+    }
+
+    /**
+     * @brief Emplaces a function in the module's function container.
+     *
+     * Emplaces the function in module's function container and name to function map .
+     *
+     * @param args Arguments forwarded into the container's emplace_back function.
+     * @return A handle to the emplaced function.
+     */
+    template <typename... Args>
+    function_h emplace_function_private(Args&&... args) {
         function_h function             = m_functions.emplace_back(std::forward<Args>(args)...);
         m_functionMap[function->name()] = function.id();
         return std::move(function);
@@ -87,8 +108,18 @@ public:
      * @param function Function to insert.
      */
     template <typename Function>
-    void push_back(Function&& function) {
-        m_functions.emplace_back(std::forward<Function>(function));
+    auto push_back(Function&& function) {
+        return emplace_function(std::forward<Function>(function));
+    }
+
+    /**
+     * @brief Inserts a function in the module's function container.
+     *
+     * @param function Function to insert.
+     */
+    template <typename Function>
+    auto push_back_private(Function&& function) {
+        return emplace_function_private(std::forward<Function>(function));
     }
 
     /**
@@ -115,7 +146,7 @@ public:
      */
     template <typename NameFwd>
     auto function_at(NameFwd&& name) {
-        return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
+        return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
     }
 
     /**
@@ -126,7 +157,18 @@ public:
      */
     template <typename NameFwd>
     auto function_at(NameFwd&& name) const {
-        return function_at(m_functionMap.at(std::forward<NameFwd>(name)));
+        return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
+    }
+
+    /**
+     * @brief Returns an id of a function from the module.
+     *
+     * @param name Name of the function.
+     * @return An id of the function.
+     */
+    template <typename NameFwd>
+    auto get_function_id(NameFwd&& name) {
+        return m_functionMap.at(std::forward<NameFwd>(name));
     }
 
     /**
@@ -135,6 +177,16 @@ public:
      * @param id Identifier of the function.
      */
     void erase_function(function_id id) { m_functions.erase(id); }
+public:
+    template <typename NameFwd, typename Func>
+    void set_native_function(NameFwd&& name, Func&& func) {
+        m_nativeFunctions.emplace(std::forward<NameFwd>(name), std::forward<Func>(func));
+    }
+
+    template <typename NameFwd>
+    native_function get_native_function(NameFwd&& name) const {
+        return m_nativeFunctions.at(std::forward<NameFwd>(name));
+    }
 public:
     /**
      * @brief Prints the module in a bytecode form to an output stream.
@@ -147,7 +199,10 @@ private:
     bytecode_t m_bytecode;
 
     std::unordered_map<std::string, function_id> m_functionMap;
+    std::unordered_map<std::string, function_id> m_publicFunctions;
     handle_container<function_h>                 m_functions;
+
+    std::unordered_map<std::string, native_function> m_nativeFunctions;
 };
 
 } // namespace furvm

@@ -9,18 +9,31 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <vector>
 
 namespace furvm {
 
 void executor::push_frame(const mod_h& mod, function function) {
+    mod_h modInst = mod;
     while (function.type() == function_t::Import) {
-        function = *m_context->module_at(function.imp().mod)->function_at(function.imp().function);
+        modInst  = m_context->module_at(function.imp().mod);
+        function = *modInst->function_at(function.imp().function);
     }
+
+    std::vector<thing_h> args;
+    args.reserve(function.param_count());
+    for (size_t i = 0; i < function.param_count(); ++i)
+        args.push_back(pop_thing());
+
     switch (function.type()) {
     case function_t::Normal: {
-        m_frames.emplace((struct executor::frame){ mod, function.position(), m_stack.size() });
+        m_frames.emplace((struct executor::frame){ mod, function.position(), m_stack.size(), std::move(args) });
     } break;
-    case function_t::Native:
+    case function_t::Native: {
+        m_frames.emplace((struct executor::frame){ mod, 0, m_stack.size(), std::move(args) });
+        modInst->get_native_function(function.name())(*this);
+        m_frames.pop();
+    } break;
     default: throw std::runtime_error("unexpected function type");
     }
 }
@@ -54,13 +67,13 @@ thing_h executor::thing() const {
 
 void executor::store_thing(variable_t variable, const thing_h& thing) {
     auto& frame = m_frames.top();
-    frame.variables.resize(variable + 1);
+    if (frame.variables.size() <= variable) frame.variables.resize(variable + 1);
     frame.variables[variable] = thing;
 }
 
 void executor::store_thing(variable_t variable, thing_h&& thing) {
     auto& frame = m_frames.top();
-    frame.variables.resize(variable + 1);
+    if (frame.variables.size() <= variable) frame.variables.resize(variable + 1);
     frame.variables[variable] = std::move(thing);
 }
 
@@ -160,21 +173,15 @@ void executor::step() {
         function_id funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                              (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
         frame.position    += 2;
-
-        const function_h& function = frame.mod->function_at(funcId);
-        switch (function->type()) {
-        case function_t::Normal:
-        case function_t::Import: push_frame(frame.mod, *function); break;
-        case function_t::Native: function->native()(*this); break;
-        }
+        push_frame(frame.mod, *frame.mod->function_at(funcId));
     } break;
     case instruction_t::Jump: {
-        frame.position += frame.mod->byte(frame.position++);
+        frame.position += ((std::int8_t)frame.mod->byte(frame.position)) + 1;
     } break;
     case instruction_t::JumpNotZero: {
         byte offset = frame.mod->byte(frame.position++);
         auto cond   = pop_thing();
-        if (cond->int32() != 0) frame.position += offset;
+        if (cond->int32() != 0) frame.position += (std::int8_t)offset;
     } break;
     case instruction_t::Return: {
         pop_frame();

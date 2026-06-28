@@ -12,9 +12,10 @@ std::ostream& mod::serialize(std::ostream& os) const {
     detail::serialize(os, std::uint32_t(0)); // version
 
     detail::serialize(os, function_id(m_functionMap.size()));
-    for (const auto& [name, id] : m_functionMap) {
-        detail::serialize(os, name);
-        function_h func = m_functions.at(id);
+    for (auto* pair : m_functions) {
+        function_h func     = { pair };
+        bool       isPublic = m_publicFunctions.find(func->name()) != m_publicFunctions.end();
+        detail::serialize(os, isPublic ? func->name() : ""); // private functions have empty names
         detail::serialize(os, std::uint8_t(func->type()));
         switch (func->type()) {
         case function_t::Normal: {
