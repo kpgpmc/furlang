@@ -27,12 +27,30 @@ struct thing_type {
     std::uint64_t value;
 };
 
-using int_t = std::int32_t; /**< A 4-byte integer. */
+using byte_t  = std::int8_t;  /**< A 1-byte integer. */
+using short_t = std::int16_t; /**< A 2-byte integer. */
+using int_t   = std::int32_t; /**< A 4-byte integer. */
+using long_t  = std::int64_t; /**< An 8-byte integer. */
+
+/**
+ * @brief A 1-byte integer thing type.
+ */
+static constexpr thing_type ByteType = { thing_type_t::Primitive, sizeof(byte_t) };
+
+/**
+ * @brief A 2-byte integer thing type.
+ */
+static constexpr thing_type ShortType = { thing_type_t::Primitive, sizeof(short_t) };
 
 /**
  * @brief A 4-byte integer thing type.
  */
 static constexpr thing_type IntType = { thing_type_t::Primitive, sizeof(int_t) };
+
+/**
+ * @brief An 8-byte integer thing type.
+ */
+static constexpr thing_type LongType = { thing_type_t::Primitive, sizeof(long_t) };
 
 template <template <typename> typename Allocator>
 class thing final {
@@ -238,24 +256,36 @@ public:
      * @return A boolean result of the comparison in a thing form.
      */
     thing greater_equals(const thing& rhs) const { return binary_op(rhs, std::greater_equal<>{}); }
-private:
-    // TODO: Change to `to_long` after introducing long type.
-    int_t to_int() const {
+public:
+    /**
+     * @brief Returns a largest integer value of the thing.
+     *
+     * @return The integer value.
+     */
+    long_t integer() const {
         if (m_type.type != thing_type_t::Primitive) throw bad_thing_access();
         switch (m_type.value) {
+        case sizeof(byte_t): return get<byte_t>();
+        case sizeof(short_t): return get<short_t>();
         case sizeof(int_t): return get<int_t>();
+        case sizeof(long_t): return get<long_t>();
         default: throw std::runtime_error("unreachable");
         }
     }
-
+private:
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
         if (type().type == thing_type_t::Primitive && rhs.type().type == thing_type_t::Primitive) {
             std::size_t size = std::max(type().value, rhs.type().value);
 
+            long_t result = op(integer(), rhs.integer());
+
             thing res(thing_type{ thing_type_t::Primitive, size }, m_allocator);
             switch (size) {
-            case sizeof(int_t): res.get<int_t>() = op(to_int(), rhs.to_int()); break;
+            case sizeof(byte_t): res.get<byte_t>() = result; break;
+            case sizeof(short_t): res.get<short_t>() = result; break;
+            case sizeof(int_t): res.get<int_t>() = result; break;
+            case sizeof(long_t): res.get<long_t>() = result; break;
             default: throw std::runtime_error("unreachable");
             }
             return std::move(res);

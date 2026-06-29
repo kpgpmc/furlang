@@ -68,7 +68,7 @@ int main(void) {
         file.close();
 
         furvmMod->set_native_function("print",
-            [](furvm::executor& executor) { std::cout << executor.load_thing(0)->get<furvm::int_t>() << '\n'; });
+            [](furvm::executor& executor) { std::cout << executor.load_thing(0)->integer() << '\n'; });
 
         furvm::executor_h executor = context->emplace_executor(context);
         executor->push_frame(furvmMod, *furvmMod->function_at("main"));
