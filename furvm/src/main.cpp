@@ -24,14 +24,8 @@ int main(void) {
 
     furvm::mod_h      furlangModule = context->emplace_module("furlang");
     furvm::function_h printFunc     = furlangModule->emplace_function("print", 1, "print");
-    furlangModule->set_native_function("print", [](furvm::executor& executor) {
-        furvm::thing_h thing = executor.load_thing(0);
-        switch (thing->type()) {
-        case furvm::thing_t::Int32: {
-            std::cout << thing->int32() << '\n';
-        } break;
-        }
-    });
+    furlangModule->set_native_function("print",
+        [](furvm::executor& executor) { std::cout << executor.load_thing(0)->get<furvm::int_t>() << '\n'; });
 
     furvm::mod_h      mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
     furvm::function_h mainFunc   = mainModule->emplace_function("main", 0, 0);

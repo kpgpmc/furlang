@@ -67,14 +67,8 @@ int main(void) {
         furvmMod->serialize(file);
         file.close();
 
-        furvmMod->set_native_function("print", [](furvm::executor& executor) {
-            furvm::thing_h thing = executor.load_thing(0);
-            switch (thing->type()) {
-            case furvm::thing_t::Int32: {
-                std::cout << thing->int32() << '\n';
-            } break;
-            }
-        });
+        furvmMod->set_native_function("print",
+            [](furvm::executor& executor) { std::cout << executor.load_thing(0)->get<furvm::int_t>() << '\n'; });
 
         furvm::executor_h executor = context->emplace_executor(context);
         executor->push_frame(furvmMod, *furvmMod->function_at("main"));

@@ -91,7 +91,7 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        push_thing({ thing_t::Int32, m_context->thing_alloc() })->int32() = frame.mod->byte(frame.position++);
+        push_thing({ IntType, m_context->thing_alloc() })->get<int_t>() = frame.mod->byte(frame.position++);
     } break;
     case instruction_t::Drop: {
         pop_thing();
@@ -181,7 +181,7 @@ void executor::step() {
     case instruction_t::JumpNotZero: {
         byte offset = frame.mod->byte(frame.position++);
         auto cond   = pop_thing();
-        if (cond->int32() != 0) frame.position += (std::int8_t)offset;
+        if (cond->get<int_t>() != 0) frame.position += (std::int8_t)offset;
     } break;
     case instruction_t::Return: {
         pop_frame();

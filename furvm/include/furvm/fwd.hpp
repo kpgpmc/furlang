@@ -141,10 +141,27 @@ using mod_h = handle<mod, refcount_header<mod_id>>;
 // thing.hpp
 
 /**
- * @enum thing_t
+ * @enum thing_type_t
+ * @brief Type of the thing's type.
+ */
+enum class thing_type_t : std::uint32_t;
+
+/**
+ * @struct thing_type
  * @brief Thing type.
  */
-enum class thing_t : std::uint8_t;
+struct thing_type;
+
+/**
+ * @brief Thing type's identifier.
+ */
+using thing_type_id = std::uint32_t;
+
+// TODO: Use generic header
+/**
+ * @brief A handle to a thing type.
+ */
+using thing_type_h = handle<thing_type, refcount_header<thing_type_id>>;
 
 /**
  * @class bad_thing_access
