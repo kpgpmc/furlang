@@ -5,7 +5,6 @@
 #include "furvm/exceptions.hpp"
 #include "furvm/fwd.hpp"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -20,11 +19,66 @@ namespace furvm {
 
 enum class type_t : std::uint32_t {
     Primitive = 0,
+    Reference,
 };
 
+using primitive_type = std::uint64_t;
+using reference_type = std::shared_ptr<type>;
+
 struct type {
-    type_t        type;
-    std::uint64_t value;
+    type_t t;
+    union {
+        primitive_type primitive;
+        reference_type reference;
+    };
+
+    type(primitive_type primitive)
+      : t(type_t::Primitive), primitive(primitive) {}
+
+    type(const reference_type& reference)
+      : t(type_t::Reference), reference(reference) {}
+
+    ~type() {
+        if (t == type_t::Reference) reference.~reference_type();
+    }
+
+    type(type&& other) noexcept
+      : t(other.t) {
+        switch (t) {
+        case type_t::Primitive: primitive = other.primitive; break;
+        case type_t::Reference: reference = std::move(other.reference); break;
+        }
+    }
+
+    type& operator=(type&& other) noexcept {
+        if (this == &other) return *this;
+        t = other.t;
+        switch (t) {
+        case type_t::Primitive: primitive = other.primitive; break;
+        case type_t::Reference: reference = std::move(other.reference); break;
+        }
+
+        return *this;
+    }
+
+    type(const type& other)
+      : t(other.t) {
+        switch (t) {
+        case type_t::Primitive: primitive = other.primitive; break;
+        case type_t::Reference: reference = other.reference; break;
+        }
+    }
+
+    type& operator=(const type& other) {
+        if (this == &other) return *this;
+        t = other.t;
+        switch (t) {
+        case type_t::Primitive: primitive = other.primitive; break;
+        case type_t::Reference: reference = other.reference; break;
+        }
+
+        return *this;
+    }
 };
 
 using byte_t  = std::int8_t;  /**< A 1-byte integer. */
@@ -32,25 +86,27 @@ using short_t = std::int16_t; /**< A 2-byte integer. */
 using int_t   = std::int32_t; /**< A 4-byte integer. */
 using long_t  = std::int64_t; /**< An 8-byte integer. */
 
+using reference_t = std::byte*;
+
 /**
  * @brief A 1-byte integer thing type.
  */
-static constexpr type ByteType = { type_t::Primitive, sizeof(byte_t) };
+inline static type byteType = { sizeof(byte_t) }; // NOLINT
 
 /**
  * @brief A 2-byte integer thing type.
  */
-static constexpr type ShortType = { type_t::Primitive, sizeof(short_t) };
+inline static type shortType = { sizeof(short_t) }; // NOLINT
 
 /**
  * @brief A 4-byte integer thing type.
  */
-static constexpr type IntType = { type_t::Primitive, sizeof(int_t) };
+inline static type intType = { sizeof(int_t) }; // NOLINT
 
 /**
  * @brief An 8-byte integer thing type.
  */
-static constexpr type LongType = { type_t::Primitive, sizeof(long_t) };
+inline static type longType = { sizeof(long_t) }; // NOLINT
 
 template <template <typename> typename Allocator>
 class thing final {
@@ -74,14 +130,7 @@ public:
      * @param allocator Allocator for the thing's data.
      */
     thing(const type_p& type, const allocator_type& allocator = {})
-      : m_type(type), m_allocator(allocator) {
-        switch (m_type->type) {
-        case type_t::Primitive: {
-            m_size = m_type->value;
-        } break;
-        }
-
-        m_size = (m_size + 3) & ~3; // NOTE: Align to 4 bytes
+      : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
         // TODO: Account for alignment
         m_data = m_allocator.allocate(m_size);
     }
@@ -130,8 +179,9 @@ public:
      */
     thing clone() const {
         thing res(m_type, m_allocator);
-        switch (m_type->type) {
-        case type_t::Primitive: {
+        switch (m_type->t) {
+        case type_t::Primitive:
+        case type_t::Reference: {
             std::memcpy(res.m_data, m_data, m_size);
         } break;
         }
@@ -166,7 +216,7 @@ public:
      */
     template <typename T>
     T& get() {
-        if (m_type->type == type_t::Primitive && m_type->value != sizeof(T)) throw bad_thing_access();
+        if (m_size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
 
@@ -177,7 +227,7 @@ public:
      */
     template <typename T>
     const T& get() const {
-        if (m_type->type == type_t::Primitive && m_type->value != sizeof(T)) throw bad_thing_access();
+        if (m_size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
 public:
@@ -275,8 +325,8 @@ public:
      * @return The integer value.
      */
     long_t integer() const {
-        if (m_type->type != type_t::Primitive) throw bad_thing_access();
-        switch (m_type->value) {
+        if (m_type->t != type_t::Primitive) throw bad_thing_access();
+        switch (m_type->primitive) {
         case sizeof(byte_t): return get<byte_t>();
         case sizeof(short_t): return get<short_t>();
         case sizeof(int_t): return get<int_t>();
@@ -284,15 +334,43 @@ public:
         default: throw std::runtime_error("unreachable");
         }
     }
+
+    thing reference() const {
+        thing res              = { std::make_shared<type>(m_type), m_allocator };
+        res.get<reference_t>() = m_data;
+        return std::move(res);
+    }
+private:
+    std::size_t compute_size(const type_p& type) const {
+        switch (m_type->t) {
+        case type_t::Primitive: return (m_type->primitive + 3) & ~3;
+        case type_t::Reference: return sizeof(reference_t);
+        }
+
+        throw std::runtime_error("unreachable");
+    }
+private:
+    thing(const type_p& type, std::byte* data, const allocator_type& allocator = {})
+      : m_type(type), m_size(compute_size(type)), m_data(data), m_allocator(allocator) {}
+
+    thing resolve() const {
+        thing rsv = { m_type, m_data, m_allocator };
+        while (rsv.type().t == type_t::Reference)
+            rsv = { rsv.m_type->reference, rsv.get<reference_t>(), std::move(rsv.m_allocator) };
+        return rsv;
+    }
 private:
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        if (type().type == type_t::Primitive && rhs.type().type == type_t::Primitive) {
-            std::size_t size = std::max(type().value, rhs.type().value);
+        thing lhsRsv = resolve();
+        thing rhsRsv = rhs.resolve();
 
-            long_t result = op(integer(), rhs.integer());
+        if (lhsRsv.type().t == type_t::Primitive && rhsRsv.type().t == type_t::Primitive) {
+            std::size_t size = std::max(lhsRsv.type().primitive, rhsRsv.type().primitive);
 
-            thing res({ type_t::Primitive, size }, m_allocator);
+            long_t result = op(lhsRsv.integer(), rhsRsv.integer());
+
+            thing res({ size }, m_allocator);
             switch (size) {
             case sizeof(byte_t): res.get<byte_t>() = result; break;
             case sizeof(short_t): res.get<short_t>() = result; break;
