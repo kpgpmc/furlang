@@ -368,7 +368,7 @@ public:
     }
 
     thing reference() const {
-        thing res              = { std::make_shared<type>({ m_type }), m_allocator };
+        thing res              = { std::make_shared<class type>(m_type), m_allocator };
         res.get<reference_t>() = m_data;
         return std::move(res);
     }

@@ -8,10 +8,11 @@
 #include <iostream>
 #include <memory>
 
-static constexpr std::array<furvm::byte, 8> s_bytecode = {
+static constexpr std::array<furvm::byte, 9> s_bytecode = {
     furvm::byte(furvm::instruction_t::PushB2I),
     67,
-    furvm::byte(furvm::instruction_t::Clone),
+    furvm::byte(furvm::instruction_t::Duplicate),
+    furvm::byte(furvm::instruction_t::Reference),
     furvm::byte(furvm::instruction_t::Add),
     furvm::byte(furvm::instruction_t::Call),
     1,

@@ -102,6 +102,10 @@ void executor::step() {
     case instruction_t::Clone: {
         push_thing(std::move(thing()->clone()));
     } break;
+    case instruction_t::Reference: {
+        auto thing = pop_thing();
+        push_thing(std::move(thing->reference()));
+    } break;
     case instruction_t::Add: {
         auto rhs = pop_thing();
         auto lhs = pop_thing();

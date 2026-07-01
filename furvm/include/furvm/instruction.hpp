@@ -41,6 +41,13 @@ enum class instruction_t : byte {
     Clone,
 
     /**
+     * @brief Pushes a new reference onto the stack.
+     *
+     * Pops the top thing from the stack and pushes its reference.
+     */
+    Reference,
+
+    /**
      * @brief Adds two things together on the stack.
      */
     Add,
