@@ -5,6 +5,7 @@
 #include "furvm/exceptions.hpp"
 #include "furvm/fwd.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -20,17 +21,23 @@ namespace furvm {
 enum class type_t : std::uint32_t {
     Primitive = 0,
     Reference,
+    List,
 };
 
 using primitive_type = std::uint64_t;
 using reference_type = std::shared_ptr<type>;
+using list_type      = std::shared_ptr<type>;
 
 struct type {
     type_t t;
     union {
         primitive_type primitive;
         reference_type reference;
+        list_type      list;
     };
+
+    type(type_t type)
+      : t(type), primitive(0) {}
 
     type(primitive_type primitive)
       : t(type_t::Primitive), primitive(primitive) {}
@@ -38,8 +45,18 @@ struct type {
     type(const reference_type& reference)
       : t(type_t::Reference), reference(reference) {}
 
+    static type make_list(const list_type& list) {
+        type type(type_t::List);
+        new (&type.list) list_type(list);
+        return type;
+    }
+
     ~type() {
-        if (t == type_t::Reference) reference.~reference_type();
+        switch (t) {
+        case type_t::Reference: reference.~reference_type(); break;
+        case type_t::List: list.~list_type(); break;
+        default: break;
+        }
     }
 
     type(type&& other) noexcept
@@ -47,6 +64,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
+        case type_t::List: list = std::move(other.list); break;
         }
     }
 
@@ -56,6 +74,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
+        case type_t::List: list = std::move(other.list); break;
         }
 
         return *this;
@@ -66,6 +85,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
+        case type_t::List: list = other.list; break;
         }
     }
 
@@ -75,6 +95,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
+        case type_t::List: list = other.list; break;
         }
 
         return *this;
@@ -87,6 +108,11 @@ using int_t   = std::int32_t; /**< A 4-byte integer. */
 using long_t  = std::int64_t; /**< An 8-byte integer. */
 
 using reference_t = std::byte*;
+
+struct list_t {
+    long_t     size;
+    std::byte* data;
+};
 
 /**
  * @brief A 1-byte integer thing type.
@@ -133,13 +159,14 @@ public:
       : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
         // TODO: Account for alignment
         m_data = m_allocator.allocate(m_size);
+        std::memset(m_data, 0, m_size);
     }
 
     /**
      * @brief Destructs a thing.
      */
     ~thing() {
-        if (m_data != nullptr) m_allocator.deallocate(m_data, m_size);
+        if (m_data != nullptr && m_size > 0) m_allocator.deallocate(m_data, m_size);
     }
 
     /**
@@ -184,6 +211,9 @@ public:
         case type_t::Reference: {
             std::memcpy(res.m_data, m_data, m_size);
         } break;
+        case type_t::List: {
+            copy_list(m_type->list, res.get<list_t>(), get<list_t>());
+        } break;
         }
         return std::move(res);
     }
@@ -216,7 +246,8 @@ public:
      */
     template <typename T>
     T& get() {
-        if (m_size != sizeof(T)) throw bad_thing_access();
+        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
+        if (size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
 
@@ -227,7 +258,8 @@ public:
      */
     template <typename T>
     const T& get() const {
-        if (m_size != sizeof(T)) throw bad_thing_access();
+        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
+        if (size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
 public:
@@ -336,22 +368,10 @@ public:
     }
 
     thing reference() const {
-        thing res              = { std::make_shared<type>(m_type), m_allocator };
+        thing res              = { std::make_shared<type>({ m_type }), m_allocator };
         res.get<reference_t>() = m_data;
         return std::move(res);
     }
-private:
-    std::size_t compute_size(const type_p& type) const {
-        switch (m_type->t) {
-        case type_t::Primitive: return (m_type->primitive + 3) & ~3;
-        case type_t::Reference: return sizeof(reference_t);
-        }
-
-        throw std::runtime_error("unreachable");
-    }
-private:
-    thing(const type_p& type, std::byte* data, const allocator_type& allocator = {})
-      : m_type(type), m_size(compute_size(type)), m_data(data), m_allocator(allocator) {}
 
     thing resolve() const {
         thing rsv = { m_type, m_data, m_allocator };
@@ -359,6 +379,67 @@ private:
             rsv = { rsv.m_type->reference, rsv.get<reference_t>(), std::move(rsv.m_allocator) };
         return rsv;
     }
+
+    void resize(long_t newSize) {
+        if (m_type->t != type_t::List) throw bad_thing_access();
+        auto& list = get<list_t>();
+        if (newSize < 0 || newSize == list.size) return;
+        std::byte* newData = new std::byte[compute_size_na(m_type->list) * newSize];
+        std::memcpy(newData, list.data, compute_size_na(m_type->list) * std::min(list.size, newSize));
+        list.size = newSize;
+        delete[] list.data;
+        list.data = newData;
+    }
+
+    thing at(long_t index) const {
+        if (m_type->t != type_t::List) throw bad_thing_access();
+        auto& list = get<list_t>();
+        if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
+        thing res              = { m_type->list, m_allocator };
+        res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
+        return std::move(res);
+    }
+private:
+    static void copy_list(const type_p& innerType, list_t& dst, const list_t& src) {
+        dst.size = src.size;
+        if (dst.size <= 0) {
+            dst.data = nullptr;
+            return;
+        }
+        if (innerType == nullptr) throw std::runtime_error("inner type should not be null!");
+
+        std::size_t size = compute_size_na(innerType) * dst.size;
+        dst.data         = new std::byte[size];
+        switch (innerType->t) {
+        case type_t::Primitive:
+        case type_t::Reference: {
+            std::memcpy(dst.data, src.data, size);
+        } break;
+        case type_t::List: {
+            for (std::size_t i = 0; i < size; ++i) {
+                copy_list(innerType->list,
+                    *std::launder(reinterpret_cast<list_t*>(dst.data)),
+                    *std::launder(reinterpret_cast<list_t*>(src.data)));
+            }
+        } break;
+        }
+    }
+private:
+    static std::size_t compute_size_na(const type_p& type) {
+        switch (type->t) {
+        case type_t::Primitive: return type->primitive;
+        case type_t::Reference: return sizeof(reference_t);
+        case type_t::List: return sizeof(list_t);
+        }
+
+        throw std::runtime_error("unreachable");
+    }
+
+    // NOTE: Align to 4 bytes
+    static std::size_t compute_size(const type_p& type) { return (compute_size_na(type) + 3) & ~3; }
+private:
+    thing(const type_p& type, std::byte* data, const allocator_type& allocator = {})
+      : m_type(type), m_size(0), m_data(data), m_allocator(allocator) {}
 private:
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
