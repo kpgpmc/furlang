@@ -13,7 +13,7 @@
 
 namespace furvm {
 
-class context {
+class context : public handle_container<mod_h> {
 public:
     friend class executor;
 public:
@@ -36,49 +36,6 @@ public:
 
     context(const context&)            = delete;
     context& operator=(const context&) = delete;
-public:
-    /**
-     * @brief Emplaces a module in the context.
-     *
-     * @param args Arguments forwarded to the module constructor.
-     * @return The emplaced module.
-     */
-    template <typename... Args>
-    auto emplace_module(Args&&... args) {
-        return m_modules.emplace(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Returns a module from the context.
-     *
-     * @param args Module's id.
-     * @return A handle to the module.
-     */
-    template <typename... Args>
-    auto module_at(Args&&... args) {
-        return m_modules.at(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Returns a module from the context.
-     *
-     * @param args Module's id.
-     * @return A handle to the module.
-     */
-    template <typename... Args>
-    auto module_at(Args&&... args) const {
-        return m_modules.at(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Erases a module from the context.
-     *
-     * @param args Module's id.
-     */
-    template <typename... Args>
-    void erase_module(Args&&... args) {
-        m_modules.erase(std::forward<Args>(args)...);
-    }
 public:
     /**
      * @brief Emplaces an executor in the context.

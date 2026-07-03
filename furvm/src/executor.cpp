@@ -16,7 +16,7 @@ namespace furvm {
 void executor::push_frame(const mod_h& mod, function function) {
     mod_h modInst = mod;
     while (function.type() == function_t::Import) {
-        modInst  = m_context->module_at(function.imp().mod);
+        modInst  = m_context->at(function.imp().mod);
         function = *modInst->function_at(function.imp().function);
     }
 

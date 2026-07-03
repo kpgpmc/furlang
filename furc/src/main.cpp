@@ -61,7 +61,7 @@ int main(void) {
         }
 
         auto context  = std::make_shared<furvm::context>();
-        auto furvmMod = context->emplace_module("main", furc::back::furvm_generator::generate(mod));
+        auto furvmMod = context->emplace("main", furc::back::furvm_generator::generate(mod));
 
         std::ofstream file("./a.fmod", std::ios::binary);
         furvmMod->serialize(file);

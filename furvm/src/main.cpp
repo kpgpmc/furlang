@@ -23,12 +23,12 @@ static constexpr std::array<furvm::byte, 9> s_bytecode = {
 int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    furvm::mod_h      furlangModule = context->emplace_module("furlang");
+    furvm::mod_h      furlangModule = context->emplace("furlang");
     furvm::function_h printFunc     = furlangModule->emplace_function("print", 1, "print");
     furlangModule->set_native_function("print",
         [](furvm::executor& executor) { std::cout << executor.load_thing(0)->integer() << '\n'; });
 
-    furvm::mod_h      mainModule = context->emplace_module("main", s_bytecode.begin(), s_bytecode.end());
+    furvm::mod_h      mainModule = context->emplace("main", s_bytecode.begin(), s_bytecode.end());
     furvm::function_h mainFunc   = mainModule->emplace_function("main", 0, 0);
     mainModule->emplace_function(furlangModule, printFunc).dispatch();
 
