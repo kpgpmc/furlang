@@ -7,6 +7,7 @@
 #include "furvm/handle.hpp"
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
+#include "furvm/thing_allocator.hpp"
 
 #include <cstddef>
 #include <utility>
