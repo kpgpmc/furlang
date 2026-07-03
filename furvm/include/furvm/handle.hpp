@@ -180,8 +180,8 @@ public:
      *
      * @return The reference count.
      */
-    template <typename ReferenceCount = typename Header::refcount_type>
-    ReferenceCount reference_count() const {
+    template <typename U = Header, typename = std::enable_if_t<detail::header_has_refcount_v<U>>>
+    auto reference_count() const {
         return m_value->first.reference_count();
     }
 
