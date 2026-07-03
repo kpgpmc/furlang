@@ -13,11 +13,18 @@ enum class type_t : std::uint32_t {
     Primitive = 0,
     Reference,
     List,
+
+    Import,
 };
 
 using primitive_type = std::uint64_t;
 using reference_type = std::shared_ptr<type>;
 using list_type      = std::shared_ptr<type>;
+
+struct import_type {
+    mod_id  mod;
+    type_id type;
+};
 
 struct type {
     type_t t;
@@ -25,6 +32,7 @@ struct type {
         primitive_type primitive;
         reference_type reference;
         list_type      list;
+        import_type    imp;
     };
 
     type(type_t type)
@@ -42,10 +50,14 @@ struct type {
         return type;
     }
 
+    type(const import_type& imp)
+      : t(type_t::Import), imp(imp) {}
+
     ~type() {
         switch (t) {
         case type_t::Reference: reference.~reference_type(); break;
         case type_t::List: list.~list_type(); break;
+        case type_t::Import: imp.~import_type(); break;
         default: break;
         }
     }
@@ -56,6 +68,7 @@ struct type {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
         case type_t::List: list = std::move(other.list); break;
+        case type_t::Import: imp = std::move(other.imp); break;
         }
     }
 
@@ -66,6 +79,7 @@ struct type {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
         case type_t::List: list = std::move(other.list); break;
+        case type_t::Import: imp = std::move(other.imp); break;
         }
 
         return *this;
@@ -77,6 +91,7 @@ struct type {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
         case type_t::List: list = other.list; break;
+        case type_t::Import: imp = other.imp; break;
         }
     }
 
@@ -87,6 +102,7 @@ struct type {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
         case type_t::List: list = other.list; break;
+        case type_t::Import: imp = other.imp; break;
         }
 
         return *this;

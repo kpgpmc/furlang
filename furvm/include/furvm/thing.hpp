@@ -23,6 +23,8 @@ class thing final {
     friend class executor;
 public:
     using allocator_type = Allocator<std::byte>; /**< Allocator type. */
+
+    using mod_container = std::shared_ptr<handle_container<mod_h>>;
 public:
     /**
      * @brief Constructs a thing.
@@ -30,8 +32,8 @@ public:
      * @param type Thing type.
      * @param allocator Allocator for the thing's data.
      */
-    thing(const type& type, const allocator_type& allocator = {})
-      : thing(std::make_shared<class type>(type), allocator) {}
+    thing(const type& type, const mod_container& modules = nullptr, const allocator_type& allocator = {})
+      : thing(std::make_shared<class type>(type), modules, allocator) {}
 
     /**
      * @brief Constructs a thing.
@@ -39,8 +41,8 @@ public:
      * @param type Thing type.
      * @param allocator Allocator for the thing's data.
      */
-    thing(const type_p& type, const allocator_type& allocator = {})
-      : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
+    thing(const type_p& type, const mod_container& modules = nullptr, const allocator_type& allocator = {})
+      : m_type(type), m_size(compute_size(resolve_type(type, modules))), m_modules(modules), m_allocator(allocator) {
         // TODO: Account for alignment
         m_data = m_allocator.allocate(m_size);
         std::memset(m_data, 0, m_size);
@@ -60,6 +62,7 @@ public:
       : m_type(std::move(other.m_type)),
         m_data(other.m_data),
         m_size(other.m_size),
+        m_modules(std::move(other.m_modules)),
         m_allocator(std::move(other.m_allocator)) {
         other.m_type = {};
         other.m_data = nullptr;
@@ -73,6 +76,7 @@ public:
         if (this == &other) return *this;
         m_type       = other.m_type;
         m_data       = other.m_data;
+        m_modules    = std::move(other.m_modules);
         m_allocator  = std::move(other.m_allocator);
         other.m_type = {};
         other.m_data = nullptr;
@@ -83,21 +87,24 @@ public:
     thing(const thing&)            = delete;
     thing& operator=(const thing&) = delete;
 public:
+    void assign_mod_container(const mod_container& modules) { m_modules = modules; }
+public:
     /**
      * @brief Returns a clone of the thing.
      *
      * @return A clone of this thing.
      */
     thing clone() const {
-        thing res(m_type, m_allocator);
+        thing res(resolve_type(m_type, m_modules), m_modules, m_allocator);
         switch (m_type->t) {
         case type_t::Primitive:
         case type_t::Reference: {
             std::memcpy(res.m_data, m_data, m_size);
         } break;
         case type_t::List: {
-            copy_list(m_type->list, res.get<list_t>(), get<list_t>());
+            copy_list(resolve_type(m_type->list, m_modules), res.get<list_t>(), get<list_t>());
         } break;
+        case type_t::Import: throw std::runtime_error("unreachable");
         }
         return std::move(res);
     }
@@ -130,7 +137,7 @@ public:
      */
     template <typename T>
     T& get() {
-        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
+        std::size_t size = m_size > 0 ? m_size : compute_size_na(resolve_type(m_type, m_modules));
         if (size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
@@ -142,7 +149,7 @@ public:
      */
     template <typename T>
     const T& get() const {
-        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
+        std::size_t size = m_size > 0 ? m_size : compute_size_na(resolve_type(m_type, m_modules));
         if (size != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
@@ -252,13 +259,13 @@ public:
     }
 
     thing reference() const {
-        thing res              = { std::make_shared<class type>(m_type), m_allocator };
+        thing res              = { std::make_shared<class type>(m_type), m_modules, m_allocator };
         res.get<reference_t>() = m_data;
         return std::move(res);
     }
 
     thing resolve() const {
-        thing rsv = { m_type, m_data, m_allocator };
+        thing rsv = { resolve_type(m_type, m_modules), m_data, m_allocator };
         while (rsv.type().t == type_t::Reference)
             rsv = { rsv.m_type->reference, rsv.get<reference_t>(), std::move(rsv.m_allocator) };
         return rsv;
@@ -268,8 +275,10 @@ public:
         if (m_type->t != type_t::List) throw bad_thing_access();
         auto& list = get<list_t>();
         if (newSize < 0 || newSize == list.size) return;
-        std::byte* newData = new std::byte[compute_size_na(m_type->list) * newSize];
-        std::memcpy(newData, list.data, compute_size_na(m_type->list) * std::min(list.size, newSize));
+        std::byte* newData = new std::byte[compute_size_na(resolve_type(m_type->list, m_modules)) * newSize];
+        std::memcpy(newData,
+            list.data,
+            compute_size_na(resolve_type(m_type->list, m_modules)) * std::min(list.size, newSize));
         list.size = newSize;
         delete[] list.data;
         list.data = newData;
@@ -279,9 +288,16 @@ public:
         if (m_type->t != type_t::List) throw bad_thing_access();
         auto& list = get<list_t>();
         if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
-        thing res              = { m_type->list, m_allocator };
+        thing res              = { m_type->list, m_modules, m_allocator };
         res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
         return std::move(res);
+    }
+public:
+    static type_p resolve_type(const type_p& initType, const mod_container& modules) {
+        type_p rsv = initType;
+        while (rsv->t == type_t::Import)
+            rsv = *modules->at(initType->imp.mod)->type_at(initType->imp.type);
+        return rsv;
     }
 private:
     static void copy_list(const type_p& innerType, list_t& dst, const list_t& src) {
@@ -296,16 +312,15 @@ private:
         dst.data         = new std::byte[size];
         switch (innerType->t) {
         case type_t::Primitive:
-        case type_t::Reference: {
-            std::memcpy(dst.data, src.data, size);
-        } break;
-        case type_t::List: {
+        case type_t::Reference: std::memcpy(dst.data, src.data, size); break;
+        case type_t::List:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(innerType->list,
                     *std::launder(reinterpret_cast<list_t*>(dst.data)),
                     *std::launder(reinterpret_cast<list_t*>(src.data)));
             }
-        } break;
+            break;
+        case type_t::Import: throw std::runtime_error("unresolved type");
         }
     }
 private:
@@ -314,6 +329,7 @@ private:
         case type_t::Primitive: return type->primitive;
         case type_t::Reference: return sizeof(reference_t);
         case type_t::List: return sizeof(list_t);
+        case type_t::Import: throw std::runtime_error("unresolved type");
         }
 
         throw std::runtime_error("unreachable");
@@ -335,7 +351,7 @@ private:
 
             long_t result = op(lhsRsv.integer(), rhsRsv.integer());
 
-            thing res({ size }, m_allocator);
+            thing res({ size }, m_modules, m_allocator);
             switch (size) {
             case sizeof(byte_t): res.get<byte_t>() = result; break;
             case sizeof(short_t): res.get<short_t>() = result; break;
@@ -353,6 +369,7 @@ private:
     std::size_t m_size;
     std::byte*  m_data;
 
+    mod_container  m_modules;
     allocator_type m_allocator;
 };
 

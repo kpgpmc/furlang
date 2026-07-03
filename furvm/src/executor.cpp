@@ -91,7 +91,7 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        push_thing({ intType, m_context->thing_alloc() })->get<int_t>() = frame.mod->byte(frame.position++);
+        push_thing({ intType, m_context, m_context->thing_alloc() })->get<int_t>() = frame.mod->byte(frame.position++);
     } break;
     case instruction_t::Drop: {
         pop_thing();
