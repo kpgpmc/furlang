@@ -154,6 +154,10 @@ struct type;
 
 using type_p = std::shared_ptr<type>;
 
+using type_id = std::uint32_t;
+
+using type_h = handle<type_p, generic_header<type_id>>;
+
 /**
  * @class bad_thing_access
  * @brief Bad thing access exception.

@@ -4,6 +4,7 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
+#include "furvm/type.hpp" // IWYU pragma: keep
 
 #include <functional>
 #include <ostream>
@@ -189,6 +190,49 @@ public:
     }
 public:
     /**
+     * @brief Emplaces a type in the context.
+     *
+     * @param args Arguments forwarded to the type constructor.
+     * @return The emplaced type.
+     */
+    template <typename... Args>
+    auto emplace_type(Args&&... args) {
+        return m_types.emplace_back(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns a type from the context.
+     *
+     * @param args type's id.
+     * @return A handle to the type.
+     */
+    template <typename... Args>
+    auto type_at(Args&&... args) {
+        return m_types.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Returns a type from the context.
+     *
+     * @param args type's id.
+     * @return A handle to the type.
+     */
+    template <typename... Args>
+    auto type_at(Args&&... args) const {
+        return m_types.at(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Erases a type from the context.
+     *
+     * @param args type's id.
+     */
+    template <typename... Args>
+    void erase_type(Args&&... args) {
+        m_types.erase(std::forward<Args>(args)...);
+    }
+public:
+    /**
      * @brief Prints the module in a bytecode form to an output stream.
      *
      * @param os Output stream.
@@ -201,6 +245,8 @@ private:
     std::unordered_map<std::string, function_id> m_functionMap;
     std::unordered_map<std::string, function_id> m_publicFunctions;
     handle_container<function_h>                 m_functions;
+
+    handle_container<type_h> m_types;
 
     std::unordered_map<std::string, native_function> m_nativeFunctions;
 };
