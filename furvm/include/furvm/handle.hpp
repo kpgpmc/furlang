@@ -308,6 +308,17 @@ public:
         delete it->second;
         m_pairs.erase(it);
     }
+
+    /**
+     * @brief Checks whether a handle exists inside.
+     *
+     * @param id Identifier of the handle.
+     * @return true if the handle exists insdie of this container.
+     */
+    template <typename IdFwd>
+    constexpr bool contains(IdFwd&& id) const {
+        return m_pairs.find(std::forward<IdFwd>(id)) != m_pairs.end();
+    }
 private:
     std::unordered_map<id_type, pair_type*> m_pairs;
 };
@@ -395,6 +406,14 @@ public:
         delete m_pairs[id];
         m_pairs[id] = nullptr;
     }
+
+    /**
+     * @brief Checks whether a handle exists inside.
+     *
+     * @param id Identifier of the handle.
+     * @return true if the handle exists insdie of this container.
+     */
+    constexpr bool contains(id_type id) const { return id < m_pairs.size() && m_pairs[id] != nullptr; }
 public:
     auto begin() { return m_pairs.begin(); }
     auto begin() const { return m_pairs.begin(); }
