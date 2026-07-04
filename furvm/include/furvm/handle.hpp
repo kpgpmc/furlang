@@ -148,7 +148,9 @@ public:
      */
     handle(const handle& other)
       : m_value(other.m_value) {
-        m_value->first.acquire();
+        if constexpr (detail::header_has_refcount_v<Header>) {
+            m_value->first.acquire();
+        }
     }
 
     /**
@@ -157,7 +159,9 @@ public:
     handle& operator=(const handle& other) {
         if (this == &other) return *this;
         m_value = other.m_value;
-        m_value->first.acquire();
+        if constexpr (detail::header_has_refcount_v<Header>) {
+            m_value->first.acquire();
+        }
         return *this;
     }
 public:
