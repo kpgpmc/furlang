@@ -98,6 +98,8 @@ public:
     using const_pointer   = const Value*; /** Constant pointer type. */
 public:
     using id_type = typename Header::id_type; /** Id type of the header. */
+
+    using header_type = Header;
 public:
     using pair_type = std::pair<Header, Value>; /** Type of a header-value pair. */
 public:
@@ -362,9 +364,16 @@ public:
             delete m_pairs[id];
         }
 
-        pair_type* newPair = new pair_type(std::piecewise_construct,
-            std::forward_as_tuple(id, 0, [&](const id_type& id) { erase(id); }),
-            std::forward_as_tuple(std::forward<Args>(args)...));
+        pair_type* newPair = nullptr;
+        if constexpr (detail::header_has_refcount_v<typename Handle::header_type>) {
+            newPair = new pair_type(std::piecewise_construct,
+                std::forward_as_tuple(id, 0, [&](const id_type& id) { erase(id); }),
+                std::forward_as_tuple(std::forward<Args>(args)...));
+        } else {
+            newPair = new pair_type(std::piecewise_construct,
+                std::forward_as_tuple(id),
+                std::forward_as_tuple(std::forward<Args>(args)...));
+        }
 
         m_pairs[id] = newPair;
         return { newPair };

@@ -63,8 +63,18 @@ public:
     /**
      * @brief Constructs an import function.
      *
-     * @param paramCount Parameter count.
-     * @param imp Import function.
+     * @param mod Module's id.
+     * @param function Function's id.
+     */
+    template <typename ModFwd, typename = std::enable_if_t<std::is_constructible_v<mod_id, ModFwd>>>
+    function(ModFwd&& mod, function_id function)
+      : m_type(function_t::Import), m_paramCount(0), m_value(import_function{ std::forward<ModFwd>(mod), function }) {}
+
+    /**
+     * @brief Constructs an import function.
+     *
+     * @param mod Module.
+     * @param function Function.
      */
     function(const mod_h& mod, const function_h& function);
 

@@ -31,7 +31,7 @@ void executor::push_frame(const mod_h& mod, function function) {
     } break;
     case function_t::Native: {
         m_frames.emplace((struct executor::frame){ mod, 0, m_stack.size(), std::move(args) });
-        modInst->get_native_function(function.name())(*this);
+        modInst->get_native_function(function.native())(*this);
         m_frames.pop();
     } break;
     default: throw std::runtime_error("unexpected function type");

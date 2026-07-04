@@ -5,7 +5,6 @@
 #include "furvm/handle.hpp" // IWYU pragma: keep
 
 #include <cstdint>
-
 namespace furvm {
 
 enum class type_t : std::uint32_t {

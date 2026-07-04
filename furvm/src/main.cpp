@@ -1,5 +1,6 @@
 #ifndef LIBFURVM
 
+#include "furvm/detail/serialization.hpp"
 #include "furvm/furvm.hpp"
 
 #include <array>
@@ -7,33 +8,30 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
 
-static constexpr std::array<furvm::byte, 9> s_bytecode = {
-    furvm::byte(furvm::instruction_t::PushB2I),
-    67,
-    furvm::byte(furvm::instruction_t::Duplicate),
-    furvm::byte(furvm::instruction_t::Reference),
-    furvm::byte(furvm::instruction_t::Add),
-    furvm::byte(furvm::instruction_t::Call),
-    1,
-    0,
-    furvm::byte(furvm::instruction_t::Return),
-};
+int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <mod.fmod>\n";
+        return 1;
+    }
 
-int main(void) {
     auto context = std::make_shared<furvm::context>();
 
-    furvm::mod_h      furlangModule = context->emplace("furlang");
-    furvm::function_h printFunc     = furlangModule->emplace_function("print", 1, "print");
-    furlangModule->set_native_function("print",
+    std::ifstream file(argv[1]);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open " << argv[1] << '\n';
+        return 1;
+    }
+
+    furvm::mod_h      mod  = context->emplace("main", furvm::mod::load(file));
+    furvm::function_h func = mod->function_at("main");
+
+    mod->set_native_function("print",
         [](furvm::executor& executor) { std::cout << executor.load_thing(0)->integer() << '\n'; });
 
-    furvm::mod_h      mainModule = context->emplace("main", s_bytecode.begin(), s_bytecode.end());
-    furvm::function_h mainFunc   = mainModule->emplace_function("main", 0, 0);
-    mainModule->emplace_function(furlangModule, printFunc).dispatch();
-
     furvm::executor_h executor = context->emplace_executor(context);
-    executor->push_frame(mainModule, *mainFunc);
+    executor->push_frame(mod, *func);
 
     while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
         executor->step();

@@ -7,8 +7,10 @@
 #include "furvm/type.hpp" // IWYU pragma: keep
 
 #include <functional>
+#include <istream>
 #include <ostream>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -82,7 +84,13 @@ public:
      */
     template <typename... Args>
     function_h emplace_function(Args&&... args) {
-        function_h function                 = m_functions.emplace_back(std::forward<Args>(args)...);
+        function_h function;
+        if constexpr (std::is_constructible_v<class function, Args...>) {
+            function = m_functions.emplace_back(std::forward<Args>(args)...);
+        } else {
+            function = m_functions.emplace(std::forward<Args>(args)...);
+        }
+
         m_functionMap[function->name()]     = function.id();
         m_publicFunctions[function->name()] = function.id();
         return std::move(function);
@@ -145,7 +153,7 @@ public:
      * @param name Name of the function.
      * @return A handle to the function.
      */
-    template <typename NameFwd>
+    template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
     auto function_at(NameFwd&& name) {
         return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
     }
@@ -156,7 +164,7 @@ public:
      * @param name Name of the function.
      * @return A handle to the function.
      */
-    template <typename NameFwd>
+    template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
     auto function_at(NameFwd&& name) const {
         return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
     }
@@ -197,7 +205,11 @@ public:
      */
     template <typename... Args>
     auto emplace_type(Args&&... args) {
-        return m_types.emplace_back(std::forward<Args>(args)...);
+        if constexpr (std::is_constructible_v<type_p, Args...>) {
+            return m_types.emplace_back(std::forward<Args>(args)...);
+        } else {
+            return m_types.emplace(std::forward<Args>(args)...);
+        }
     }
 
     /**
@@ -239,6 +251,14 @@ public:
      * @return The output stream.
      */
     std::ostream& serialize(std::ostream& os) const;
+
+    /**
+     * @brief Loads a module in a bytecode form from an input stream.
+     *
+     * @param is Input stream.
+     * @return The loaded module.
+     */
+    static mod load(std::istream& is);
 private:
     bytecode_t m_bytecode;
 
