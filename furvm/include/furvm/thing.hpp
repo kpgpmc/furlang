@@ -101,7 +101,7 @@ public:
             std::memcpy(res.m_data, m_data, m_size);
         } break;
         case type_t::List: {
-            copy_list(resolve_type(m_type->list, m_modules), res.get<list_t>(), get<list_t>());
+            copy_list(resolve_type(*m_type->list, m_modules), res.get<list_t>(), get<list_t>());
         } break;
         case type_t::Import: throw std::runtime_error("unreachable");
         }
@@ -274,10 +274,10 @@ public:
         if (m_type->t != type_t::List) throw bad_thing_access();
         auto& list = get<list_t>();
         if (newSize < 0 || newSize == list.size) return;
-        std::byte* newData = new std::byte[compute_size_na(resolve_type(m_type->list, m_modules)) * newSize];
+        std::byte* newData = new std::byte[compute_size_na(resolve_type(*m_type->list, m_modules)) * newSize];
         std::memcpy(newData,
             list.data,
-            compute_size_na(resolve_type(m_type->list, m_modules)) * std::min(list.size, newSize));
+            compute_size_na(resolve_type(*m_type->list, m_modules)) * std::min(list.size, newSize));
         list.size = newSize;
         delete[] list.data;
         list.data = newData;
@@ -287,7 +287,7 @@ public:
         if (m_type->t != type_t::List) throw bad_thing_access();
         auto& list = get<list_t>();
         if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
-        thing res              = { m_type->list, m_modules, m_allocator };
+        thing res              = { *m_type->list, m_modules, m_allocator };
         res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
         return std::move(res);
     }
@@ -314,7 +314,7 @@ private:
         case type_t::Reference: std::memcpy(dst.data, src.data, size); break;
         case type_t::List:
             for (std::size_t i = 0; i < size; ++i) {
-                copy_list(innerType->list,
+                copy_list(*innerType->list,
                     *std::launder(reinterpret_cast<list_t*>(dst.data)),
                     *std::launder(reinterpret_cast<list_t*>(src.data)));
             }

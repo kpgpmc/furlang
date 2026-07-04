@@ -2,10 +2,9 @@
 #define FURVM_TYPE_HPP
 
 #include "furvm/fwd.hpp"
+#include "furvm/handle.hpp" // IWYU pragma: keep
 
 #include <cstdint>
-#include <memory>
-#include <utility>
 
 namespace furvm {
 
@@ -18,8 +17,8 @@ enum class type_t : std::uint32_t {
 };
 
 using primitive_type = std::uint64_t;
-using reference_type = std::shared_ptr<type>;
-using list_type      = std::shared_ptr<type>;
+using reference_type = type_p;
+using list_type      = type_h;
 
 struct import_type {
     mod_id  mod;
@@ -44,11 +43,8 @@ struct type {
     type(const reference_type& reference)
       : t(type_t::Reference), reference(reference) {}
 
-    static type make_list(const list_type& list) {
-        type type(type_t::List);
-        new (&type.list) list_type(list);
-        return type;
-    }
+    type(const list_type& list)
+      : t(type_t::List), list(list) {}
 
     type(const import_type& imp)
       : t(type_t::Import), imp(imp) {}
