@@ -9,6 +9,7 @@
 #include "furc/front/token.hpp"
 
 #include <fstream>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -313,27 +314,42 @@ struct unaryop_info {
     std::uint32_t                  precedence;
 };
 
-ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) {
+static inline std::optional<unaryop_info> get_unaryop_info(const token_r& token) {
     static std::unordered_map<token_t, unaryop_info> s_prefixes = {
-        { token_t::Plus, unaryop_info{ ast::unaryop_expression_node_t::Positive, 3 } },
-        { token_t::Minus, unaryop_info{ ast::unaryop_expression_node_t::Negative, 3 } },
+        { token_t::Plus, unaryop_info{ ast::unaryop_expression_node_t::Positive, 2 } },
+        { token_t::Minus, unaryop_info{ ast::unaryop_expression_node_t::Negative, 2 } },
         { token_t::DPlus, unaryop_info{ ast::unaryop_expression_node_t::PrefixIncrement, 2 } },
         { token_t::DMinus, unaryop_info{ ast::unaryop_expression_node_t::PrefixDecrement, 2 } },
     };
+    static std::unordered_map<keyword_token, unaryop_info> s_keywords = {
+        { keyword_token::Pointerof, unaryop_info{ ast::unaryop_expression_node_t::Pointerof, 2 } },
+    };
 
+    if (token->type == token_t::Keyword) {
+        auto it = s_keywords.find(token->value.keyword);
+        if (it == s_keywords.end()) return {};
+        return it->second;
+    }
+
+    auto it = s_prefixes.find(token->type);
+    if (it == s_prefixes.end()) return {};
+    return it->second;
+}
+
+ast::expression_node_r parser::parse_expression_unary(std::uint32_t precedence) {
     std::shared_ptr<ast::unary_op_expression_node> result;
     while (true) {
-        auto it = s_prefixes.find(peek_token()->type);
-        if (it == s_prefixes.end()) break;
-        auto current = it->second;
+        auto opt = get_unaryop_info(peek_token());
+        if (!opt.has_value()) break;
+        unaryop_info current = opt.value();
         if (current.precedence >= precedence) break;
         auto token = next_token();
 
         ast::expression_node_p expression;
 
-        auto nextIt = s_prefixes.find(peek_token()->type);
-        if (nextIt != s_prefixes.end()) {
-            auto next = nextIt->second;
+        opt = get_unaryop_info(peek_token());
+        if (opt.has_value()) {
+            auto next = opt.value();
             auto expr = parse_expression_unary(current.precedence + 1);
             if (expr.has_error()) {
                 return ast::expression_node_r(ast::error{ expr.error().location });
@@ -464,7 +480,7 @@ ast::expression_node_r parser::parse_expression_rhs(ast::expression_node_p&& ini
         } else if (current.type == rhsop_info_t::FuncCall && peek_token().has_value()) {
             if (peek_token()->type != token_t::RParen) {
                 while (true) {
-                    auto expr = parse_expression_unary(current.precedence + 1);
+                    auto expr = parse_expression_unary(16);
                     if (expr.has_error()) {
                         return ast::expression_node_r(ast::error{ expr.error().location });
                     }

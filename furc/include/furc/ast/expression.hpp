@@ -113,6 +113,7 @@ enum class unaryop_expression_node_t {
     PostfixIncrement, /**< Postfix increment */
     PrefixDecrement,  /**< Prefix decrement */
     PostfixDecrement, /**< Postfix decrement */
+    Pointerof,        /**< Pointerof */
 };
 
 /**

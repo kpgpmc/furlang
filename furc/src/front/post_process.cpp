@@ -11,6 +11,7 @@
 #include <queue>
 #include <set>
 #include <stack>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -427,7 +428,17 @@ static void sccp_stage(function_context& ctx) {
             case furlang::ir::instruction_t::Assign: {
                 newLat = sccp_stage_get_lattice(latticeValues, *instr->sources().front());
             } break;
-            case furlang::ir::instruction_t::BinaryOp: {
+            case furlang::ir::instruction_t::Add:
+            case furlang::ir::instruction_t::Sub:
+            case furlang::ir::instruction_t::Mul:
+            case furlang::ir::instruction_t::Div:
+            case furlang::ir::instruction_t::Mod:
+            case furlang::ir::instruction_t::Eq:
+            case furlang::ir::instruction_t::NotEq:
+            case furlang::ir::instruction_t::LessThan:
+            case furlang::ir::instruction_t::GreaterThan:
+            case furlang::ir::instruction_t::LessEq:
+            case furlang::ir::instruction_t::GreaterEq: {
                 lattice lhs = sccp_stage_get_lattice(latticeValues, *instr->sources()[0]);
                 lattice rhs = sccp_stage_get_lattice(latticeValues, *instr->sources()[1]);
 
@@ -435,40 +446,31 @@ static void sccp_stage(function_context& ctx) {
                     newLat.type = lattice::Bottom;
                 } else if (lhs.type == lattice::Constant && rhs.type == lattice::Constant) {
                     newLat.type = lattice::Constant;
-                    switch (dynamic_cast<const furlang::ir::binary_op_instruction&>(*instr).op_type()) {
-                    case furlang::ir::binary_op_instruction_t::Add:
-                        newLat.constant = lhs.constant + rhs.constant;
-                        break;
-                    case furlang::ir::binary_op_instruction_t::Sub:
-                        newLat.constant = lhs.constant - rhs.constant;
-                        break;
-                    case furlang::ir::binary_op_instruction_t::Mul:
-                        newLat.constant = lhs.constant * rhs.constant;
-                        break;
-                    case furlang::ir::binary_op_instruction_t::Div:
-                        newLat.constant = lhs.constant / rhs.constant;
-                        break;
-                    case furlang::ir::binary_op_instruction_t::Mod:
-                        newLat.constant = lhs.constant % rhs.constant;
-                        break;
-                    case furlang::ir::binary_op_instruction_t::Eq:
+                    switch (instr->type()) {
+                    case furlang::ir::instruction_t::Add: newLat.constant = lhs.constant + rhs.constant; break;
+                    case furlang::ir::instruction_t::Sub: newLat.constant = lhs.constant - rhs.constant; break;
+                    case furlang::ir::instruction_t::Mul: newLat.constant = lhs.constant * rhs.constant; break;
+                    case furlang::ir::instruction_t::Div: newLat.constant = lhs.constant / rhs.constant; break;
+                    case furlang::ir::instruction_t::Mod: newLat.constant = lhs.constant % rhs.constant; break;
+                    case furlang::ir::instruction_t::Eq:
                         newLat.constant = (lhs.constant == rhs.constant) ? 1 : 0;
                         break;
-                    case furlang::ir::binary_op_instruction_t::NotEq:
+                    case furlang::ir::instruction_t::NotEq:
                         newLat.constant = (lhs.constant != rhs.constant) ? 1 : 0;
                         break;
-                    case furlang::ir::binary_op_instruction_t::LessThan:
+                    case furlang::ir::instruction_t::LessThan:
                         newLat.constant = (lhs.constant < rhs.constant) ? 1 : 0;
                         break;
-                    case furlang::ir::binary_op_instruction_t::GreaterThan:
+                    case furlang::ir::instruction_t::GreaterThan:
                         newLat.constant = (lhs.constant > rhs.constant) ? 1 : 0;
                         break;
-                    case furlang::ir::binary_op_instruction_t::LessEq:
+                    case furlang::ir::instruction_t::LessEq:
                         newLat.constant = (lhs.constant <= rhs.constant) ? 1 : 0;
                         break;
-                    case furlang::ir::binary_op_instruction_t::GreaterEq:
+                    case furlang::ir::instruction_t::GreaterEq:
                         newLat.constant = (lhs.constant >= rhs.constant) ? 1 : 0;
                         break;
+                    default: throw std::runtime_error("unreachable");
                     }
                 }
             } break;

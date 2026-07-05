@@ -18,15 +18,50 @@ namespace ir {
  * @brief IR instruction type.
  */
 enum class instruction_t {
-    Alloca,     /**< Unused */
-    Assign,     /**< Assign */
-    BinaryOp,   /**< Binary operation */
-    Call,       /**< Call */
-    Branch,     /**< Branch */
-    BranchCond, /**< Conditional branch */
-    Return,     /**< Return */
-    Phi,        /**< Phi function */
+    Alloca,      /**< Unused */
+    Assign,      /**< Assign */
+    Add,         /**< Addition */
+    Sub,         /**< Subtraction */
+    Mul,         /**< Multiplication */
+    Div,         /**< Division */
+    Mod,         /**< Modulo */
+    Eq,          /**< Equal */
+    NotEq,       /**< Not equal */
+    LessThan,    /**< Less than */
+    GreaterThan, /**< Greater than */
+    LessEq,      /**< Less or equal */
+    GreaterEq,   /**< Greater or equal */
+    Pointerof,   /**< Pointerof */
+    Call,        /**< Call */
+    Branch,      /**< Branch */
+    BranchCond,  /**< Conditional branch */
+    Return,      /**< Return */
+    Phi,         /**< Phi function */
 };
+
+static inline std::ostream& operator<<(std::ostream& os, instruction_t type) {
+    switch (type) {
+    case instruction_t::Alloca: return os << "alloca";
+    case instruction_t::Assign: return os << "assign";
+    case instruction_t::Add: return os << "add";
+    case instruction_t::Sub: return os << "sub";
+    case instruction_t::Mul: return os << "mul";
+    case instruction_t::Div: return os << "div";
+    case instruction_t::Mod: return os << "mod";
+    case instruction_t::Eq: return os << "eq";
+    case instruction_t::NotEq: return os << "notEq";
+    case instruction_t::LessThan: return os << "lessThan";
+    case instruction_t::GreaterThan: return os << "greaterThan";
+    case instruction_t::LessEq: return os << "lessEq";
+    case instruction_t::GreaterEq: return os << "greaterEq";
+    case instruction_t::Pointerof: return os << "pointerof";
+    case instruction_t::Call: return os << "call";
+    case instruction_t::Branch: return os << "branch";
+    case instruction_t::BranchCond: return os << "branchCond";
+    case instruction_t::Return: return os << "return";
+    case instruction_t::Phi: return os << "phi";
+    }
+}
 
 /**
  * @brief Checks if an instruction type exits.
@@ -241,78 +276,112 @@ protected:
 };
 
 /**
- * @brief Binary operation instruction type
+ * @brief Generic unary instruction
  */
-enum class binary_op_instruction_t {
-    Add, /**< Addition */
-    Sub, /**< Subtraction */
-    Mul, /**< Multiplication */
-    Div, /**< Division */
-    Mod, /**< Modulo */
+class unary_instruction final : public instruction {
+public:
+    /**
+     * @brief Construct a new unary instruction.
+     *
+     * @param type Instruction type.
+     * @param src Source operand.
+     * @param dst Destination operand.
+     */
+    unary_instruction(instruction_t type, operand&& src, operand&& dst)
+      : m_type(type), m_src(std::move(src)), m_dst(std::move(dst)) {}
 
-    Eq,          /**< Equal */
-    NotEq,       /**< Not equal */
-    LessThan,    /**< Less than */
-    GreaterThan, /**< Greater than */
-    LessEq,      /**< Less or equal */
-    GreaterEq,   /**< Greater or equal */
+    ~unary_instruction() override = default;
+
+    /**
+     * @brief Move constructor
+     */
+    unary_instruction(unary_instruction&&) = default;
+
+    /**
+     * @brief Move constructor
+     */
+    unary_instruction& operator=(unary_instruction&&) = default;
+
+    unary_instruction(const unary_instruction&) = delete;
+
+    unary_instruction& operator=(const unary_instruction&) = delete;
+public:
+    /**
+     * @brief Returns this instruction's type.
+     *
+     * @return The instruction type.
+     */
+    instruction_t type() const override { return m_type; }
+
+    bool has_destination() const override { return true; }
+
+    operand& destination() override { return m_dst; }
+
+    const operand& destination() const override { return m_dst; }
+
+    std::vector<operand*> sources() override { return { &m_src }; }
+
+    std::vector<const operand*> sources() const override { return { &m_src }; }
+
+    /**
+     * @brief Returns this instruction's source operand.
+     *
+     * @return The operand.
+     */
+    const operand& src() const { return m_src; }
+
+    /**
+     * @brief Returns this instruction's destination operand.
+     *
+     * @return The operand.
+     */
+    const operand& dst() const { return m_dst; }
+private:
+    instruction_t m_type;
+    operand       m_src;
+    operand       m_dst;
+protected:
+    std::ostream& print(std::ostream& os) const override { return os << m_dst << " = " << m_type << ' ' << m_src; }
 };
 
-static inline std::ostream& operator<<(std::ostream& os, binary_op_instruction_t type) {
-    switch (type) {
-    case binary_op_instruction_t::Add: return os << '+';
-    case binary_op_instruction_t::Sub: return os << '-';
-    case binary_op_instruction_t::Mul: return os << '*';
-    case binary_op_instruction_t::Div: return os << '/';
-    case binary_op_instruction_t::Mod: return os << '%';
-    case binary_op_instruction_t::Eq: return os << "==";
-    case binary_op_instruction_t::NotEq: return os << "!=";
-    case binary_op_instruction_t::LessThan: return os << '<';
-    case binary_op_instruction_t::GreaterThan: return os << '>';
-    case binary_op_instruction_t::LessEq: return os << "<=";
-    case binary_op_instruction_t::GreaterEq: return os << ">=";
-    }
-    return os;
-}
-
 /**
- * @brief Binary operation instruction
+ * @brief Generic binary instruction
  */
-class binary_op_instruction final : public instruction {
+class binary_instruction final : public instruction {
 public:
     /**
      * @brief Construct a new binary operation instruction.
      *
-     * @param type Operation type.
+     * @param type Instruction type.
      * @param lhs Left-hand-side operand.
      * @param rhs Right-hand-side operand.
      * @param dst Destination operand.
      */
-    binary_op_instruction(binary_op_instruction_t type, operand&& lhs, operand&& rhs, operand&& dst)
+    binary_instruction(instruction_t type, operand&& lhs, operand&& rhs, operand&& dst)
       : m_type(type), m_lhs(std::move(lhs)), m_rhs(std::move(rhs)), m_dst(std::move(dst)) {}
 
-    ~binary_op_instruction() override = default;
+    ~binary_instruction() override = default;
 
     /**
      * @brief Move constructor
      */
-    binary_op_instruction(binary_op_instruction&&) = default;
+    binary_instruction(binary_instruction&&) = default;
 
     /**
      * @brief Move constructor
      */
-    binary_op_instruction& operator=(binary_op_instruction&&) = default;
+    binary_instruction& operator=(binary_instruction&&) = default;
 
-    binary_op_instruction(const binary_op_instruction&) = delete;
+    binary_instruction(const binary_instruction&) = delete;
 
-    binary_op_instruction& operator=(const binary_op_instruction&) = delete;
+    binary_instruction& operator=(const binary_instruction&) = delete;
 public:
     /**
      * @brief Returns this instruction's type.
      *
      * @return instruction_t::BinaryOp.
      */
-    instruction_t type() const override { return instruction_t::BinaryOp; }
+    instruction_t type() const override { return m_type; }
 
     bool has_destination() const override { return true; }
 
@@ -323,13 +392,6 @@ public:
     std::vector<operand*> sources() override { return { &m_lhs, &m_rhs }; }
 
     std::vector<const operand*> sources() const override { return { &m_lhs, &m_rhs }; }
-
-    /**
-     * @brief Returns this instruction's operation type.
-     *
-     * @return The operation type.
-     */
-    binary_op_instruction_t op_type() const { return m_type; }
 
     /**
      * @brief Returns this instruction's left-hand-side operand.
@@ -352,13 +414,13 @@ public:
      */
     const operand& dst() const { return m_dst; }
 private:
-    binary_op_instruction_t m_type;
-    operand                 m_lhs /**< Left-hand-side operand */;
-    operand                 m_rhs /**< Right-hand-side operand */;
-    operand                 m_dst /**< Destination operand */;
+    instruction_t m_type;
+    operand       m_lhs /**< Left-hand-side operand */;
+    operand       m_rhs /**< Right-hand-side operand */;
+    operand       m_dst /**< Destination operand */;
 protected:
     std::ostream& print(std::ostream& os) const override {
-        return os << "binop(" << m_type << ") " << m_lhs << ", " << m_rhs << ", " << m_dst;
+        return os << m_dst << " = " << m_lhs << ' ' << m_type << ' ' << m_rhs;
     }
 };
 
@@ -617,7 +679,7 @@ private:
     std::vector<std::pair<operand, block_index>> m_labels;
 protected:
     std::ostream& print(std::ostream& os) const override {
-        os << "phi " << m_dst << " =";
+        os << m_dst << " = phi";
         bool first = true;
         for (const auto& pair : m_labels) {
             if (!first) os << ',';

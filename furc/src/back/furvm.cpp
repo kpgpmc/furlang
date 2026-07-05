@@ -2,7 +2,6 @@
 
 #include "furlang/ir/function.hpp"
 #include "furlang/ir/instruction.hpp"
-#include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 
 #include <furvm/instruction.hpp>
@@ -56,21 +55,26 @@ void furvm_generator::generate_function(furvm::mod& mod, const furlang::ir::func
     }
 }
 
-static inline furvm::instruction_t binary_op_type(furlang::ir::binary_op_instruction_t type) {
+static inline furvm::instruction_t op_type(furlang::ir::instruction_t type) {
     switch (type) {
-    case furlang::ir::binary_op_instruction_t::Add: return furvm::instruction_t::Add;
-    case furlang::ir::binary_op_instruction_t::Sub: return furvm::instruction_t::Sub;
-    case furlang::ir::binary_op_instruction_t::Mul: return furvm::instruction_t::Mul;
-    case furlang::ir::binary_op_instruction_t::Div: return furvm::instruction_t::Div;
-    case furlang::ir::binary_op_instruction_t::Mod: return furvm::instruction_t::Mod;
-    case furlang::ir::binary_op_instruction_t::Eq: return furvm::instruction_t::Equals;
-    case furlang::ir::binary_op_instruction_t::NotEq: return furvm::instruction_t::NotEquals;
-    case furlang::ir::binary_op_instruction_t::LessThan: return furvm::instruction_t::LessThan;
-    case furlang::ir::binary_op_instruction_t::GreaterThan: return furvm::instruction_t::GreaterThan;
-    case furlang::ir::binary_op_instruction_t::LessEq: return furvm::instruction_t::LessEqual;
-    case furlang::ir::binary_op_instruction_t::GreaterEq: return furvm::instruction_t::GreaterEqual;
+    // Unary
+    case furlang::ir::instruction_t::Pointerof: return furvm::instruction_t::Pointerof;
+
+    // Binary
+    case furlang::ir::instruction_t::Add: return furvm::instruction_t::Add;
+    case furlang::ir::instruction_t::Sub: return furvm::instruction_t::Sub;
+    case furlang::ir::instruction_t::Mul: return furvm::instruction_t::Mul;
+    case furlang::ir::instruction_t::Div: return furvm::instruction_t::Div;
+    case furlang::ir::instruction_t::Mod: return furvm::instruction_t::Mod;
+    case furlang::ir::instruction_t::Eq: return furvm::instruction_t::Equals;
+    case furlang::ir::instruction_t::NotEq: return furvm::instruction_t::NotEquals;
+    case furlang::ir::instruction_t::LessThan: return furvm::instruction_t::LessThan;
+    case furlang::ir::instruction_t::GreaterThan: return furvm::instruction_t::GreaterThan;
+    case furlang::ir::instruction_t::LessEq: return furvm::instruction_t::LessEqual;
+    case furlang::ir::instruction_t::GreaterEq: return furvm::instruction_t::GreaterEqual;
+
+    default: throw std::runtime_error("unreachable");
     }
-    throw std::runtime_error("unreachable");
 }
 
 void furvm_generator::generate_instruction(furvm::mod& mod,
@@ -90,9 +94,30 @@ void furvm_generator::generate_instruction(furvm::mod& mod,
         mod.bytecode().push_back((var >> 8) & 0xFF);
         static_assert(sizeof(var) == 2, "sizeof(furvm::variable_t) has changed");
     } break;
-    case furlang::ir::instruction_t::BinaryOp: {
-        const auto& op = dynamic_cast<const furlang::ir::binary_op_instruction&>(instr);
-        mod.bytecode().push_back(static_cast<furvm::byte>(binary_op_type(op.op_type())));
+    case furlang::ir::instruction_t::Add:
+    case furlang::ir::instruction_t::Sub:
+    case furlang::ir::instruction_t::Mul:
+    case furlang::ir::instruction_t::Div:
+    case furlang::ir::instruction_t::Mod:
+    case furlang::ir::instruction_t::Eq:
+    case furlang::ir::instruction_t::NotEq:
+    case furlang::ir::instruction_t::LessThan:
+    case furlang::ir::instruction_t::GreaterThan:
+    case furlang::ir::instruction_t::LessEq:
+    case furlang::ir::instruction_t::GreaterEq: {
+        mod.bytecode().push_back(static_cast<furvm::byte>(op_type(instr.type())));
+
+        if (ctx.variables.find(instr.destination().reg()) == ctx.variables.end()) {
+            ctx.variables[instr.destination().reg()] = ctx.variableCounter++;
+        }
+        auto var = ctx.variables[instr.destination().reg()];
+        mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::Store));
+        mod.bytecode().push_back((var >> 0) & 0xFF);
+        mod.bytecode().push_back((var >> 8) & 0xFF);
+        static_assert(sizeof(var) == 2, "sizeof(furvm::variable_t) has changed");
+    } break;
+    case furlang::ir::instruction_t::Pointerof: {
+        mod.bytecode().push_back(static_cast<furvm::byte>(op_type(instr.type())));
 
         if (ctx.variables.find(instr.destination().reg()) == ctx.variables.end()) {
             ctx.variables[instr.destination().reg()] = ctx.variableCounter++;

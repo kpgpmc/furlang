@@ -103,6 +103,11 @@ enum class instruction_t : byte {
     GreaterEqual,
 
     /**
+     * @brief Pushes a pointer of popped-off thing onto the stack.
+     */
+    Pointerof,
+
+    /**
      * @brief Pushes a variable onto the stack.
      *
      * Fetches a variable denoted by next two bytes in little-endian and pushes it onto the stack.

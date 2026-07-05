@@ -114,6 +114,13 @@ public:
      * @return The type.
      */
     constexpr auto type() const { return *m_type; }
+
+    /**
+     * @brief Returns the thing's type.
+     *
+     * @return The shared pointer to the type.
+     */
+    auto type() { return m_type; }
 public:
     /**
      * @brief Returns a raw data pointer.
@@ -265,7 +272,7 @@ public:
 
     thing resolve() const {
         thing rsv = { resolve_type(m_type, m_modules), m_data, m_allocator };
-        while (rsv.type().t == type_t::Reference)
+        while (rsv.type()->t == type_t::Reference)
             rsv = { rsv.m_type->reference, rsv.get<reference_t>(), std::move(rsv.m_allocator) };
         return rsv;
     }
@@ -342,8 +349,8 @@ private:
 private:
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        thing lhsRsv = resolve();
-        thing rhsRsv = rhs.resolve();
+        const thing lhsRsv = resolve();
+        const thing rhsRsv = rhs.resolve();
 
         if (lhsRsv.type().t == type_t::Primitive && rhsRsv.type().t == type_t::Primitive) {
             std::size_t size = std::max(lhsRsv.type().primitive, rhsRsv.type().primitive);

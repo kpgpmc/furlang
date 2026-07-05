@@ -37,6 +37,7 @@ std::ostream& operator<<(std::ostream& os, unaryop_expression_node_t type) {
     case unaryop_expression_node_t::PostfixIncrement: return os << "++";
     case unaryop_expression_node_t::PrefixDecrement:
     case unaryop_expression_node_t::PostfixDecrement: return os << "--";
+    case unaryop_expression_node_t::Pointerof: return os << "pointerof";
     }
     return os;
 }
@@ -54,6 +55,7 @@ std::ostream& unary_op_expression_node::print(std::ostream& os) const {
     case unaryop_expression_node_t::PrefixDecrement: return os << '(' << m_type << *m_node << ')';
     case unaryop_expression_node_t::PostfixIncrement:
     case unaryop_expression_node_t::PostfixDecrement: return os << '(' << *m_node << m_type << ')';
+    case unaryop_expression_node_t::Pointerof: return os << "pointerof " << *m_node;
     }
     return os;
 }

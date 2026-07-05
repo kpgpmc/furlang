@@ -104,6 +104,7 @@ token_r lexer::next_token() {
                 { "native", keyword_token::Native },
                 { "public", keyword_token::Public },
                 { "private", keyword_token::Private },
+                { "pointerof", keyword_token::Pointerof },
                 { "int32", keyword_token::Int32 },
             };
 

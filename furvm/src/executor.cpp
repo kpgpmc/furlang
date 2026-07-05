@@ -162,6 +162,19 @@ void executor::step() {
         auto lhs = pop_thing();
         push_thing(lhs->greater_equals(*rhs));
     } break;
+    case instruction_t::Pointerof: {
+        auto thing = pop_thing()->resolve();
+        auto ptr   = push_thing({ *m_context->at("core")->type_at(4), m_context, m_context->thing_alloc() });
+        switch (furvm::thing<>::resolve_type(thing.type(), m_context)->t) {
+        case type_t::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing.raw()); break;
+        case type_t::List:
+            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing.get<list_t>().data);
+            break;
+        case type_t::Reference:
+        case type_t::Import:
+        default: throw std::runtime_error("unreachable");
+        }
+    } break;
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                               (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);

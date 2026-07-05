@@ -132,23 +132,35 @@ void ir_generator::visit(const ast::var_read_expression_node& node) {
     }
 }
 
-void ir_generator::visit(const ast::unary_op_expression_node& node) {
-    throw std::runtime_error("unimplemented");
+static inline furlang::ir::instruction_t unary_op_instruction_t(ast::unaryop_expression_node_t type) {
+    switch (type) {
+    case ast::unaryop_expression_node_t::Pointerof: return furlang::ir::instruction_t::Pointerof;
+    default: throw std::runtime_error("unimplemented");
+    }
 }
 
-static inline furlang::ir::binary_op_instruction_t binary_op_instruction_t(ast::binop_expression_node_t type) {
+void ir_generator::visit(const ast::unary_op_expression_node& node) {
+    node.get_node()->accept(*this);
+    ir_register src = m_registerCounter - 1;
+    ir_register dst = m_registerCounter++;
+    push<furlang::ir::unary_instruction>(unary_op_instruction_t(node.type()),
+        ir::operand::new_reg(src),
+        ir::operand::new_reg(dst));
+}
+
+static inline furlang::ir::instruction_t binary_op_instruction_t(ast::binop_expression_node_t type) {
     switch (type) {
-    case ast::binop_expression_node_t::Add: return furlang::ir::binary_op_instruction_t::Add;
-    case ast::binop_expression_node_t::Sub: return furlang::ir::binary_op_instruction_t::Sub;
-    case ast::binop_expression_node_t::Mul: return furlang::ir::binary_op_instruction_t::Mul;
-    case ast::binop_expression_node_t::Div: return furlang::ir::binary_op_instruction_t::Div;
-    case ast::binop_expression_node_t::Mod: return furlang::ir::binary_op_instruction_t::Mod;
-    case ast::binop_expression_node_t::Equal: return furlang::ir::binary_op_instruction_t::Eq;
-    case ast::binop_expression_node_t::NotEqual: return furlang::ir::binary_op_instruction_t::NotEq;
-    case ast::binop_expression_node_t::LessThan: return furlang::ir::binary_op_instruction_t::LessThan;
-    case ast::binop_expression_node_t::GreaterThan: return furlang::ir::binary_op_instruction_t::GreaterThan;
-    case ast::binop_expression_node_t::LessEqual: return furlang::ir::binary_op_instruction_t::LessEq;
-    case ast::binop_expression_node_t::GreaterEqual: return furlang::ir::binary_op_instruction_t::GreaterEq;
+    case ast::binop_expression_node_t::Add: return furlang::ir::instruction_t::Add;
+    case ast::binop_expression_node_t::Sub: return furlang::ir::instruction_t::Sub;
+    case ast::binop_expression_node_t::Mul: return furlang::ir::instruction_t::Mul;
+    case ast::binop_expression_node_t::Div: return furlang::ir::instruction_t::Div;
+    case ast::binop_expression_node_t::Mod: return furlang::ir::instruction_t::Mod;
+    case ast::binop_expression_node_t::Equal: return furlang::ir::instruction_t::Eq;
+    case ast::binop_expression_node_t::NotEqual: return furlang::ir::instruction_t::NotEq;
+    case ast::binop_expression_node_t::LessThan: return furlang::ir::instruction_t::LessThan;
+    case ast::binop_expression_node_t::GreaterThan: return furlang::ir::instruction_t::GreaterThan;
+    case ast::binop_expression_node_t::LessEqual: return furlang::ir::instruction_t::LessEq;
+    case ast::binop_expression_node_t::GreaterEqual: return furlang::ir::instruction_t::GreaterEq;
     case ast::binop_expression_node_t::None:
     default: throw std::runtime_error("unreachable");
     }
@@ -160,7 +172,7 @@ void ir_generator::visit(const ast::binary_op_expression_node& node) {
     node.rhs()->accept(*this);
     ir_register rhs = m_registerCounter - 1;
     ir_register dst = m_registerCounter++;
-    push<furlang::ir::binary_op_instruction>(binary_op_instruction_t(node.type()),
+    push<furlang::ir::binary_instruction>(binary_op_instruction_t(node.type()),
         ir::operand::new_reg(lhs),
         ir::operand::new_reg(rhs),
         ir::operand::new_reg(dst));
@@ -176,7 +188,7 @@ void ir_generator::visit(const ast::var_assign_expression_node& node) {
 
     auto compound = node.compound();
     if (compound != ast::binop_expression_node_t::None) {
-        push<ir::binary_op_instruction>(binary_op_instruction_t(compound),
+        push<ir::binary_instruction>(binary_op_instruction_t(compound),
             ir::operand::new_reg(reg),
             ir::operand::new_reg(rhs),
             ir::operand::new_reg(reg));
