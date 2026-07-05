@@ -32,6 +32,7 @@ enum class instruction_t {
     LessEq,      /**< Less or equal */
     GreaterEq,   /**< Greater or equal */
     Pointerof,   /**< Pointerof */
+    Sizeof,      /**< Sizeof */
     Call,        /**< Call */
     Branch,      /**< Branch */
     BranchCond,  /**< Conditional branch */
@@ -55,6 +56,7 @@ static inline std::ostream& operator<<(std::ostream& os, instruction_t type) {
     case instruction_t::LessEq: return os << "lessEq";
     case instruction_t::GreaterEq: return os << "greaterEq";
     case instruction_t::Pointerof: return os << "pointerof";
+    case instruction_t::Sizeof: return os << "sizeof";
     case instruction_t::Call: return os << "call";
     case instruction_t::Branch: return os << "branch";
     case instruction_t::BranchCond: return os << "branchCond";

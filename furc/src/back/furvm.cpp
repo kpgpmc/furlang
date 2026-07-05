@@ -59,6 +59,7 @@ static inline furvm::instruction_t op_type(furlang::ir::instruction_t type) {
     switch (type) {
     // Unary
     case furlang::ir::instruction_t::Pointerof: return furvm::instruction_t::Pointerof;
+    case furlang::ir::instruction_t::Sizeof: return furvm::instruction_t::Sizeof;
 
     // Binary
     case furlang::ir::instruction_t::Add: return furvm::instruction_t::Add;
@@ -116,7 +117,8 @@ void furvm_generator::generate_instruction(furvm::mod& mod,
         mod.bytecode().push_back((var >> 8) & 0xFF);
         static_assert(sizeof(var) == 2, "sizeof(furvm::variable_t) has changed");
     } break;
-    case furlang::ir::instruction_t::Pointerof: {
+    case furlang::ir::instruction_t::Pointerof:
+    case furlang::ir::instruction_t::Sizeof: {
         mod.bytecode().push_back(static_cast<furvm::byte>(op_type(instr.type())));
 
         if (ctx.variables.find(instr.destination().reg()) == ctx.variables.end()) {

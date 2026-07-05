@@ -158,6 +158,7 @@ enum class keyword_token {
     Public,    /**< `public` */
     Private,   /**< `private` */
     Pointerof, /**< `pointerof` */
+    Sizeof,    /**< `sizeof` */
 
     Int32, /**< `int32` */
 };
@@ -175,6 +176,7 @@ static inline std::ostream& operator<<(std::ostream& os, keyword_token keyword) 
     case keyword_token::Public: return os << "public";
     case keyword_token::Private: return os << "private";
     case keyword_token::Pointerof: return os << "pointerof";
+    case keyword_token::Sizeof: return os << "sizeof";
     case keyword_token::Int32: return os << "int32";
     }
     return os;
@@ -193,6 +195,7 @@ static inline std::string operator+(const std::string& str, keyword_token keywor
     case keyword_token::Public: return str + "public";
     case keyword_token::Private: return str + "private";
     case keyword_token::Pointerof: return str + "pointerof";
+    case keyword_token::Sizeof: return str + "sizeof";
     case keyword_token::Int32: return str + "int32";
     }
     return str;

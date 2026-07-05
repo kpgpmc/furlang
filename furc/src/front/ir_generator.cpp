@@ -135,6 +135,7 @@ void ir_generator::visit(const ast::var_read_expression_node& node) {
 static inline furlang::ir::instruction_t unary_op_instruction_t(ast::unaryop_expression_node_t type) {
     switch (type) {
     case ast::unaryop_expression_node_t::Pointerof: return furlang::ir::instruction_t::Pointerof;
+    case ast::unaryop_expression_node_t::Sizeof: return furlang::ir::instruction_t::Sizeof;
     default: throw std::runtime_error("unimplemented");
     }
 }

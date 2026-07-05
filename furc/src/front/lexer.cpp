@@ -105,6 +105,7 @@ token_r lexer::next_token() {
                 { "public", keyword_token::Public },
                 { "private", keyword_token::Private },
                 { "pointerof", keyword_token::Pointerof },
+                { "sizeof", keyword_token::Sizeof },
                 { "int32", keyword_token::Int32 },
             };
 

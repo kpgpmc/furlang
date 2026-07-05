@@ -323,6 +323,7 @@ static inline std::optional<unaryop_info> get_unaryop_info(const token_r& token)
     };
     static std::unordered_map<keyword_token, unaryop_info> s_keywords = {
         { keyword_token::Pointerof, unaryop_info{ ast::unaryop_expression_node_t::Pointerof, 2 } },
+        { keyword_token::Sizeof, unaryop_info{ ast::unaryop_expression_node_t::Sizeof, 2 } },
     };
 
     if (token->type == token_t::Keyword) {

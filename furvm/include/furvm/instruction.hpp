@@ -108,6 +108,11 @@ enum class instruction_t : byte {
     Pointerof,
 
     /**
+     * @brief Pushes a size of popped-off thing onto the stack.
+     */
+    Sizeof,
+
+    /**
      * @brief Pushes a variable onto the stack.
      *
      * Fetches a variable denoted by next two bytes in little-endian and pushes it onto the stack.

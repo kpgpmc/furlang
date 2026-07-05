@@ -23,7 +23,7 @@ int main(void) {
         while (x < y) {
             x = x + z;
         }
-        print(pointerof x);
+        print(sizeof x);
     }
     )";
         furlang::arena            arena{};

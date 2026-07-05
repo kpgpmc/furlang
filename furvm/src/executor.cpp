@@ -175,6 +175,18 @@ void executor::step() {
         default: throw std::runtime_error("unreachable");
         }
     } break;
+    case instruction_t::Sizeof: {
+        auto thing = pop_thing()->resolve();
+        auto ptr   = push_thing({ *m_context->at("core")->type_at(3), m_context, m_context->thing_alloc() });
+        auto type  = furvm::thing<>::resolve_type(thing.type(), m_context);
+        switch (type->t) {
+        case type_t::Primitive: ptr->get<long_t>() = static_cast<long_t>(type->primitive); break;
+        case type_t::List: ptr->get<long_t>() = thing.get<list_t>().size; break;
+        case type_t::Reference:
+        case type_t::Import:
+        default: throw std::runtime_error("unreachable");
+        }
+    } break;
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
                               (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
