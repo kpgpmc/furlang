@@ -94,16 +94,18 @@ public:
      * @return A clone of this thing.
      */
     thing clone() const {
-        thing res(resolve_type(m_type, m_modules), m_modules, m_allocator);
-        switch (m_type->t) {
+        auto  type = resolve_type(m_type, m_modules);
+        thing res(type, m_modules, m_allocator);
+        switch (type->t) {
         case type_t::Primitive:
         case type_t::Reference: {
             std::memcpy(res.m_data, m_data, m_size);
         } break;
         case type_t::Array: {
-            copy_list(resolve_type(*m_type->list, m_modules), res.get<array_t>(), get<array_t>());
+            copy_list(type, res.get<array_t>(), get<array_t>());
         } break;
-        case type_t::Import: throw std::runtime_error("unreachable");
+        case type_t::Import:
+        default: throw std::runtime_error("unreachable");
         }
         return std::move(res);
     }
@@ -279,12 +281,13 @@ public:
 
     void resize(long_t newSize) {
         if (m_type->t != type_t::Array) throw bad_thing_access();
+        if (m_type->array.size > 0) throw std::runtime_error("cannot resize a static array");
+
         auto& list = get<array_t>();
         if (newSize < 0 || newSize == list.size) return;
-        std::byte* newData = new std::byte[compute_size_na(resolve_type(*m_type->list, m_modules)) * newSize];
-        std::memcpy(newData,
-            list.data,
-            compute_size_na(resolve_type(*m_type->list, m_modules)) * std::min(list.size, newSize));
+        std::size_t innerSize = compute_size_na(*m_type->array.type);
+        std::byte*  newData   = new std::byte[innerSize * newSize];
+        std::memcpy(newData, list.data, innerSize * std::min(list.size, newSize));
         list.size = newSize;
         delete[] list.data;
         list.data = newData;
@@ -294,7 +297,7 @@ public:
         if (m_type->t != type_t::Array) throw bad_thing_access();
         auto& list = get<array_t>();
         if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
-        thing res              = { *m_type->list, m_modules, m_allocator };
+        thing res              = { std::make_shared<type>(m_type->array.type), m_modules, m_allocator };
         res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
         return std::move(res);
     }
@@ -306,24 +309,39 @@ public:
         return rsv;
     }
 private:
-    static void copy_list(const type_p& innerType, array_t& dst, const array_t& src) {
-        dst.size = src.size;
-        if (dst.size <= 0) {
-            dst.data = nullptr;
-            return;
-        }
-        if (innerType == nullptr) throw std::runtime_error("inner type should not be null!");
+    static void copy_list(const type_p& arrayType, array_t& dst, const array_t& src) {
+        if (arrayType == nullptr || arrayType->t != type_t::Array || *arrayType->array.type == nullptr)
+            throw std::runtime_error("invalid type");
 
-        std::size_t size = compute_size_na(innerType) * dst.size;
-        dst.data         = new std::byte[size];
+        auto        innerType   = *arrayType->array.type;
+        std::size_t elementSize = compute_size_na(innerType);
+
+        std::byte*       data    = nullptr;
+        const std::byte* srcData = nullptr;
+        std::size_t      size    = 0;
+        if (arrayType->array.size == 0) {
+            size = dst.dynamic.size = src.dynamic.size;
+            if (dst.dynamic.size < 0) {
+                dst.dynamic.data = nullptr;
+                return;
+            }
+
+            srcData = src.dynamic.data;
+            data = dst.dynamic.data = new std::byte[dst.dynamic.size];
+        } else {
+            data    = dst.data;
+            srcData = src.data;
+            size    = arrayType->array.size;
+        }
+
         switch (innerType->t) {
         case type_t::Primitive:
         case type_t::Reference: std::memcpy(dst.data, src.data, size); break;
         case type_t::Array:
             for (std::size_t i = 0; i < size; ++i) {
-                copy_list(*innerType->list,
-                    *std::launder(reinterpret_cast<array_t*>(dst.data)),
-                    *std::launder(reinterpret_cast<array_t*>(src.data)));
+                copy_list(*innerType->array.type,
+                    *std::launder(reinterpret_cast<array_t*>(data + (i * elementSize))),
+                    *std::launder(reinterpret_cast<const array_t*>(srcData + (i * elementSize))));
             }
             break;
         case type_t::Import: throw std::runtime_error("unresolved type");
@@ -334,7 +352,10 @@ private:
         switch (type->t) {
         case type_t::Primitive: return type->primitive;
         case type_t::Reference: return sizeof(reference_t);
-        case type_t::Array: return sizeof(array_t);
+        case type_t::Array: {
+            if (type->array.size == 0) return sizeof(array_t);
+            return compute_size_na(*type->array.type) * type->array.size;
+        }
         case type_t::Import: throw std::runtime_error("unresolved type");
         }
 

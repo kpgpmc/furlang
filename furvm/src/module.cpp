@@ -58,7 +58,10 @@ std::ostream& mod::serialize(std::ostream& os) const {
         switch (type->t) {
         case type_t::Primitive: detail::serialize(os, type->primitive); break;
         case type_t::Reference: throw std::runtime_error("reference type serialization is unimplemented");
-        case type_t::Array: detail::serialize(os, type->list.id()); break;
+        case type_t::Array: {
+            detail::serialize(os, type->array.size);
+            detail::serialize(os, type->array.type.id());
+        } break;
         case type_t::Import: {
             detail::serialize(os, type->imp.mod);
             detail::serialize(os, type->imp.type);
@@ -128,9 +131,11 @@ mod mod::load(std::istream& is) {
         } break;
         case type_t::Reference: throw std::runtime_error("reference type serialization is unimplemented");
         case type_t::Array: {
+            std::size_t size = 0;
+            detail::load(is, size);
             type_id typeId = 0;
             detail::load(is, typeId);
-            mod.emplace_type(id, std::make_shared<class type>(mod.type_at(typeId))).dispatch();
+            mod.emplace_type(id, std::make_shared<class type>(mod.type_at(typeId), size)).dispatch();
         } break;
         case type_t::Import: {
             std::string modName;

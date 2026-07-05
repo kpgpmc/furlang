@@ -177,11 +177,14 @@ void executor::step() {
     } break;
     case instruction_t::Sizeof: {
         auto thing = pop_thing()->resolve();
-        auto ptr   = push_thing({ *m_context->at("core")->type_at(3), m_context, m_context->thing_alloc() });
+        auto size  = push_thing({ *m_context->at("core")->type_at(3), m_context, m_context->thing_alloc() });
         auto type  = furvm::thing<>::resolve_type(thing.type(), m_context);
         switch (type->t) {
-        case type_t::Primitive: ptr->get<long_t>() = static_cast<long_t>(type->primitive); break;
-        case type_t::Array: ptr->get<long_t>() = thing.get<array_t>().size; break;
+        case type_t::Primitive: size->get<long_t>() = static_cast<long_t>(type->primitive); break;
+        case type_t::Array:
+            size->get<long_t>() =
+                (type->array.size == 0) ? thing.get<array_t>().dynamic.size : static_cast<long_t>(type->array.size);
+            break;
         case type_t::Reference:
         case type_t::Import:
         default: throw std::runtime_error("unreachable");

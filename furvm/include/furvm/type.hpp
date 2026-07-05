@@ -5,6 +5,7 @@
 #include "furvm/handle.hpp" // IWYU pragma: keep
 
 #include <cstdint>
+
 namespace furvm {
 
 enum class type_t : std::uint32_t {
@@ -17,7 +18,20 @@ enum class type_t : std::uint32_t {
 
 using primitive_type = std::uint64_t;
 using reference_type = type_p;
-using array_type     = type_h;
+
+/**
+ * @brief Array type.
+ */
+struct array_type {
+    type_h type; /**< Type of the array's elements. */
+
+    /**
+     * @brief Size of the array.
+     *
+     * Size of the array. If size is equal to zero, then the array becomes dynamic.
+     */
+    std::size_t size;
+};
 
 struct import_type {
     mod_id  mod;
@@ -29,7 +43,7 @@ struct type {
     union {
         primitive_type primitive;
         reference_type reference;
-        array_type     list;
+        array_type     array;
         import_type    imp;
     };
 
@@ -42,8 +56,11 @@ struct type {
     type(const reference_type& reference)
       : t(type_t::Reference), reference(reference) {}
 
+    type(const type_h& type, std::size_t size = 0)
+      : t(type_t::Array), array(array_type{ type, size }) {}
+
     type(const array_type& list)
-      : t(type_t::Array), list(list) {}
+      : t(type_t::Array), array(list) {}
 
     type(const import_type& imp)
       : t(type_t::Import), imp(imp) {}
@@ -51,7 +68,7 @@ struct type {
     ~type() {
         switch (t) {
         case type_t::Reference: reference.~reference_type(); break;
-        case type_t::Array: list.~array_type(); break;
+        case type_t::Array: array.~array_type(); break;
         case type_t::Import: imp.~import_type(); break;
         default: break;
         }
@@ -62,7 +79,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
-        case type_t::Array: list = std::move(other.list); break;
+        case type_t::Array: array = std::move(other.array); break;
         case type_t::Import: imp = std::move(other.imp); break;
         }
     }
@@ -73,7 +90,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
-        case type_t::Array: list = std::move(other.list); break;
+        case type_t::Array: array = std::move(other.array); break;
         case type_t::Import: imp = std::move(other.imp); break;
         }
 
@@ -85,7 +102,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
-        case type_t::Array: list = other.list; break;
+        case type_t::Array: array = other.array; break;
         case type_t::Import: imp = other.imp; break;
         }
     }
@@ -96,7 +113,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
-        case type_t::Array: list = other.list; break;
+        case type_t::Array: array = other.array; break;
         case type_t::Import: imp = other.imp; break;
         }
 
@@ -111,9 +128,15 @@ using long_t  = std::int64_t; /**< An 8-byte integer. */
 
 using reference_t = std::byte*;
 
-struct array_t {
-    long_t     size;
-    std::byte* data;
+/**
+ * @brief Array type's data layout.
+ */
+union array_t {
+    std::byte data[]; /**< Static array's elements' data. */
+    struct {
+        long_t     size; /**< Size of the array (in items). */
+        std::byte* data; /**< Pointer to dynamic array's elements' data array. */
+    } dynamic;           /**< Dynamic array's info. */
 };
 
 /**
