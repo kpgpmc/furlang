@@ -167,8 +167,8 @@ void executor::step() {
         auto ptr   = push_thing({ *m_context->at("core")->type_at(4), m_context, m_context->thing_alloc() });
         switch (furvm::thing<>::resolve_type(thing.type(), m_context)->t) {
         case type_t::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing.raw()); break;
-        case type_t::List:
-            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing.get<list_t>().data);
+        case type_t::Array:
+            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing.get<array_t>().data);
             break;
         case type_t::Reference:
         case type_t::Import:
@@ -181,7 +181,7 @@ void executor::step() {
         auto type  = furvm::thing<>::resolve_type(thing.type(), m_context);
         switch (type->t) {
         case type_t::Primitive: ptr->get<long_t>() = static_cast<long_t>(type->primitive); break;
-        case type_t::List: ptr->get<long_t>() = thing.get<list_t>().size; break;
+        case type_t::Array: ptr->get<long_t>() = thing.get<array_t>().size; break;
         case type_t::Reference:
         case type_t::Import:
         default: throw std::runtime_error("unreachable");

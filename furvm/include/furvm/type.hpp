@@ -10,14 +10,14 @@ namespace furvm {
 enum class type_t : std::uint32_t {
     Primitive = 0,
     Reference,
-    List,
+    Array,
 
     Import,
 };
 
 using primitive_type = std::uint64_t;
 using reference_type = type_p;
-using list_type      = type_h;
+using array_type     = type_h;
 
 struct import_type {
     mod_id  mod;
@@ -29,7 +29,7 @@ struct type {
     union {
         primitive_type primitive;
         reference_type reference;
-        list_type      list;
+        array_type     list;
         import_type    imp;
     };
 
@@ -42,8 +42,8 @@ struct type {
     type(const reference_type& reference)
       : t(type_t::Reference), reference(reference) {}
 
-    type(const list_type& list)
-      : t(type_t::List), list(list) {}
+    type(const array_type& list)
+      : t(type_t::Array), list(list) {}
 
     type(const import_type& imp)
       : t(type_t::Import), imp(imp) {}
@@ -51,7 +51,7 @@ struct type {
     ~type() {
         switch (t) {
         case type_t::Reference: reference.~reference_type(); break;
-        case type_t::List: list.~list_type(); break;
+        case type_t::Array: list.~array_type(); break;
         case type_t::Import: imp.~import_type(); break;
         default: break;
         }
@@ -62,7 +62,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
-        case type_t::List: list = std::move(other.list); break;
+        case type_t::Array: list = std::move(other.list); break;
         case type_t::Import: imp = std::move(other.imp); break;
         }
     }
@@ -73,7 +73,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = std::move(other.reference); break;
-        case type_t::List: list = std::move(other.list); break;
+        case type_t::Array: list = std::move(other.list); break;
         case type_t::Import: imp = std::move(other.imp); break;
         }
 
@@ -85,7 +85,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
-        case type_t::List: list = other.list; break;
+        case type_t::Array: list = other.list; break;
         case type_t::Import: imp = other.imp; break;
         }
     }
@@ -96,7 +96,7 @@ struct type {
         switch (t) {
         case type_t::Primitive: primitive = other.primitive; break;
         case type_t::Reference: reference = other.reference; break;
-        case type_t::List: list = other.list; break;
+        case type_t::Array: list = other.list; break;
         case type_t::Import: imp = other.imp; break;
         }
 
@@ -111,7 +111,7 @@ using long_t  = std::int64_t; /**< An 8-byte integer. */
 
 using reference_t = std::byte*;
 
-struct list_t {
+struct array_t {
     long_t     size;
     std::byte* data;
 };

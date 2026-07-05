@@ -100,8 +100,8 @@ public:
         case type_t::Reference: {
             std::memcpy(res.m_data, m_data, m_size);
         } break;
-        case type_t::List: {
-            copy_list(resolve_type(*m_type->list, m_modules), res.get<list_t>(), get<list_t>());
+        case type_t::Array: {
+            copy_list(resolve_type(*m_type->list, m_modules), res.get<array_t>(), get<array_t>());
         } break;
         case type_t::Import: throw std::runtime_error("unreachable");
         }
@@ -278,8 +278,8 @@ public:
     }
 
     void resize(long_t newSize) {
-        if (m_type->t != type_t::List) throw bad_thing_access();
-        auto& list = get<list_t>();
+        if (m_type->t != type_t::Array) throw bad_thing_access();
+        auto& list = get<array_t>();
         if (newSize < 0 || newSize == list.size) return;
         std::byte* newData = new std::byte[compute_size_na(resolve_type(*m_type->list, m_modules)) * newSize];
         std::memcpy(newData,
@@ -291,8 +291,8 @@ public:
     }
 
     thing at(long_t index) const {
-        if (m_type->t != type_t::List) throw bad_thing_access();
-        auto& list = get<list_t>();
+        if (m_type->t != type_t::Array) throw bad_thing_access();
+        auto& list = get<array_t>();
         if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
         thing res              = { *m_type->list, m_modules, m_allocator };
         res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
@@ -306,7 +306,7 @@ public:
         return rsv;
     }
 private:
-    static void copy_list(const type_p& innerType, list_t& dst, const list_t& src) {
+    static void copy_list(const type_p& innerType, array_t& dst, const array_t& src) {
         dst.size = src.size;
         if (dst.size <= 0) {
             dst.data = nullptr;
@@ -319,11 +319,11 @@ private:
         switch (innerType->t) {
         case type_t::Primitive:
         case type_t::Reference: std::memcpy(dst.data, src.data, size); break;
-        case type_t::List:
+        case type_t::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType->list,
-                    *std::launder(reinterpret_cast<list_t*>(dst.data)),
-                    *std::launder(reinterpret_cast<list_t*>(src.data)));
+                    *std::launder(reinterpret_cast<array_t*>(dst.data)),
+                    *std::launder(reinterpret_cast<array_t*>(src.data)));
             }
             break;
         case type_t::Import: throw std::runtime_error("unresolved type");
@@ -334,7 +334,7 @@ private:
         switch (type->t) {
         case type_t::Primitive: return type->primitive;
         case type_t::Reference: return sizeof(reference_t);
-        case type_t::List: return sizeof(list_t);
+        case type_t::Array: return sizeof(array_t);
         case type_t::Import: throw std::runtime_error("unresolved type");
         }
 
