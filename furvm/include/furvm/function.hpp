@@ -36,29 +36,21 @@ public:
     /**
      * @brief Constructs a normal function.
      *
-     * @param name Name of the function.
      * @param paramCount Paremeter count.
      * @param position Offset in bytecode of the function.
      */
-    template <typename Name>
-    function(Name&& name, std::uint32_t paramCount, bytecode_pos position)
-      : m_name(std::forward<Name>(name)), m_type(function_t::Normal), m_paramCount(paramCount), m_value(position) {}
+    function(std::uint32_t paramCount, bytecode_pos position)
+      : m_type(function_t::Normal), m_paramCount(paramCount), m_value(position) {}
 
     /**
      * @brief Constructs a native function.
      *
-     * @param name Name of the function.
      * @param paramCount Paremeter count.
      * @param native Native function tag.
      */
-    template <typename Name,
-        typename Native,
-        typename = std::enable_if_t<std::is_constructible_v<native_function, Native>>>
-    function(Name&& name, std::uint32_t paramCount, Native&& native)
-      : m_name(std::forward<Name>(name)),
-        m_type(function_t::Native),
-        m_paramCount(paramCount),
-        m_value(std::forward<Native>(native)) {}
+    template <typename Native, typename = std::enable_if_t<std::is_constructible_v<native_function, Native>>>
+    function(std::uint32_t paramCount, Native&& native)
+      : m_type(function_t::Native), m_paramCount(paramCount), m_value(std::forward<Native>(native)) {}
 
     /**
      * @brief Constructs an import function.
@@ -104,13 +96,6 @@ public:
     function& operator=(const function&);
 public:
     /**
-     * @brief Returns a name of this function.
-     *
-     * @return The name.
-     */
-    constexpr const std::string& name() const { return m_name; }
-
-    /**
      * @brief Returns a type of this function.
      *
      * @return The type.
@@ -154,7 +139,6 @@ public:
         return m_value.imp;
     }
 private:
-    std::string   m_name;
     function_t    m_type;
     std::uint32_t m_paramCount;
 

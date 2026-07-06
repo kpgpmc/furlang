@@ -23,9 +23,9 @@ void furvm_generator::generate_function(furvm::mod& mod, const furlang::ir::func
     switch (function.type()) {
     case furlang::ir::function_t::Normal: {
         if (function.access() == furlang::ir::function_access_t::Public)
-            mod.emplace_function(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
+            mod.emplace_function_named(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
         else
-            mod.emplace_function_private(function.name(), function.param_count(), mod.bytecode().size()).dispatch();
+            mod.emplace_function(function.param_count(), mod.bytecode().size()).dispatch();
 
         function_context ctx;
         for (furlang::ir::block_index idx = 0; idx < function.blocks().size(); ++idx) {
@@ -48,9 +48,9 @@ void furvm_generator::generate_function(furvm::mod& mod, const furlang::ir::func
     } break;
     case furlang::ir::function_t::Native: {
         if (function.access() == furlang::ir::function_access_t::Public)
-            mod.emplace_function(function.name(), function.param_count(), function.name()).dispatch();
+            mod.emplace_function_named(function.name(), function.param_count(), function.name()).dispatch();
         else
-            mod.emplace_function_private(function.name(), function.param_count(), function.name()).dispatch();
+            mod.emplace_function(function.param_count(), function.name()).dispatch();
     } break;
     }
 }
@@ -150,7 +150,7 @@ void furvm_generator::generate_instruction(furvm::mod& mod,
         const auto& call = dynamic_cast<const furlang::ir::call_instruction&>(instr);
 
         // TODO: Implement a queue for unknown functions
-        furvm::function_id func = mod.get_function_id(call.name());
+        furvm::function_id func = mod.function_at(call.name()).id();
         mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::Call));
         mod.bytecode().push_back((func >> 0) & 0xFF);
         mod.bytecode().push_back((func >> 8) & 0xFF);

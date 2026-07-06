@@ -23,7 +23,7 @@ function::~function() {
 }
 
 function::function(function&& other) noexcept
-  : m_name(std::move(other.m_name)), m_type(other.m_type), m_paramCount(other.m_paramCount) {
+  : m_type(other.m_type), m_paramCount(other.m_paramCount) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -42,7 +42,6 @@ function::function(function&& other) noexcept
 function& function::operator=(function&& other) noexcept {
     if (this == &other) return *this;
 
-    m_name       = std::move(other.m_name);
     m_type       = other.m_type;
     m_paramCount = other.m_paramCount;
     switch (m_type) {
@@ -63,7 +62,7 @@ function& function::operator=(function&& other) noexcept {
 }
 
 function::function(const function& other)
-  : m_name(other.m_name), m_type(other.m_type), m_paramCount(other.m_paramCount) {
+  : m_type(other.m_type), m_paramCount(other.m_paramCount) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -81,7 +80,6 @@ function::function(const function& other)
 function& function::operator=(const function& other) {
     if (this == &other) return *this;
 
-    m_name       = other.m_name;
     m_type       = other.m_type;
     m_paramCount = other.m_paramCount;
     switch (m_type) {

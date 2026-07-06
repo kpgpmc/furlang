@@ -27,9 +27,8 @@ std::ostream& mod::serialize(std::ostream& os) const {
             continue;
         }
 
-        function_h func     = m_functions.at(id);
-        bool       isPublic = m_publicFunctions.find(func->name()) != m_publicFunctions.end();
-        detail::serialize(os, isPublic ? func->name() : ""); // private functions have empty names
+        function_h func = m_functions.at(id);
+        detail::serialize(os, m_functionMap.at(func.id()));
         detail::serialize(os, func->param_count());
         detail::serialize(os, std::uint8_t(func->type()));
         switch (func->type()) {
@@ -98,12 +97,18 @@ mod mod::load(std::istream& is) {
         case function_t::Normal: {
             decltype(std::declval<function>().position()) offset = 0;
             detail::load(is, offset);
-            mod.emplace_function(id, std::move(name), paramCount, offset).dispatch();
+            if (name.empty())
+                mod.emplace_function_named(std::move(name), id, paramCount, offset).dispatch();
+            else
+                mod.emplace_function(id, paramCount, offset).dispatch();
         } break;
         case function_t::Native: {
             std::string native;
             detail::load(is, native);
-            mod.emplace_function(id, std::move(name), paramCount, std::move(native)).dispatch();
+            if (name.empty())
+                mod.emplace_function_named(std::move(name), id, paramCount, std::move(native)).dispatch();
+            else
+                mod.emplace_function(id, paramCount, std::move(native)).dispatch();
         } break;
         case function_t::Import: {
             std::string modName;

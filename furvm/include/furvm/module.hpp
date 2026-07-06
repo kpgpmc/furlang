@@ -86,49 +86,36 @@ public:
     function_h emplace_function(Args&&... args) {
         function_h function;
         if constexpr (std::is_constructible_v<class function, Args...>) {
-            function = m_functions.emplace_back(std::forward<Args>(args)...);
+            function = std::move(m_functions.emplace_back(std::forward<Args>(args)...));
         } else {
-            function = m_functions.emplace(std::forward<Args>(args)...);
+            function = std::move(m_functions.emplace(std::forward<Args>(args)...));
         }
-
-        m_functionMap[function->name()]     = function.id();
-        m_publicFunctions[function->name()] = function.id();
+        m_functionMap[function.id()] = "";
         return std::move(function);
     }
 
     /**
      * @brief Emplaces a function in the module's function container.
      *
-     * Emplaces the function in module's function container and name to function map .
+     * Emplaces the function in module's function container and name to function map.
      *
      * @param args Arguments forwarded into the container's emplace_back function.
      * @return A handle to the emplaced function.
      */
-    template <typename... Args>
-    function_h emplace_function_private(Args&&... args) {
-        function_h function             = m_functions.emplace_back(std::forward<Args>(args)...);
-        m_functionMap[function->name()] = function.id();
+    template <typename NameFwd,
+        typename... Args,
+        typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
+    function_h emplace_function_named(NameFwd&& name, Args&&... args) {
+        function_h function;
+        if constexpr (std::is_constructible_v<class function, Args...>) {
+            function = std::move(m_functions.emplace_back(std::forward<Args>(args)...));
+        } else {
+            function = std::move(m_functions.emplace(std::forward<Args>(args)...));
+        }
+        std::string nameInst         = std::forward<NameFwd>(name);
+        m_functionNames[nameInst]    = function.id();
+        m_functionMap[function.id()] = nameInst;
         return std::move(function);
-    }
-
-    /**
-     * @brief Inserts a function in the module's function container.
-     *
-     * @param function Function to insert.
-     */
-    template <typename Function>
-    auto push_back(Function&& function) {
-        return emplace_function(std::forward<Function>(function));
-    }
-
-    /**
-     * @brief Inserts a function in the module's function container.
-     *
-     * @param function Function to insert.
-     */
-    template <typename Function>
-    auto push_back_private(Function&& function) {
-        return emplace_function_private(std::forward<Function>(function));
     }
 
     /**
@@ -155,7 +142,7 @@ public:
      */
     template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
     auto function_at(NameFwd&& name) {
-        return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
+        return function_at(m_functionNames.at(std::forward<NameFwd>(name)));
     }
 
     /**
@@ -166,18 +153,7 @@ public:
      */
     template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
     auto function_at(NameFwd&& name) const {
-        return function_at(m_publicFunctions.at(std::forward<NameFwd>(name)));
-    }
-
-    /**
-     * @brief Returns an id of a function from the module.
-     *
-     * @param name Name of the function.
-     * @return An id of the function.
-     */
-    template <typename NameFwd>
-    auto get_function_id(NameFwd&& name) {
-        return m_functionMap.at(std::forward<NameFwd>(name));
+        return function_at(m_functionNames.at(std::forward<NameFwd>(name)));
     }
 
     /**
@@ -262,8 +238,8 @@ public:
 private:
     bytecode_t m_bytecode;
 
-    std::unordered_map<std::string, function_id> m_functionMap;
-    std::unordered_map<std::string, function_id> m_publicFunctions;
+    std::unordered_map<std::string, function_id> m_functionNames;
+    std::unordered_map<function_id, std::string> m_functionMap;
     handle_container<function_h>                 m_functions;
 
     handle_container<type_h> m_types;
