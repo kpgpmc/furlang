@@ -26,6 +26,19 @@ enum class instruction_t : byte {
     PushConstant,
 
     /**
+     * @brief Pushes a new array onto the stack.
+     *
+     * Type is the next 4 bytes in little-endian.
+     * If the type is dynamic the array's size will be popped off of the stack.
+     */
+    Array,
+
+    /**
+     * @brief Pushes an element from an array onto the stack.
+     */
+    Get,
+
+    /**
      * @brief Pops top element from the stack.
      */
     Drop,

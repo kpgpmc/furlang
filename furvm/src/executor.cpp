@@ -6,6 +6,7 @@
 #include "furvm/fwd.hpp"
 #include "furvm/instruction.hpp"
 #include "furvm/thing.hpp"
+#include "furvm/type.hpp"
 
 #include <cstdint>
 #include <stdexcept>
@@ -93,6 +94,32 @@ void executor::step() {
     case instruction_t::PushB2I: {
         push_thing({ *m_context->at("core")->type_at(2), m_context, m_context->thing_alloc() })->get<int_t>() =
             frame.mod->byte(frame.position++);
+    } break;
+    case instruction_t::Array: {
+        type_id typeId  = static_cast<type_id>(frame.mod->byte(frame.position)) |
+                          (static_cast<type_id>(frame.mod->byte(frame.position + 1)) << 8) |
+                          (static_cast<type_id>(frame.mod->byte(frame.position + 2)) << 16) |
+                          (static_cast<type_id>(frame.mod->byte(frame.position + 3)) << 24);
+        frame.position += 4;
+
+        auto type = furvm::thing<>::resolve_type(*frame.mod->type_at(typeId), m_context);
+        if (type == nullptr || type->t != type_t::Array || *type->array.type == nullptr)
+            throw std::runtime_error("invalid array type");
+
+        auto array = push_thing({ type, m_context, m_context->thing_alloc() });
+
+        if (type->array.size == 0) {
+            auto   sizeThing = pop_thing();
+            long_t size      = sizeThing->integer();
+            array->resize(size);
+        }
+
+        push_thing(std::move(array));
+    } break;
+    case instruction_t::Get: {
+        auto index = pop_thing();
+        auto array = pop_thing();
+        push_thing(array->at(index->integer()));
     } break;
     case instruction_t::Drop: {
         pop_thing();

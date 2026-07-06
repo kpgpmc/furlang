@@ -283,23 +283,38 @@ public:
         if (m_type->t != type_t::Array) throw bad_thing_access();
         if (m_type->array.size > 0) throw std::runtime_error("cannot resize a static array");
 
-        auto& list = get<array_t>();
-        if (newSize < 0 || newSize == list.size) return;
+        auto& array = get<array_t>();
+        if (newSize < 0 || newSize == array.dynamic.size) return;
         std::size_t innerSize = compute_size_na(*m_type->array.type);
         std::byte*  newData   = new std::byte[innerSize * newSize];
-        std::memcpy(newData, list.data, innerSize * std::min(list.size, newSize));
-        list.size = newSize;
-        delete[] list.data;
-        list.data = newData;
+        std::memcpy(newData, array.dynamic.data, innerSize * std::min(array.dynamic.size, newSize));
+        array.dynamic.size = newSize;
+        delete[] array.dynamic.data;
+        array.dynamic.data = newData;
     }
 
     thing at(long_t index) const {
         if (m_type->t != type_t::Array) throw bad_thing_access();
-        auto& list = get<array_t>();
-        if (index < 0 || index >= list.size) throw std::out_of_range("index out of range");
-        thing res              = { std::make_shared<type>(m_type->array.type), m_modules, m_allocator };
-        res.get<reference_t>() = list.data; // TODO: Account for padding, alignment and stuff
+
+        std::size_t elementSize = compute_size_na(*m_type->array.type);
+        thing       res         = { std::make_shared<class type>(*m_type->array.type), m_modules, m_allocator };
+        if (m_type->array.size == 0) {
+            auto& array = get<array_t>();
+            if (index < 0 || index >= array.dynamic.size) throw std::out_of_range("index out of range");
+            res.get<reference_t>() = array.dynamic.data + (index * elementSize);
+            return std::move(res);
+        }
+
+        std::byte* data = reinterpret_cast<array_t*>(m_data)->data;
+        if (index < 0 || index >= m_type->array.size) throw std::out_of_range("index out of range");
+        res.get<reference_t>() = data + (index * elementSize);
         return std::move(res);
+    }
+
+    std::size_t size() const {
+        if (m_type->t != type_t::Array) throw std::runtime_error("not an array");
+        if (m_type->array.size == 0) return get<array_t>().dynamic.size;
+        return m_type->array.size;
     }
 public:
     static type_p resolve_type(const type_p& initType, const mod_container& modules) {
