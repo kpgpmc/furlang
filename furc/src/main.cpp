@@ -71,7 +71,7 @@ int main(void) {
             [](furvm::executor& executor) { std::cout << executor.load_thing(0)->integer() << '\n'; });
 
         furvm::executor_h executor = context->emplace_executor(context);
-        executor->push_frame(furvmMod, *furvmMod->function_at("main"));
+        executor->push_frame(furvmMod, *furvmMod->function_at("main", furvm::function_sig{}));
 
         std::cout << "--- Interpreting:\n";
 

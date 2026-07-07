@@ -1,6 +1,7 @@
 #ifndef FURVM_DETAIL_HANDLE_HPP
 #define FURVM_DETAIL_HANDLE_HPP
 
+#include <functional>
 #include <type_traits>
 
 namespace furvm {
@@ -26,6 +27,11 @@ struct header_has_refcount<Header,
  */
 template <typename Header>
 static constexpr auto header_has_refcount_v = header_has_refcount<Header>::value;
+
+template <typename Handle, typename IdHash = std::hash<typename Handle::id_type>>
+struct handle_hash {
+    std::size_t operator()(const Handle& handle) const { return IdHash{}(handle.id()); }
+};
 
 } // namespace detail
 } // namespace furvm

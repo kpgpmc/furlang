@@ -1,6 +1,7 @@
 #ifndef FURVM_MODULE_HPP
 #define FURVM_MODULE_HPP
 
+#include "furlang/utility/hash.hpp"
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
@@ -90,7 +91,6 @@ public:
         } else {
             function = std::move(m_functions.emplace(std::forward<Args>(args)...));
         }
-        m_functionMap[function.id()] = "";
         return std::move(function);
     }
 
@@ -99,22 +99,23 @@ public:
      *
      * Emplaces the function in module's function container and name to function map.
      *
+     * @param name Name of the function.
      * @param args Arguments forwarded into the container's emplace_back function.
      * @return A handle to the emplaced function.
      */
     template <typename NameFwd,
         typename... Args,
         typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
-    function_h emplace_function_named(NameFwd&& name, Args&&... args) {
+    function_h emplace_function(NameFwd&& name, Args&&... args) {
         function_h function;
         if constexpr (std::is_constructible_v<class function, Args...>) {
             function = std::move(m_functions.emplace_back(std::forward<Args>(args)...));
         } else {
             function = std::move(m_functions.emplace(std::forward<Args>(args)...));
         }
-        std::string nameInst         = std::forward<NameFwd>(name);
-        m_functionNames[nameInst]    = function.id();
-        m_functionMap[function.id()] = nameInst;
+        auto pair                       = std::make_pair(std::forward<NameFwd>(name), function->signature());
+        m_functionMap[function.id()]    = pair;
+        m_functionSigs[std::move(pair)] = function.id();
         return std::move(function);
     }
 
@@ -140,20 +141,13 @@ public:
      * @param name Name of the function.
      * @return A handle to the function.
      */
-    template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
-    auto function_at(NameFwd&& name) {
-        return function_at(m_functionNames.at(std::forward<NameFwd>(name)));
-    }
-
-    /**
-     * @brief Returns a function from the module.
-     *
-     * @param name Name of the function.
-     * @return A handle to the function.
-     */
-    template <typename NameFwd, typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd>>>
-    auto function_at(NameFwd&& name) const {
-        return function_at(m_functionNames.at(std::forward<NameFwd>(name)));
+    template <typename NameFwd,
+        typename SigFwd,
+        typename = std::enable_if_t<std::is_constructible_v<std::string, NameFwd> &&
+                                    std::is_constructible_v<function_sig, SigFwd>>>
+    auto function_at(NameFwd&& name, SigFwd&& signature) {
+        return function_at(
+            m_functionSigs.at(std::make_pair<>(std::forward<NameFwd>(name), std::forward<SigFwd>(signature))));
     }
 
     /**
@@ -161,7 +155,13 @@ public:
      *
      * @param id Identifier of the function.
      */
-    void erase_function(function_id id) { m_functions.erase(id); }
+    void erase_function(function_id id) {
+        m_functions.erase(id);
+        if (auto it = m_functionMap.find(id); it != m_functionMap.end()) {
+            m_functionSigs.erase(it->second);
+            m_functionMap.erase(it);
+        }
+    }
 public:
     template <typename NameFwd, typename Func>
     void set_native_function(NameFwd&& name, Func&& func) {
@@ -238,9 +238,12 @@ public:
 private:
     bytecode_t m_bytecode;
 
-    std::unordered_map<std::string, function_id> m_functionNames;
-    std::unordered_map<function_id, std::string> m_functionMap;
-    handle_container<function_h>                 m_functions;
+    using pair_type = std::pair<std::string, function_sig>;
+    using pair_hash =
+        furlang::utility::pair_hash<std::string, function_sig, std::hash<std::string>, detail::function_sig_hash>;
+    std::unordered_map<pair_type, function_id, pair_hash> m_functionSigs;
+    std::unordered_map<function_id, pair_type>            m_functionMap;
+    handle_container<function_h>                          m_functions;
 
     handle_container<type_h> m_types;
 

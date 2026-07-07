@@ -1,6 +1,7 @@
 #ifndef FURVM_FUNCTION_HPP
 #define FURVM_FUNCTION_HPP
 
+#include "furlang/utility/hash.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp" // IWYU pragma: keep
 
@@ -9,6 +10,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace furvm {
 
@@ -31,26 +33,43 @@ struct import_function {
     function_id function;
 };
 
+/**
+ * @brief Function signature.
+ */
+struct function_sig {
+    std::vector<type_h> params;
+
+    bool operator==(const function_sig& rhs) const { return params == rhs.params; }
+
+    bool operator!=(const function_sig& rhs) const { return !this->operator==(rhs); }
+};
+
 class function {
 public:
     /**
      * @brief Constructs a normal function.
      *
-     * @param paramCount Paremeter count.
+     * @param signature Function's signature.
      * @param position Offset in bytecode of the function.
      */
-    function(std::uint32_t paramCount, bytecode_pos position)
-      : m_type(function_t::Normal), m_paramCount(paramCount), m_value(position) {}
+    template <typename SigFwd, typename = std::enable_if_t<std::is_constructible_v<function_sig, SigFwd>>>
+    function(SigFwd&& signature, bytecode_pos position)
+      : m_type(function_t::Normal), m_signature(std::forward<SigFwd>(signature)), m_value(position) {}
 
     /**
      * @brief Constructs a native function.
      *
-     * @param paramCount Paremeter count.
+     * @param signature Function's signature.
      * @param native Native function tag.
      */
-    template <typename Native, typename = std::enable_if_t<std::is_constructible_v<native_function, Native>>>
-    function(std::uint32_t paramCount, Native&& native)
-      : m_type(function_t::Native), m_paramCount(paramCount), m_value(std::forward<Native>(native)) {}
+    template <typename SigFwd,
+        typename Native,
+        typename = std::enable_if_t<std::is_constructible_v<native_function, Native> &&
+                                    std::is_constructible_v<function_sig, SigFwd>>>
+    function(SigFwd&& signature, Native&& native)
+      : m_type(function_t::Native),
+        m_signature(std::forward<SigFwd>(signature)),
+        m_value(std::forward<Native>(native)) {}
 
     /**
      * @brief Constructs an import function.
@@ -60,7 +79,7 @@ public:
      */
     template <typename ModFwd, typename = std::enable_if_t<std::is_constructible_v<mod_id, ModFwd>>>
     function(ModFwd&& mod, function_id function)
-      : m_type(function_t::Import), m_paramCount(0), m_value(import_function{ std::forward<ModFwd>(mod), function }) {}
+      : m_type(function_t::Import), m_signature(), m_value(import_function{ std::forward<ModFwd>(mod), function }) {}
 
     /**
      * @brief Constructs an import function.
@@ -103,11 +122,11 @@ public:
     constexpr function_t type() const { return m_type; }
 
     /**
-     * @brief Returns this function's parameter count.
+     * @brief Returns this function's signature.
      *
-     * @return The parameter count.
+     * @return The signature.
      */
-    constexpr std::uint32_t param_count() const { return m_paramCount; }
+    function_sig signature() const { return m_signature; }
 public:
     /**
      * @brief Returns normal function's value.
@@ -139,8 +158,8 @@ public:
         return m_value.imp;
     }
 private:
-    function_t    m_type;
-    std::uint32_t m_paramCount;
+    function_t   m_type;
+    function_sig m_signature;
 
     union value {
         std::size_t     position = 0;
@@ -167,6 +186,16 @@ private:
         value& operator=(const value& other) = delete;
     } m_value;
 };
+
+namespace detail {
+
+struct function_sig_hash {
+    std::size_t operator()(const function_sig& signature) const {
+        return furlang::utility::vector_hash<type_h, detail::handle_hash<type_h>>{}(signature.params);
+    }
+};
+
+} // namespace detail
 
 } // namespace furvm
 

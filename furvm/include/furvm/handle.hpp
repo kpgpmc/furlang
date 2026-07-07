@@ -237,6 +237,10 @@ public:
      * @brief Invalidates the handle without releasing.
      */
     void dispatch() { m_value = nullptr; }
+public:
+    bool operator==(const handle& rhs) const { return m_value == rhs.m_value; }
+
+    bool operator!=(const handle& rhs) const { return !this->operator==(rhs); }
 private:
     pair_type* m_value = nullptr;
 };

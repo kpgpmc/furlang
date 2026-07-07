@@ -7,7 +7,7 @@
 namespace furvm {
 
 function::function(const mod_h& mod, const function_h& function)
-  : m_type(function_t::Import), m_paramCount(0), m_value(import_function{ mod.id(), function.id() }) {}
+  : m_type(function_t::Import), m_value(import_function{ mod.id(), function.id() }) {}
 
 function::~function() {
     switch (m_type) {
@@ -23,7 +23,7 @@ function::~function() {
 }
 
 function::function(function&& other) noexcept
-  : m_type(other.m_type), m_paramCount(other.m_paramCount) {
+  : m_type(other.m_type), m_signature(std::move(other.m_signature)) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -42,8 +42,8 @@ function::function(function&& other) noexcept
 function& function::operator=(function&& other) noexcept {
     if (this == &other) return *this;
 
-    m_type       = other.m_type;
-    m_paramCount = other.m_paramCount;
+    m_type      = other.m_type;
+    m_signature = other.m_signature;
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -62,7 +62,7 @@ function& function::operator=(function&& other) noexcept {
 }
 
 function::function(const function& other)
-  : m_type(other.m_type), m_paramCount(other.m_paramCount) {
+  : m_type(other.m_type), m_signature(other.m_signature) {
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;
@@ -80,8 +80,8 @@ function::function(const function& other)
 function& function::operator=(const function& other) {
     if (this == &other) return *this;
 
-    m_type       = other.m_type;
-    m_paramCount = other.m_paramCount;
+    m_type      = other.m_type;
+    m_signature = other.m_signature;
     switch (m_type) {
     case function_t::Normal: {
         m_value.position = other.m_value.position;

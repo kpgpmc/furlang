@@ -22,8 +22,8 @@ void executor::push_frame(const mod_h& mod, function function) {
     }
 
     std::vector<thing_h> args;
-    args.reserve(function.param_count());
-    for (size_t i = 0; i < function.param_count(); ++i)
+    args.reserve(function.signature().params.size());
+    while (args.size() < args.capacity())
         args.push_back(pop_thing());
 
     switch (function.type()) {

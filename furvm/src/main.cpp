@@ -58,10 +58,10 @@ int main(int argc, char** argv) {
         static_cast<furvm::byte>(furvm::instruction_t::Return),
     };
 
-    furvm::mod_h mod = context->emplace("main", s_bytecode, s_bytecode + sizeof(s_bytecode));
-    mod->emplace_type(std::make_shared<furvm::type>(context->at("core")->type_at(2), 10)).dispatch();
-    auto mainFunc = mod->emplace_function_named("main", 0, 0);
-    mod->emplace_function(1, "print").dispatch();
+    furvm::mod_h  mod      = context->emplace("main", s_bytecode, s_bytecode + sizeof(s_bytecode));
+    furvm::type_h intType  = mod->emplace_type(std::make_shared<furvm::type>(context->at("core")->type_at(2), 10));
+    auto          mainFunc = mod->emplace_function("main", furvm::function_sig{}, 0);
+    mod->emplace_function(furvm::function_sig{ { intType } }, "print").dispatch();
 #endif
     mod->set_native_function("print", [](furvm::executor& executor) { print_thing(*executor.load_thing(0)); });
 
