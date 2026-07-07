@@ -11,16 +11,15 @@
 #include <sstream>
 
 static void print_thing(const furvm::thing<furvm::thing_allocator>& thing) {
-    auto rsv = thing.resolve();
-    switch (rsv.type()->t) {
+    switch (thing.type()->t) {
     case furvm::type_t::Primitive: {
-        std::cout << rsv.integer();
+        std::cout << thing.integer();
     } break;
     case furvm::type_t::Array: {
         std::cout << "{ ";
-        for (furvm::long_t i = 0; i < rsv.size(); ++i) {
+        for (furvm::long_t i = 0; i < thing.size(); ++i) {
             if (i > 0) std::cout << ", ";
-            print_thing(rsv.at(i));
+            print_thing(thing.at(i));
         }
         std::cout << " }\n";
     } break;
@@ -52,6 +51,7 @@ int main(int argc, char** argv) {
         0,
         0,
         0,
+        static_cast<furvm::byte>(furvm::instruction_t::Reference),
         static_cast<furvm::byte>(furvm::instruction_t::Call),
         1,
         0,

@@ -28,19 +28,10 @@ public:
     /**
      * @brief Constructs a thing.
      *
-     * @param type Thing type.
+     * @param type Thing type reference.
      * @param allocator Allocator for the thing's data.
      */
-    thing(const type& type, const mod_container& modules = nullptr, const allocator_type& allocator = {})
-      : thing(std::make_shared<class type>(type), modules, allocator) {}
-
-    /**
-     * @brief Constructs a thing.
-     *
-     * @param type Thing type.
-     * @param allocator Allocator for the thing's data.
-     */
-    thing(const type_p& type, const mod_container& modules = nullptr, const allocator_type& allocator = {})
+    thing(const type_ref& type, const mod_container& modules = nullptr, const allocator_type& allocator = {})
       : m_type(type), m_size(compute_size(resolve_type(type, modules))), m_modules(modules), m_allocator(allocator) {
         // TODO: Account for alignment
         m_data = m_allocator.allocate(m_size);
@@ -94,15 +85,16 @@ public:
      * @return A clone of this thing.
      */
     thing clone() const {
-        auto  type = resolve_type(m_type, m_modules);
+        auto type = resolve_type(m_type, m_modules);
+        if (m_size == 0) {
+            return reference();
+        }
+
         thing res(type, m_modules, m_allocator);
         switch (type->t) {
         case type_t::Primitive:
-        case type_t::Reference: {
-            std::memcpy(res.m_data, m_data, m_size);
-        } break;
         case type_t::Array: {
-            copy_list(type, res.get<array_t>(), get<array_t>());
+            copy_list(*type.type, res.get<array_t>(), get<array_t>());
         } break;
         case type_t::Import:
         default: throw std::runtime_error("unreachable");
@@ -111,18 +103,18 @@ public:
     }
 public:
     /**
-     * @brief Returns the thing's type.
+     * @brief Returns the thing's type reference.
      *
-     * @return The type.
-     */
-    constexpr auto type() const { return *m_type; }
-
-    /**
-     * @brief Returns the thing's type.
-     *
-     * @return The shared pointer to the type.
+     * @return The type reference.
      */
     auto type() { return m_type; }
+
+    /**
+     * @brief Returns the thing's type reference.
+     *
+     * @return The type reference.
+     */
+    constexpr auto type() const { return m_type; }
 public:
     /**
      * @brief Returns a raw data pointer.
@@ -266,18 +258,9 @@ public:
         }
     }
 
-    thing reference() const {
-        thing res              = { std::make_shared<class type>(m_type), m_modules, m_allocator };
-        res.get<reference_t>() = m_data;
-        return std::move(res);
-    }
+    thing reference() const { return { m_type, m_data, m_modules, m_allocator }; }
 
-    thing resolve() const {
-        thing rsv = { resolve_type(m_type, m_modules), m_data, m_allocator };
-        while (rsv.type()->t == type_t::Reference)
-            rsv = { rsv.m_type->reference, rsv.get<reference_t>(), std::move(rsv.m_allocator) };
-        return rsv;
-    }
+    constexpr bool is_reference() const { return m_size == 0; }
 
     void resize(long_t newSize) {
         if (m_type->t != type_t::Array) throw bad_thing_access();
@@ -297,18 +280,18 @@ public:
         if (m_type->t != type_t::Array) throw bad_thing_access();
 
         std::size_t elementSize = compute_size_na(*m_type->array.type);
-        thing       res         = { std::make_shared<class type>(*m_type->array.type), m_modules, m_allocator };
         if (m_type->array.size == 0) {
             auto& array = get<array_t>();
             if (index < 0 || index >= array.dynamic.size) throw std::out_of_range("index out of range");
-            res.get<reference_t>() = array.dynamic.data + (index * elementSize);
-            return std::move(res);
+            return { { m_type.mod, m_type->array.type },
+                array.dynamic.data + (index * elementSize),
+                m_modules,
+                m_allocator };
         }
 
         std::byte* data = reinterpret_cast<array_t*>(m_data)->data;
         if (index < 0 || index >= m_type->array.size) throw std::out_of_range("index out of range");
-        res.get<reference_t>() = data + (index * elementSize);
-        return std::move(res);
+        return { { m_type.mod, m_type->array.type }, data + (index * elementSize), m_modules, m_allocator };
     }
 
     std::size_t size() const {
@@ -317,10 +300,12 @@ public:
         return m_type->array.size;
     }
 public:
-    static type_p resolve_type(const type_p& initType, const mod_container& modules) {
-        type_p rsv = initType;
-        while (rsv->t == type_t::Import)
-            rsv = *modules->at(initType->imp.mod)->type_at(initType->imp.type);
+    static type_ref resolve_type(const type_ref& initType, const mod_container& modules) {
+        type_ref rsv = initType;
+        while (rsv->t == type_t::Import) {
+            auto mod = modules->at(initType->imp.mod);
+            rsv      = type_ref{ mod, mod->type_at(initType->imp.type) };
+        }
         return rsv;
     }
 private:
@@ -350,8 +335,7 @@ private:
         }
 
         switch (innerType->t) {
-        case type_t::Primitive:
-        case type_t::Reference: std::memcpy(dst.data, src.data, size); break;
+        case type_t::Primitive: std::memcpy(dst.data, src.data, size); break;
         case type_t::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType->array.type,
@@ -366,7 +350,6 @@ private:
     static std::size_t compute_size_na(const type_p& type) {
         switch (type->t) {
         case type_t::Primitive: return type->primitive;
-        case type_t::Reference: return sizeof(reference_t);
         case type_t::Array: {
             if (type->array.size == 0) return sizeof(array_t);
             return compute_size_na(*type->array.type) * type->array.size;
@@ -377,23 +360,24 @@ private:
         throw std::runtime_error("unreachable");
     }
 
+    static std::size_t compute_size_na(const type_ref& type) { return compute_size_na(*type.type); }
+
     // NOTE: Align to 4 bytes
     static std::size_t compute_size(const type_p& type) { return (compute_size_na(type) + 3) & ~3; }
+    static std::size_t compute_size(const type_ref& type) { return compute_size(*type.type); }
 private:
-    thing(const type_p& type, std::byte* data, const allocator_type& allocator = {})
-      : m_type(type), m_size(0), m_data(data), m_allocator(allocator) {}
+    thing(const type_ref& type, std::byte* data, const mod_container& modules, const allocator_type& allocator = {})
+      : m_type(type), m_size(0), m_data(data), m_modules(modules), m_allocator(allocator) {}
 private:
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        const thing lhsRsv = resolve();
-        const thing rhsRsv = rhs.resolve();
+        if (m_type->t == type_t::Primitive && rhs.type()->t == type_t::Primitive) {
+            type_ref    type = m_type->primitive >= rhs.type()->primitive ? m_type : rhs.type();
+            std::size_t size = std::max(m_type->primitive, rhs.type()->primitive);
 
-        if (lhsRsv.type().t == type_t::Primitive && rhsRsv.type().t == type_t::Primitive) {
-            std::size_t size = std::max(lhsRsv.type().primitive, rhsRsv.type().primitive);
+            long_t result = op(integer(), rhs.integer());
 
-            long_t result = op(lhsRsv.integer(), rhsRsv.integer());
-
-            thing res({ size }, m_modules, m_allocator);
+            thing res(type, m_modules, m_allocator);
             switch (size) {
             case sizeof(byte_t): res.get<byte_t>() = result; break;
             case sizeof(short_t): res.get<short_t>() = result; break;
@@ -407,7 +391,7 @@ private:
         throw std::runtime_error("unexpected operation");
     }
 private:
-    type_p      m_type;
+    type_ref    m_type;
     std::size_t m_size;
     std::byte*  m_data;
 
