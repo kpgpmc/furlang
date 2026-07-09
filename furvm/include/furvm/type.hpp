@@ -5,6 +5,7 @@
 #include "furvm/handle.hpp" // IWYU pragma: keep
 
 #include <cstdint>
+#include <stdexcept>
 
 namespace furvm {
 
@@ -29,11 +30,17 @@ struct array_type {
      * Size of the array. If size is equal to zero, then the array becomes dynamic.
      */
     std::size_t size;
+
+    bool operator==(const array_type& rhs) const { return type == rhs.type && size == rhs.size; }
+    bool operator!=(const array_type& rhs) const { return !this->operator==(rhs); }
 };
 
 struct import_type {
     mod_id  mod;
     type_id type;
+
+    bool operator==(const import_type& rhs) const { return mod == rhs.mod && type == rhs.type; }
+    bool operator!=(const import_type& rhs) const { return !this->operator==(rhs); }
 };
 
 struct type {
@@ -108,6 +115,18 @@ struct type {
 
         return *this;
     }
+
+    bool operator==(const type& rhs) const {
+        if (t != rhs.t) return false;
+        switch (t) {
+        case type_t::Primitive: return primitive == rhs.primitive;
+        case type_t::Array: return array == rhs.array;
+        case type_t::Import: return imp == rhs.imp;
+        }
+        throw std::runtime_error("unreachable");
+    }
+
+    bool operator!=(const type& rhs) const { return !this->operator==(rhs); }
 };
 
 using byte_t  = std::int8_t;  /**< A 1-byte integer. */

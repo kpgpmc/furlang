@@ -21,10 +21,14 @@ void executor::push_frame(const mod_h& mod, function function) {
         function = *modInst->function_at(function.imp().function);
     }
 
+    auto                 signature = function.signature();
     std::vector<thing_h> args;
-    args.reserve(function.signature().params.size());
-    while (args.size() < args.capacity())
-        args.push_back(pop_thing());
+    args.reserve(signature.params.size());
+    for (const auto& param : signature.params) {
+        auto arg = pop_thing();
+        if (arg->type().type != param) throw std::runtime_error("function argument type mismatch");
+        args.push_back(std::move(arg));
+    }
 
     switch (function.type()) {
     case function_t::Normal: {
