@@ -115,6 +115,12 @@ using function_h = handle<function, refcount_header<function_id>>;
 
 // module.hpp
 
+struct mod_type;
+
+using mod_type_id = std::uint32_t;
+
+using mod_type_h = handle<mod_type, generic_header<mod_type_id>>;
+
 /**
  * @class mod
  * @brief Module.
@@ -138,25 +144,12 @@ using mod_id = std::string;
  */
 using mod_h = handle<mod, refcount_header<mod_id>>;
 
+// thing_allocator.hpp
+
+template <typename T>
+class thing_allocator;
+
 // thing.hpp
-
-/**
- * @enum type_t
- * @brief Type of the thing's type.
- */
-enum class type_t : std::uint32_t;
-
-/**
- * @struct type
- * @brief Thing type.
- */
-struct type;
-
-using type_p = std::shared_ptr<type>;
-
-using type_id = std::uint32_t;
-
-using type_h = handle<type_p, generic_header<type_id>>;
 
 /**
  * @class bad_thing_access
@@ -164,8 +157,7 @@ using type_h = handle<type_p, generic_header<type_id>>;
  */
 class bad_thing_access;
 
-template <typename T>
-class thing_allocator;
+using thing_type_id = std::uint32_t;
 
 /**
  * @class thing

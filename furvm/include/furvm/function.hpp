@@ -37,7 +37,7 @@ struct import_function {
  * @brief Function signature.
  */
 struct function_sig {
-    std::vector<type_h> params;
+    std::vector<mod_type_h> params;
 
     bool operator==(const function_sig& rhs) const { return params == rhs.params; }
 
@@ -190,9 +190,7 @@ private:
 namespace detail {
 
 struct function_sig_hash {
-    std::size_t operator()(const function_sig& signature) const {
-        return furlang::utility::vector_hash<type_h, detail::handle_hash<type_h>>{}(signature.params);
-    }
+    std::size_t operator()(const function_sig& signature) const;
 };
 
 } // namespace detail

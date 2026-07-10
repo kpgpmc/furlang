@@ -6,13 +6,34 @@
 #include "furvm/fwd.hpp"
 #include "furvm/instruction.hpp"
 #include "furvm/thing.hpp"
-#include "furvm/type.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
 
 namespace furvm {
+
+thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
+    while (type.type == mod_type::Import) {
+        auto imprt = std::move(type.value.imprt);
+        mod        = m_context->at(imprt.modId);
+        type       = *mod->type_at(imprt.typeId);
+    }
+    switch (static_cast<enum thing_type::type>(type.type)) {
+    case thing_type::Primitive: return { static_cast<enum thing_type::type>(type.type), type.value.primitive };
+    case thing_type::Array: {
+        return { static_cast<enum thing_type::type>(type.type),
+            { thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
+    }
+    default: throw std::runtime_error("invalid thing type");
+    }
+}
+
+thing_type* executor::thing_type(const mod_h& mod, const mod_type& type) const {
+    struct thing_type thingType = thing_type_impl(mod, type);
+    return m_context->thing_type_store().insert(thingType);
+}
 
 void executor::push_frame(const mod_h& mod, function function) {
     mod_h modInst = mod;
@@ -26,7 +47,7 @@ void executor::push_frame(const mod_h& mod, function function) {
     args.reserve(signature.params.size());
     for (const auto& param : signature.params) {
         auto arg = pop_thing();
-        if (arg->type().type != param) throw std::runtime_error("function argument type mismatch");
+        if (arg->type() != *thing_type(mod, *param)) throw std::runtime_error("function argument type mismatch");
         args.push_back(std::move(arg));
     }
 
@@ -87,10 +108,6 @@ thing_h executor::load_thing(variable_t variable) const {
     return frame.variables[variable];
 }
 
-static type_ref get_type_ref(const mod_h& mod, type_id id) {
-    return { mod, mod->type_at(id) };
-}
-
 void executor::step() {
     if ((m_flags & executor_flags::Suspended) == executor_flags::Suspended) return;
 
@@ -100,25 +117,25 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        push_thing({ get_type_ref(m_context->at("core"), 2), m_context, m_context->thing_alloc() })->get<int_t>() =
+        push_thing({ (struct thing_type){ thing_type::Primitive, { 4 } }, m_context->thing_alloc() })->get<int>() =
             frame.mod->byte(frame.position++);
     } break;
     case instruction_t::Array: {
-        type_id typeId  = static_cast<type_id>(frame.mod->byte(frame.position)) |
-                          (static_cast<type_id>(frame.mod->byte(frame.position + 1)) << 8) |
-                          (static_cast<type_id>(frame.mod->byte(frame.position + 2)) << 16) |
-                          (static_cast<type_id>(frame.mod->byte(frame.position + 3)) << 24);
-        frame.position += 4;
+        mod_type_id typeId = static_cast<mod_type_id>(frame.mod->byte(frame.position)) |
+                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 1)) << 8) |
+                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 2)) << 16) |
+                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 3)) << 24);
+        frame.position    += 4;
 
-        auto type = furvm::thing<>::resolve_type(get_type_ref(frame.mod, typeId), m_context);
-        if (*type.type == nullptr || type->t != type_t::Array || *type->array.type == nullptr)
+        const auto& type = *thing_type(frame.mod, *frame.mod->type_at(typeId));
+        if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
             throw std::runtime_error("invalid array type");
 
-        auto array = push_thing({ type, m_context, m_context->thing_alloc() });
+        auto array = push_thing({ type, m_context->thing_alloc() });
 
-        if (type->array.size == 0) {
-            auto   sizeThing = pop_thing();
-            long_t size      = sizeThing->integer();
+        if (type.value.array.size == 0) {
+            auto         sizeThing = pop_thing();
+            std::int64_t size      = sizeThing->integer();
             array->resize(size);
         }
 
@@ -199,27 +216,31 @@ void executor::step() {
     } break;
     case instruction_t::Pointerof: {
         auto thing = pop_thing();
-        auto ptr   = push_thing({ get_type_ref(m_context->at("core"), 4), m_context, m_context->thing_alloc() });
-        switch (furvm::thing<>::resolve_type(thing->type(), m_context)->t) {
-        case type_t::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing->raw()); break;
-        case type_t::Array:
-            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing->get<array_t>().data);
+        auto ptr   = push_thing(
+            { (struct thing_type){ thing_type::Primitive, { sizeof(std::uintptr_t) } }, m_context->thing_alloc() });
+        switch (thing->type().type) {
+        case thing_type::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing->raw()); break;
+        case thing_type::Array:
+            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(
+                thing->type().value.array.size == 0 ? thing->get<furvm::thing<>::array>().dynamic.data
+                                                    : thing->get<furvm::thing<>::array>().flat);
             break;
-        case type_t::Import:
-        default: throw std::runtime_error("unreachable");
+        case thing_type::Count: throw std::runtime_error("unreachable");
         }
     } break;
     case instruction_t::Sizeof: {
         auto thing = pop_thing();
-        auto size  = push_thing({ get_type_ref(m_context->at("core"), 3), m_context, m_context->thing_alloc() });
-        auto type  = furvm::thing<>::resolve_type(thing->type(), m_context);
-        switch (type->t) {
-        case type_t::Primitive: size->get<long_t>() = static_cast<long_t>(type->primitive); break;
-        case type_t::Array:
-            size->get<long_t>() =
-                (type->array.size == 0) ? thing->get<array_t>().dynamic.size : static_cast<long_t>(type->array.size);
+        auto size  = push_thing(
+            { (struct thing_type){ thing_type::Primitive, { sizeof(std::size_t) } }, m_context->thing_alloc() });
+        switch (thing->type().type) {
+        case thing_type::Primitive:
+            size->get<std::int64_t>() = static_cast<std::int64_t>(thing->type().value.primitive);
             break;
-        case type_t::Import:
+        case thing_type::Array:
+            size->get<std::int64_t>() = static_cast<std::int64_t>((thing->type().value.array.size == 0)
+                                                                      ? thing->get<furvm::thing<>::array>().dynamic.size
+                                                                      : thing->type().value.array.size);
+            break;
         default: throw std::runtime_error("unreachable");
         }
     } break;
@@ -247,7 +268,7 @@ void executor::step() {
     case instruction_t::JumpNotZero: {
         byte offset = frame.mod->byte(frame.position++);
         auto cond   = pop_thing();
-        if (cond->get<int_t>() != 0) frame.position += (std::int8_t)offset;
+        if (cond->integer() != 0) frame.position += (std::int8_t)offset;
     } break;
     case instruction_t::Return: {
         pop_frame();

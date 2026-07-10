@@ -5,7 +5,6 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
-#include "furvm/type.hpp" // IWYU pragma: keep
 
 #include <functional>
 #include <istream>
@@ -17,6 +16,125 @@
 #include <vector>
 
 namespace furvm {
+
+struct mod_type {
+    using primitive = std::uint64_t;
+
+    struct array {
+        mod_type_id typeId;
+        std::size_t size;
+    };
+
+    struct imprt {
+        mod_id      modId;
+        mod_type_id typeId;
+    };
+
+    enum type {
+        Primitive = 0,
+        Array,
+
+        Import,
+        Count,
+    } type;
+    union value {
+        std::nullptr_t null = nullptr;
+        primitive      primitive;
+        array          array;
+        imprt          imprt;
+
+        value() = default;
+
+        value(std::uint64_t primitive)
+          : primitive(primitive) {}
+
+        value(mod_type_id id, std::size_t size)
+          : array({}) {
+            array.typeId = id;
+            array.size   = size;
+        }
+
+        template <typename ModIdFwd, typename = std::enable_if_t<std::is_constructible_v<mod_id, ModIdFwd>>>
+        value(ModIdFwd&& modId, mod_type_id typeId)
+          : imprt({}) {
+            imprt.modId  = std::forward<ModIdFwd>(modId);
+            imprt.typeId = typeId;
+        }
+
+        ~value() {}
+
+        value(value&& other)                 = delete;
+        value& operator=(value&& other)      = delete;
+        value(const value& other)            = delete;
+        value& operator=(const value& other) = delete;
+    } value;
+
+    mod_type(primitive primitive)
+      : type(Primitive), value(primitive) {}
+
+    mod_type(mod_type_id id, std::size_t size)
+      : type(Array), value(id, size) {}
+
+    template <typename ModIdFwd, typename = std::enable_if_t<std::is_constructible_v<mod_id, ModIdFwd>>>
+    mod_type(ModIdFwd&& modId, mod_type_id typeId)
+      : type(Import), value(std::forward<ModIdFwd>(modId), typeId) {}
+
+    ~mod_type() {
+        switch (type) {
+        case Array: value.array.~array(); break;
+        case Import: value.imprt.~imprt(); break;
+        case Primitive:
+        case Count:
+        default: break;
+        }
+    }
+
+    mod_type(mod_type&& other) noexcept
+      : type(other.type) {
+        switch (type) {
+        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
+        case Array: new (&value.array) array(other.value.array); break;
+        case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
+        case Count: break;
+        }
+        other.type = Count;
+    }
+
+    mod_type& operator=(mod_type&& other) noexcept {
+        if (this == &other) return *this;
+        type = other.type;
+        switch (type) {
+        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
+        case Array: new (&value.array) array(other.value.array); break;
+        case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
+        case Count: break;
+        }
+        other.type = Count;
+        return *this;
+    }
+
+    mod_type(const mod_type& other)
+      : type(other.type) {
+        switch (type) {
+        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
+        case Array: new (&value.array) array(other.value.array); break;
+        case Import: new (&value.imprt) imprt(other.value.imprt); break;
+        case Count: break;
+        }
+    }
+
+    mod_type& operator=(const mod_type& other) {
+        if (this == &other) return *this;
+        type = other.type;
+        switch (type) {
+        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
+        case Array: new (&value.array) array(other.value.array); break;
+        case Import: new (&value.imprt) imprt(other.value.imprt); break;
+        case Count: break;
+        }
+        return *this;
+    }
+};
 
 class mod {
     friend class function;
@@ -181,7 +299,7 @@ public:
      */
     template <typename... Args>
     auto emplace_type(Args&&... args) {
-        if constexpr (std::is_constructible_v<type_p, Args...>) {
+        if constexpr (std::is_constructible_v<mod_type, Args...>) {
             return m_types.emplace_back(std::forward<Args>(args)...);
         } else {
             return m_types.emplace(std::forward<Args>(args)...);
@@ -245,7 +363,7 @@ private:
     std::unordered_map<function_id, pair_type>            m_functionMap;
     handle_container<function_h>                          m_functions;
 
-    handle_container<type_h> m_types;
+    handle_container<mod_type_h> m_types;
 
     std::unordered_map<std::string, native_function> m_nativeFunctions;
 };

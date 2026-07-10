@@ -21,7 +21,8 @@ public:
     /**
      * @brief Constructs a context.
      */
-    context();
+    context()
+      : m_thingAllocator(m_thingArena) {}
 
     ~context() = default;
 
@@ -124,6 +125,8 @@ public:
      * @return The thing allocator.
      */
     thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
+
+    thing_type_store& thing_type_store() { return m_thingTypeStore; }
 private:
     handle_container<mod_h>      m_modules;
     handle_container<thing_h>    m_things;
@@ -131,6 +134,7 @@ private:
 
     furlang::arena             m_thingArena;
     thing_allocator<std::byte> m_thingAllocator;
+    class thing_type_store     m_thingTypeStore;
 };
 
 } // namespace furvm

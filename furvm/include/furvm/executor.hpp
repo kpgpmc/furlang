@@ -165,6 +165,10 @@ public:
      */
     void step();
 private:
+    thing_type thing_type_impl(mod_h mod, mod_type type) const;
+
+    thing_type* thing_type(const mod_h& mod, const mod_type& type) const;
+private:
     executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
     context_p      m_context;
 

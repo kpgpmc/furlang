@@ -98,4 +98,12 @@ function& function::operator=(const function& other) {
     return *this;
 }
 
+namespace detail {
+
+std::size_t function_sig_hash::operator()(const function_sig& signature) const {
+    return furlang::utility::vector_hash<mod_type_h, detail::handle_hash<mod_type_h>>{}(signature.params);
+}
+
+} // namespace detail
+
 } // namespace furvm

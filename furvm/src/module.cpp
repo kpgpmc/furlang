@@ -3,7 +3,6 @@
 #include "furvm/detail/serialization.hpp"
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
-#include "furvm/type.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -18,25 +17,26 @@ std::ostream& mod::serialize(std::ostream& os) const {
     os.write(MAGIC, sizeof(MAGIC));
     detail::serialize(os, std::uint32_t(0)); // version
 
-    type_id typeCount = type_id(m_types.cend() - m_types.cbegin());
+    mod_type_id typeCount = mod_type_id(m_types.cend() - m_types.cbegin());
     detail::serialize(os, typeCount);
-    for (type_id id = 0; id < typeCount; ++id) {
+    for (mod_type_id id = 0; id < typeCount; ++id) {
         if (!m_types.contains(id)) {
             detail::serialize(os, std::uint8_t(0xFF)); // null type
             continue;
         }
 
         auto type = *m_types.at(id);
-        switch (type->t) {
-        case type_t::Primitive: detail::serialize(os, type->primitive); break;
-        case type_t::Array: {
-            detail::serialize(os, type->array.size);
-            detail::serialize(os, type->array.type.id());
+        switch (type.type) {
+        case mod_type::Primitive: detail::serialize(os, type.value.primitive); break;
+        case mod_type::Array: {
+            detail::serialize(os, type.value.array.typeId);
+            detail::serialize(os, type.value.array.size);
         } break;
-        case type_t::Import: {
-            detail::serialize(os, type->imp.mod);
-            detail::serialize(os, type->imp.type);
+        case mod_type::Import: {
+            detail::serialize(os, type.value.imprt.modId);
+            detail::serialize(os, type.value.imprt.typeId);
         } break;
+        case mod_type::Count: throw std::runtime_error("unreachable");
         }
     }
 
@@ -93,32 +93,32 @@ mod mod::load(std::istream& is) {
 
     mod mod;
 
-    type_id typeCount = 0;
+    mod_type_id typeCount = 0;
     detail::load(is, typeCount);
-    for (type_id id = 0; id < typeCount; ++id) {
+    for (mod_type_id id = 0; id < typeCount; ++id) {
         std::uint8_t type = 0;
         detail::load(is, type);
         if (type == 0xFF) continue;
 
-        switch ((type_t)type) {
-        case type_t::Primitive: {
-            primitive_type primitive = 0;
+        switch ((enum mod_type::type)type) {
+        case mod_type::Primitive: {
+            mod_type::primitive primitive = 0;
             detail::load(is, primitive);
-            mod.emplace_type(id, std::make_shared<class type>(primitive)).dispatch();
+            mod.emplace_type(id, primitive).dispatch();
         } break;
-        case type_t::Array: {
+        case mod_type::Array: {
+            mod_type_id typeId = 0;
+            detail::load(is, typeId);
             std::size_t size = 0;
             detail::load(is, size);
-            type_id typeId = 0;
-            detail::load(is, typeId);
-            mod.emplace_type(id, std::make_shared<class type>(mod.type_at(typeId), size)).dispatch();
+            mod.emplace_type(id, typeId, size).dispatch();
         } break;
-        case type_t::Import: {
+        case mod_type::Import: {
             std::string modName;
             detail::load(is, modName);
-            type_id typeId = 0;
+            mod_type_id typeId = 0;
             detail::load(is, typeId);
-            mod.emplace_type(id, std::make_shared<class type>(import_type{ std::move(modName), typeId })).dispatch();
+            mod.emplace_type(id, std::move(modName), typeId).dispatch();
         } break;
         default: throw std::runtime_error("unknown type type");
         }
