@@ -34,6 +34,7 @@ std::ostream& mod::serialize(std::ostream& os) const {
         case mod_type::U16:
         case mod_type::U32:
         case mod_type::U64: break;
+        case mod_type::Ptr: detail::serialize(os, type.value.ptr.typeId); break;
         case mod_type::Array: {
             detail::serialize(os, type.value.array.typeId);
             detail::serialize(os, type.value.array.size);
@@ -115,6 +116,11 @@ mod mod::load(std::istream& is) {
         case mod_type::U16:
         case mod_type::U32:
         case mod_type::U64: break;
+        case mod_type::Ptr: {
+            mod_type_id typeId = 0;
+            detail::load(is, typeId);
+            mod.emplace_type(id, typeId).dispatch();
+        } break;
         case mod_type::Array: {
             mod_type_id typeId = 0;
             detail::load(is, typeId);

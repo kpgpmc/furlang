@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
         0,
         0,
         0,
-        static_cast<furvm::byte>(furvm::instruction_t::Reference),
+        static_cast<furvm::byte>(furvm::instruction_t::Pointerof),
         static_cast<furvm::byte>(furvm::instruction_t::Call),
         1,
         0,

@@ -30,6 +30,10 @@ struct thing_type {
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
 
+    struct ptr {
+        thing_type* type;
+    };
+
     struct array {
         thing_type* type;
         std::size_t size;
@@ -44,15 +48,22 @@ struct thing_type {
         U16,
         U32,
         U64,
+        Ptr,
         Array,
 
         Count,
     } type;
     union value {
         std::nullptr_t null = nullptr;
+        ptr            ptr;
         array          array;
 
         value() = default;
+
+        value(thing_type* type)
+          : ptr({}) {
+            ptr.type = type;
+        }
 
         value(thing_type* type, std::size_t size)
           : array({}) {
@@ -76,6 +87,7 @@ struct thing_type {
         case U16:
         case U32:
         case U64: return true;
+        case Ptr: return *value.ptr.type == *other.value.ptr.type;
         case Array: return *value.array.type == *other.value.array.type && value.array.size == other.value.array.size;
         case Count: break;
         }
@@ -94,10 +106,11 @@ struct thing_type {
         case U16:
         case U32:
         case U64: return true;
-        case Array:
+        case Ptr:
+        case Array: return false;
         case Count: break;
         }
-        return false;
+        throw std::runtime_error("unreachable");
     }
 
     static std::size_t primitive_size(enum type type) {
@@ -110,10 +123,11 @@ struct thing_type {
         case thing_type::U16: return sizeof(u16);
         case thing_type::U32: return sizeof(u32);
         case thing_type::U64: return sizeof(u64);
-        case Array:
+        case Ptr:
+        case Array: return 0;
         case Count: break;
         }
-        return 0;
+        throw std::runtime_error("unreachable");
     }
 };
 
@@ -131,6 +145,7 @@ struct thing_type_hash {
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64: return seed;
+        case thing_type::Ptr: return furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.ptr.type));
         case thing_type::Array:
             seed = furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.array.type));
             seed = furlang::utility::hash_combine(seed,
@@ -245,7 +260,8 @@ public:
         case thing_type::U8:
         case thing_type::U16:
         case thing_type::U32:
-        case thing_type::U64: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
+        case thing_type::U64:
+        case thing_type::Ptr: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
         case thing_type::Array: copy_list(m_type, res.get<array>(), get<array>()); return std::move(res);
         case thing_type::Count: break;
         }
@@ -480,7 +496,8 @@ private:
         case thing_type::U8:
         case thing_type::U16:
         case thing_type::U32:
-        case thing_type::U64: std::memcpy(dst.flat, src.flat, size); return;
+        case thing_type::U64:
+        case thing_type::Ptr: std::memcpy(dst.flat, src.flat, size); return;
         case thing_type::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType.value.array.type,
@@ -503,6 +520,7 @@ private:
         case thing_type::U16: return sizeof(thing_type::u16);
         case thing_type::U32: return sizeof(thing_type::u32);
         case thing_type::U64: return sizeof(thing_type::u64);
+        case thing_type::Ptr: return sizeof(void*);
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
@@ -639,6 +657,7 @@ private:
             case thing_type::U64:
                 res.get<thing_type::u64>() = Op{}(cast_to<thing_type::u64>(), rhs.cast_to<thing_type::u64>());
                 return res;
+            case thing_type::Ptr: // TODO: Pointer arithmetics
             case thing_type::Array:
             case thing_type::Count: break;
             }
