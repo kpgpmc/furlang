@@ -21,7 +21,14 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
         type       = *mod->type_at(imprt.typeId);
     }
     switch (static_cast<enum thing_type::type>(type.type)) {
-    case thing_type::Primitive: return { static_cast<enum thing_type::type>(type.type), type.value.primitive };
+    case thing_type::S8:
+    case thing_type::S16:
+    case thing_type::S32:
+    case thing_type::S64:
+    case thing_type::U8:
+    case thing_type::U16:
+    case thing_type::U32:
+    case thing_type::U64: return { static_cast<enum thing_type::type>(type.type) };
     case thing_type::Array: {
         return { static_cast<enum thing_type::type>(type.type),
             { thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
@@ -117,7 +124,7 @@ void executor::step() {
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushB2I: {
-        push_thing({ (struct thing_type){ thing_type::Primitive, { 4 } }, m_context->thing_alloc() })->get<int>() =
+        push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() })->get<int>() =
             frame.mod->byte(frame.position++);
     } break;
     case instruction_t::Array: {
@@ -215,31 +222,37 @@ void executor::step() {
         push_thing(lhs->greater_equals(*rhs));
     } break;
     case instruction_t::Pointerof: {
-        auto thing = pop_thing();
-        auto ptr   = push_thing(
-            { (struct thing_type){ thing_type::Primitive, { sizeof(std::uintptr_t) } }, m_context->thing_alloc() });
-        switch (thing->type().type) {
-        case thing_type::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing->raw()); break;
-        case thing_type::Array:
-            ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(
-                thing->type().value.array.size == 0 ? thing->get<furvm::thing<>::array>().dynamic.data
-                                                    : thing->get<furvm::thing<>::array>().flat);
-            break;
-        case thing_type::Count: throw std::runtime_error("unreachable");
-        }
+        // auto thing = pop_thing();
+        // auto ptr   = push_thing(
+        //{ (struct thing_type){ thing_type::Primitive, { sizeof(std::uintptr_t) } }, m_context->thing_alloc() });
+        // switch (thing->type().type) {
+        // case thing_type::Primitive: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(thing->raw());
+        // break; case thing_type::Array: ptr->get<std::uintptr_t>() = reinterpret_cast<std::uintptr_t>(
+        // thing->type().value.array.size == 0 ? thing->get<furvm::thing<>::array>().dynamic.data
+        //: thing->get<furvm::thing<>::array>().flat);
+        // break;
+        // case thing_type::Count: throw std::runtime_error("unreachable");
+        // }
+        throw std::runtime_error("unimplemented"); // TODO: Implement
     } break;
     case instruction_t::Sizeof: {
         auto thing = pop_thing();
-        auto size  = push_thing(
-            { (struct thing_type){ thing_type::Primitive, { sizeof(std::size_t) } }, m_context->thing_alloc() });
+        auto size  = push_thing({ (struct thing_type){ thing_type::U64 }, m_context->thing_alloc() });
         switch (thing->type().type) {
-        case thing_type::Primitive:
-            size->get<std::int64_t>() = static_cast<std::int64_t>(thing->type().value.primitive);
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64:
+            size->get<thing_type::u64>() = static_cast<thing_type::u64>(thing_type::primitive_size(thing->type().type));
             break;
         case thing_type::Array:
-            size->get<std::int64_t>() = static_cast<std::int64_t>((thing->type().value.array.size == 0)
-                                                                      ? thing->get<furvm::thing<>::array>().dynamic.size
-                                                                      : thing->type().value.array.size);
+            size->get<thing_type::u64>() = static_cast<thing_type::u64>(
+                (thing->type().value.array.size == 0) ? thing->get<furvm::thing<>::array>().dynamic.size
+                                                      : thing->type().value.array.size);
             break;
         default: throw std::runtime_error("unreachable");
         }

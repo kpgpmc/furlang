@@ -14,13 +14,21 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
 namespace furvm {
 
 struct thing_type {
-    using primitive = std::uint64_t;
+    using s8  = std::int8_t;
+    using s16 = std::int16_t;
+    using s32 = std::int32_t;
+    using s64 = std::int64_t;
+    using u8  = std::uint8_t;
+    using u16 = std::uint16_t;
+    using u32 = std::uint32_t;
+    using u64 = std::uint64_t;
 
     struct array {
         thing_type* type;
@@ -28,17 +36,23 @@ struct thing_type {
     };
 
     enum type { // NOLINT
-        Primitive = 0,
+        S8 = 0,
+        S16,
+        S32,
+        S64,
+        U8,
+        U16,
+        U32,
+        U64,
         Array,
 
         Count,
     } type;
     union value {
-        primitive primitive;
-        array     array;
+        std::nullptr_t null = nullptr;
+        array          array;
 
-        value(std::uint64_t primitive)
-          : primitive(primitive) {}
+        value() = default;
 
         value(thing_type* type, std::size_t size)
           : array({}) {
@@ -54,7 +68,14 @@ struct thing_type {
     bool operator==(const thing_type& other) const {
         if (type != other.type) return false;
         switch (type) {
-        case Primitive: return value.primitive == other.value.primitive;
+        case S8:
+        case S16:
+        case S32:
+        case S64:
+        case U8:
+        case U16:
+        case U32:
+        case U64: return true;
         case Array: return *value.array.type == *other.value.array.type && value.array.size == other.value.array.size;
         case Count: break;
         }
@@ -62,6 +83,38 @@ struct thing_type {
     }
 
     bool operator!=(const thing_type& other) const { return !this->operator==(other); }
+
+    static bool is_primitive(enum type type) {
+        switch (type) {
+        case S8:
+        case S16:
+        case S32:
+        case S64:
+        case U8:
+        case U16:
+        case U32:
+        case U64: return true;
+        case Array:
+        case Count: break;
+        }
+        return false;
+    }
+
+    static std::size_t primitive_size(enum type type) {
+        switch (type) {
+        case thing_type::S8: return sizeof(s8);
+        case thing_type::S16: return sizeof(s16);
+        case thing_type::S32: return sizeof(s32);
+        case thing_type::S64: return sizeof(s64);
+        case thing_type::U8: return sizeof(u8);
+        case thing_type::U16: return sizeof(u16);
+        case thing_type::U32: return sizeof(u32);
+        case thing_type::U64: return sizeof(u64);
+        case Array:
+        case Count: break;
+        }
+        return 0;
+    }
 };
 
 namespace detail {
@@ -70,10 +123,14 @@ struct thing_type_hash {
     std::size_t operator()(const thing_type& type) const {
         std::size_t seed = std::hash<decltype(type.type)>{}(type.type);
         switch (type.type) {
-        case thing_type::Primitive:
-            seed =
-                furlang::utility::hash_combine(seed, std::hash<decltype(type.value.primitive)>{}(type.value.primitive));
-            return seed;
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64: return seed;
         case thing_type::Array:
             seed = furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.array.type));
             seed = furlang::utility::hash_combine(seed,
@@ -116,11 +173,6 @@ class thing final {
 public:
     using allocator_type = Allocator<std::byte>; /**< Allocator type. */
 public:
-    using s8  = std::int8_t;
-    using s16 = std::int16_t;
-    using s32 = std::int32_t;
-    using s64 = std::int64_t;
-
     union array {
         std::byte flat[];
         struct {
@@ -186,7 +238,14 @@ public:
 
         thing res(m_type, m_allocator);
         switch (m_type.type) {
-        case thing_type::Primitive: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
         case thing_type::Array: copy_list(m_type, res.get<array>(), get<array>()); return std::move(res);
         case thing_type::Count: break;
         }
@@ -221,8 +280,7 @@ public:
      */
     template <typename T>
     T& get() {
-        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
-        if (size != sizeof(T)) throw bad_thing_access();
+        if (compute_size_na(m_type) != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
 
@@ -233,8 +291,7 @@ public:
      */
     template <typename T>
     const T& get() const {
-        std::size_t size = m_size > 0 ? m_size : compute_size_na(m_type);
-        if (size != sizeof(T)) throw bad_thing_access();
+        if (compute_size_na(m_type) != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
 public:
@@ -331,13 +388,16 @@ public:
      *
      * @return The integer value.
      */
-    s64 integer() const {
-        if (m_type.type != thing_type::Primitive) throw bad_thing_access();
-        switch (m_type.value.primitive) {
-        case sizeof(s8): return get<s8>();
-        case sizeof(s16): return get<s16>();
-        case sizeof(s32): return get<s32>();
-        case sizeof(s64): return get<s64>();
+    thing_type::s64 integer() const {
+        switch (m_type.type) {
+        case thing_type::S8: return get<thing_type::s8>();
+        case thing_type::S16: return get<thing_type::s16>();
+        case thing_type::S32: return get<thing_type::s32>();
+        case thing_type::S64: return get<thing_type::s64>();
+        case thing_type::U8: return get<thing_type::u8>();
+        case thing_type::U16: return get<thing_type::u16>();
+        case thing_type::U32: return get<thing_type::u32>();
+        case thing_type::U64: return get<thing_type::u64>();
         default: throw std::runtime_error("unreachable");
         }
     }
@@ -346,7 +406,7 @@ public:
 
     constexpr bool is_reference() const { return m_size == 0; }
 
-    void resize(s64 newSize) {
+    void resize(thing_type::u64 newSize) {
         if (m_type.type != thing_type::Array) throw bad_thing_access();
         if (m_type.value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
@@ -356,13 +416,13 @@ public:
         std::byte*  newData   = new std::byte[innerSize * newSize];
         std::memcpy(newData,
             array.dynamic.data,
-            innerSize * std::min(static_cast<std::int64_t>(array.dynamic.size), newSize));
+            innerSize * std::min(static_cast<thing_type::u64>(array.dynamic.size), newSize));
         array.dynamic.size = newSize;
         delete[] array.dynamic.data;
         array.dynamic.data = newData;
     }
 
-    thing at(s64 index) const {
+    thing at(thing_type::u64 index) const {
         if (m_type.type != thing_type::Array) throw bad_thing_access();
 
         std::size_t elementSize = compute_size_na(*m_type.value.array.type);
@@ -380,6 +440,11 @@ public:
     std::size_t size() const {
         if (m_type.type != thing_type::Array) throw bad_thing_access();
         return m_type.value.array.size == 0 ? get<array>().dynamic.size : m_type.value.array.size;
+    }
+
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    T cast_to() const {
+        return visit_primitive([](auto value) { return static_cast<T>(value); });
     }
 private:
     static void copy_list(const thing_type& arrayType, array& dst, const array& src) {
@@ -408,7 +473,14 @@ private:
         }
 
         switch (innerType.type) {
-        case thing_type::Primitive: std::memcpy(dst.flat, src.flat, size); return;
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64: std::memcpy(dst.flat, src.flat, size); return;
         case thing_type::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType.value.array.type,
@@ -423,7 +495,14 @@ private:
 private:
     static std::size_t compute_size_na(const thing_type& type) {
         switch (type.type) {
-        case thing_type::Primitive: return type.value.primitive;
+        case thing_type::S8: return sizeof(thing_type::s8);
+        case thing_type::S16: return sizeof(thing_type::s16);
+        case thing_type::S32: return sizeof(thing_type::s32);
+        case thing_type::S64: return sizeof(thing_type::s64);
+        case thing_type::U8: return sizeof(thing_type::u8);
+        case thing_type::U16: return sizeof(thing_type::u16);
+        case thing_type::U32: return sizeof(thing_type::u32);
+        case thing_type::U64: return sizeof(thing_type::u64);
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
@@ -439,23 +518,131 @@ private:
     thing(const thing_type& type, std::byte* data, const allocator_type& allocator = {})
       : m_type(type), m_size(0), m_data(data), m_allocator(allocator) {}
 private:
+    template <typename Func>
+    decltype(auto) visit_primitive(Func&& func) const {
+        switch (m_type.type) {
+        case thing_type::S8: return std::forward<Func>(func)(get<thing_type::s8>());
+        case thing_type::S16: return std::forward<Func>(func)(get<thing_type::s16>());
+        case thing_type::S32: return std::forward<Func>(func)(get<thing_type::s32>());
+        case thing_type::S64: return std::forward<Func>(func)(get<thing_type::s64>());
+        case thing_type::U8: return std::forward<Func>(func)(get<thing_type::u8>());
+        case thing_type::U16: return std::forward<Func>(func)(get<thing_type::u16>());
+        case thing_type::U32: return std::forward<Func>(func)(get<thing_type::u32>());
+        case thing_type::U64: return std::forward<Func>(func)(get<thing_type::u64>());
+        default: throw bad_thing_access();
+        }
+    }
+
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        if (m_type.type == thing_type::Primitive && rhs.m_type.type == thing_type::Primitive) {
-            thing_type  resultType = m_type.value.primitive >= rhs.m_type.value.primitive ? m_type : rhs.m_type;
-            std::size_t size       = std::max(m_type.value.primitive, rhs.m_type.value.primitive);
+        if (thing_type::is_primitive(m_type.type) && thing_type::is_primitive(rhs.m_type.type)) {
+            static constexpr enum thing_type::type promotions[8 * 8] = {
+                // S8
+                thing_type::S8,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::S64,
+                thing_type::S16,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::U64,
+                // S16
+                thing_type::S16,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::S64,
+                thing_type::S16,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::U64,
+                // S32
+                thing_type::S32,
+                thing_type::S32,
+                thing_type::S32,
+                thing_type::S64,
+                thing_type::S32,
+                thing_type::S32,
+                thing_type::U32,
+                thing_type::U64,
+                // S64
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::S64,
+                thing_type::U64,
+                // U8
+                thing_type::S16,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::S64,
+                thing_type::U8,
+                thing_type::U16,
+                thing_type::U32,
+                thing_type::U64,
+                // U16
+                thing_type::S16,
+                thing_type::S16,
+                thing_type::S32,
+                thing_type::S64,
+                thing_type::U16,
+                thing_type::U16,
+                thing_type::U32,
+                thing_type::U64,
+                // U32
+                thing_type::S32,
+                thing_type::S32,
+                thing_type::U32,
+                thing_type::S64,
+                thing_type::U32,
+                thing_type::U32,
+                thing_type::U32,
+                thing_type::U64,
+                // U64
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+                thing_type::U64,
+            };
 
-            s64 result = op(integer(), rhs.integer());
+            enum thing_type::type resultType = promotions[m_type.type + (rhs.m_type.type * 8)];
 
-            thing res(resultType, m_allocator);
-            switch (size) {
-            case sizeof(s8): res.get<s8>() = result; break;
-            case sizeof(s16): res.get<s16>() = result; break;
-            case sizeof(s32): res.get<s32>() = result; break;
-            case sizeof(s64): res.get<s64>() = result; break;
-            default: throw std::runtime_error("unreachable");
+            thing res = { thing_type{ resultType }, m_allocator };
+            switch (resultType) {
+            case thing_type::S8:
+                res.get<thing_type::s8>() = Op{}(cast_to<thing_type::s8>(), rhs.cast_to<thing_type::s8>());
+                return res;
+            case thing_type::S16:
+                res.get<thing_type::s16>() = Op{}(cast_to<thing_type::s16>(), rhs.cast_to<thing_type::s16>());
+                return res;
+            case thing_type::S32:
+                res.get<thing_type::s32>() = Op{}(cast_to<thing_type::s32>(), rhs.cast_to<thing_type::s32>());
+                return res;
+            case thing_type::S64:
+                res.get<thing_type::s64>() = Op{}(cast_to<thing_type::s64>(), rhs.cast_to<thing_type::s64>());
+                return res;
+            case thing_type::U8:
+                res.get<thing_type::u8>() = Op{}(cast_to<thing_type::u8>(), rhs.cast_to<thing_type::u8>());
+                return res;
+            case thing_type::U16:
+                res.get<thing_type::u16>() = Op{}(cast_to<thing_type::u16>(), rhs.cast_to<thing_type::u16>());
+                return res;
+            case thing_type::U32:
+                res.get<thing_type::u32>() = Op{}(cast_to<thing_type::u32>(), rhs.cast_to<thing_type::u32>());
+                return res;
+            case thing_type::U64:
+                res.get<thing_type::u64>() = Op{}(cast_to<thing_type::u64>(), rhs.cast_to<thing_type::u64>());
+                return res;
+            case thing_type::Array:
+            case thing_type::Count: break;
             }
-            return std::move(res);
+            throw std::runtime_error("unreachable");
         }
 
         throw std::runtime_error("unexpected operation");

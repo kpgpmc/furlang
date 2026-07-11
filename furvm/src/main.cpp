@@ -11,18 +11,25 @@
 #include <sstream>
 
 static void print_thing(const furvm::thing<furvm::thing_allocator>& thing) {
+    using namespace furvm;
+
     switch (thing.type().type) {
-    case furvm::thing_type::Primitive: {
-        std::cout << thing.integer();
-    } break;
-    case furvm::thing_type::Array: {
+    case thing_type::S8: std::cout << thing.cast_to<thing_type::s16>(); break;
+    case thing_type::S16: std::cout << thing.get<thing_type::s16>(); break;
+    case thing_type::S32: std::cout << thing.get<thing_type::s32>(); break;
+    case thing_type::S64: std::cout << thing.get<thing_type::s64>(); break;
+    case thing_type::U8: std::cout << thing.get<thing_type::u8>(); break;
+    case thing_type::U16: std::cout << thing.get<thing_type::u16>(); break;
+    case thing_type::U32: std::cout << thing.get<thing_type::u32>(); break;
+    case thing_type::U64: std::cout << thing.get<thing_type::u64>(); break;
+    case furvm::thing_type::Array:
         std::cout << "{ ";
-        for (furvm::thing<>::s64 i = 0; i < thing.size(); ++i) {
+        for (thing_type::u64 i = 0; i < thing.size(); ++i) {
             if (i > 0) std::cout << ", ";
             print_thing(thing.at(i));
         }
-        std::cout << " }\n";
-    } break;
+        std::cout << " }";
+        break;
     default: std::cerr << "{Type not recognized}";
     }
 }
@@ -59,12 +66,15 @@ int main(int argc, char** argv) {
     };
 
     auto mod       = context->emplace("main", s_bytecode, s_bytecode + sizeof(s_bytecode));
-    auto intType   = mod->emplace_type(sizeof(int));
-    auto arrayType = mod->emplace_type(intType.id(), 10);
+    auto charType  = mod->emplace_type(furvm::mod_type::S8);
+    auto arrayType = mod->emplace_type(charType.id(), 10);
     auto mainFunc  = mod->emplace_function("main", furvm::function_sig{}, 0);
     mod->emplace_function(furvm::function_sig{ { arrayType } }, "print").dispatch();
 #endif
-    mod->set_native_function("print", [](furvm::executor& executor) { print_thing(*executor.load_thing(0)); });
+    mod->set_native_function("print", [](furvm::executor& executor) {
+        print_thing(*executor.load_thing(0));
+        std::cout << '\n';
+    });
 
     furvm::executor_h executor = context->emplace_executor(context);
     executor->push_frame(mod, *mainFunc);

@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <cstring>
 #include <ios>
-#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -27,7 +26,14 @@ std::ostream& mod::serialize(std::ostream& os) const {
 
         auto type = *m_types.at(id);
         switch (type.type) {
-        case mod_type::Primitive: detail::serialize(os, type.value.primitive); break;
+        case mod_type::S8:
+        case mod_type::S16:
+        case mod_type::S32:
+        case mod_type::S64:
+        case mod_type::U8:
+        case mod_type::U16:
+        case mod_type::U32:
+        case mod_type::U64: break;
         case mod_type::Array: {
             detail::serialize(os, type.value.array.typeId);
             detail::serialize(os, type.value.array.size);
@@ -101,11 +107,14 @@ mod mod::load(std::istream& is) {
         if (type == 0xFF) continue;
 
         switch ((enum mod_type::type)type) {
-        case mod_type::Primitive: {
-            mod_type::primitive primitive = 0;
-            detail::load(is, primitive);
-            mod.emplace_type(id, primitive).dispatch();
-        } break;
+        case mod_type::S8:
+        case mod_type::S16:
+        case mod_type::S32:
+        case mod_type::S64:
+        case mod_type::U8:
+        case mod_type::U16:
+        case mod_type::U32:
+        case mod_type::U64: break;
         case mod_type::Array: {
             mod_type_id typeId = 0;
             detail::load(is, typeId);

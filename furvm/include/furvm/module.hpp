@@ -18,8 +18,6 @@
 namespace furvm {
 
 struct mod_type {
-    using primitive = std::uint64_t;
-
     struct array {
         mod_type_id typeId;
         std::size_t size;
@@ -31,7 +29,14 @@ struct mod_type {
     };
 
     enum type {
-        Primitive = 0,
+        S8 = 0,
+        S16,
+        S32,
+        S64,
+        U8,
+        U16,
+        U32,
+        U64,
         Array,
 
         Import,
@@ -39,14 +44,10 @@ struct mod_type {
     } type;
     union value {
         std::nullptr_t null = nullptr;
-        primitive      primitive;
         array          array;
         imprt          imprt;
 
         value() = default;
-
-        value(std::uint64_t primitive)
-          : primitive(primitive) {}
 
         value(mod_type_id id, std::size_t size)
           : array({}) {
@@ -69,8 +70,8 @@ struct mod_type {
         value& operator=(const value& other) = delete;
     } value;
 
-    mod_type(primitive primitive)
-      : type(Primitive), value(primitive) {}
+    mod_type(enum type type)
+      : type(type) {}
 
     mod_type(mod_type_id id, std::size_t size)
       : type(Array), value(id, size) {}
@@ -83,8 +84,6 @@ struct mod_type {
         switch (type) {
         case Array: value.array.~array(); break;
         case Import: value.imprt.~imprt(); break;
-        case Primitive:
-        case Count:
         default: break;
         }
     }
@@ -92,10 +91,9 @@ struct mod_type {
     mod_type(mod_type&& other) noexcept
       : type(other.type) {
         switch (type) {
-        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
         case Array: new (&value.array) array(other.value.array); break;
         case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
-        case Count: break;
+        default: break;
         }
         other.type = Count;
     }
@@ -104,10 +102,9 @@ struct mod_type {
         if (this == &other) return *this;
         type = other.type;
         switch (type) {
-        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
         case Array: new (&value.array) array(other.value.array); break;
         case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
-        case Count: break;
+        default: break;
         }
         other.type = Count;
         return *this;
@@ -116,10 +113,9 @@ struct mod_type {
     mod_type(const mod_type& other)
       : type(other.type) {
         switch (type) {
-        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
         case Array: new (&value.array) array(other.value.array); break;
         case Import: new (&value.imprt) imprt(other.value.imprt); break;
-        case Count: break;
+        default: break;
         }
     }
 
@@ -127,10 +123,9 @@ struct mod_type {
         if (this == &other) return *this;
         type = other.type;
         switch (type) {
-        case Primitive: new (&value.primitive) primitive(other.value.primitive); break;
         case Array: new (&value.array) array(other.value.array); break;
         case Import: new (&value.imprt) imprt(other.value.imprt); break;
-        case Count: break;
+        default: break;
         }
         return *this;
     }
