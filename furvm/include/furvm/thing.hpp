@@ -453,7 +453,7 @@ public:
         return { *m_type.value.array.type, data + (index * elementSize), m_allocator };
     }
 
-    std::size_t size() const {
+    thing_type::u64 length() const {
         if (m_type.type != thing_type::Array) throw bad_thing_access();
         return m_type.value.array.size == 0 ? get<array>().dynamic.size : m_type.value.array.size;
     }

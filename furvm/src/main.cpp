@@ -24,7 +24,7 @@ static void print_thing(const furvm::thing<furvm::thing_allocator>& thing) {
     case thing_type::U64: std::cout << thing.get<thing_type::u64>(); break;
     case furvm::thing_type::Array:
         std::cout << "{ ";
-        for (thing_type::u64 i = 0; i < thing.size(); ++i) {
+        for (thing_type::u64 i = 0; i < thing.length(); ++i) {
             if (i > 0) std::cout << ", ";
             print_thing(thing.at(i));
         }
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
         0,
         0,
         0,
-        static_cast<furvm::byte>(furvm::instruction_t::Pointerof),
+        static_cast<furvm::byte>(furvm::instruction_t::Lengthof),
         static_cast<furvm::byte>(furvm::instruction_t::Call),
         1,
         0,
@@ -68,8 +68,9 @@ int main(int argc, char** argv) {
     auto mod       = context->emplace("main", s_bytecode, s_bytecode + sizeof(s_bytecode));
     auto charType  = mod->emplace_type(furvm::mod_type::S8);
     auto arrayType = mod->emplace_type(charType.id(), 10);
+    auto u64Type   = mod->emplace_type(furvm::mod_type::U64);
     auto mainFunc  = mod->emplace_function("main", furvm::function_sig{}, 0);
-    mod->emplace_function(furvm::function_sig{ { arrayType } }, "print").dispatch();
+    mod->emplace_function(furvm::function_sig{ { u64Type } }, "print").dispatch();
 #endif
     mod->set_native_function("print", [](furvm::executor& executor) {
         print_thing(*executor.load_thing(0));

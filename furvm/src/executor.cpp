@@ -245,12 +245,18 @@ void executor::step() {
             break;
         case thing_type::Ptr: size->get<thing_type::u64>() = static_cast<thing_type::u64>(sizeof(void*)); break;
         case thing_type::Array:
-            size->get<thing_type::u64>() = static_cast<thing_type::u64>(
-                (thing->type().value.array.size == 0) ? thing->get<furvm::thing<>::array>().dynamic.size
-                                                      : thing->type().value.array.size);
+            /* TODO: Return actual memory size of the array
+             * By the memory size I mean the length times sizeof single element.
+             */
+            size->get<thing_type::u64>() = thing->length();
             break;
         default: throw std::runtime_error("unreachable");
         }
+    } break;
+    case instruction_t::Lengthof: {
+        auto thing  = pop_thing();
+        auto length = push_thing({ (struct thing_type){ thing_type::U64 }, m_context->thing_alloc() });
+        length->get<thing_type::u64>() = thing->length();
     } break;
     case instruction_t::Load: {
         variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
