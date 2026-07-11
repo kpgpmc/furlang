@@ -29,7 +29,7 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
     case thing_type::U16:
     case thing_type::U32:
     case thing_type::U64: return { static_cast<enum thing_type::type>(type.type) };
-    case thing_type::Ptr: return { thing_type::Ptr, thing_type(mod, *mod->type_at(type.value.ptr.typeId)) };
+    case thing_type::Ptr: return { thing_type::Ptr, thing_type(mod, *mod->type_at(type.value.typeRef)) };
     case thing_type::Array: {
         return { static_cast<enum thing_type::type>(type.type),
             { thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
@@ -165,7 +165,9 @@ void executor::step() {
     } break;
     case instruction_t::Reference: {
         auto thing = pop_thing();
-        push_thing(std::move(thing->reference()));
+        push_thing({ (struct thing_type){ thing_type::Ref, m_context->thing_type_store().insert(thing->type()) },
+                       m_context->thing_alloc() })
+            ->reference(*thing);
     } break;
     case instruction_t::Add: {
         auto rhs = pop_thing();

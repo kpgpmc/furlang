@@ -18,10 +18,6 @@
 namespace furvm {
 
 struct mod_type {
-    struct ptr {
-        mod_type_id typeId;
-    };
-
     struct array {
         mod_type_id typeId;
         std::size_t size;
@@ -42,6 +38,7 @@ struct mod_type {
         U32,
         U64,
         Ptr,
+        Ref,
         Array,
 
         Import,
@@ -49,16 +46,14 @@ struct mod_type {
     } type;
     union value {
         std::nullptr_t null = nullptr;
-        ptr            ptr;
+        mod_type_id    typeRef;
         array          array;
         imprt          imprt;
 
         value() = default;
 
         value(mod_type_id id)
-          : ptr({}) {
-            ptr.typeId = id;
-        }
+          : typeRef(id) {}
 
         value(mod_type_id id, std::size_t size)
           : array({}) {
@@ -83,6 +78,9 @@ struct mod_type {
 
     mod_type(enum type type)
       : type(type) {}
+
+    mod_type(enum type type, mod_type_id typeRef)
+      : type(type), value(typeRef) {}
 
     mod_type(mod_type_id id, std::size_t size)
       : type(Array), value(id, size) {}

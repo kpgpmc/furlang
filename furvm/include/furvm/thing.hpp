@@ -30,10 +30,6 @@ struct thing_type {
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
 
-    struct ptr {
-        thing_type* type;
-    };
-
     struct array {
         thing_type* type;
         std::size_t size;
@@ -49,21 +45,20 @@ struct thing_type {
         U32,
         U64,
         Ptr,
+        Ref,
         Array,
 
         Count,
     } type;
     union value {
         std::nullptr_t null = nullptr;
-        ptr            ptr;
+        thing_type*    typeRef;
         array          array;
 
         value() = default;
 
         value(thing_type* type)
-          : ptr({}) {
-            ptr.type = type;
-        }
+          : typeRef(type) {}
 
         value(thing_type* type, std::size_t size)
           : array({}) {
@@ -87,7 +82,8 @@ struct thing_type {
         case U16:
         case U32:
         case U64: return true;
-        case Ptr: return *value.ptr.type == *other.value.ptr.type;
+        case Ptr:
+        case Ref: return *value.typeRef == *other.value.typeRef;
         case Array: return *value.array.type == *other.value.array.type && value.array.size == other.value.array.size;
         case Count: break;
         }
@@ -107,6 +103,7 @@ struct thing_type {
         case U32:
         case U64: return true;
         case Ptr:
+        case Ref:
         case Array: return false;
         case Count: break;
         }
@@ -124,6 +121,7 @@ struct thing_type {
         case thing_type::U32: return sizeof(u32);
         case thing_type::U64: return sizeof(u64);
         case Ptr:
+        case Ref:
         case Array: return 0;
         case Count: break;
         }
@@ -145,7 +143,8 @@ struct thing_type_hash {
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64: return seed;
-        case thing_type::Ptr: return furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.ptr.type));
+        case thing_type::Ptr:
+        case thing_type::Ref: return furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.typeRef));
         case thing_type::Array:
             seed = furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.array.type));
             seed = furlang::utility::hash_combine(seed,
@@ -168,6 +167,16 @@ public:
         thing_type* ptr = m_arena.allocate<thing_type>(type);
         m_map[type.id]  = ptr;
         m_typeMap[type] = type.id;
+        return ptr;
+    }
+
+    thing_type* insert(const thing_type& type) {
+        if (auto it = m_typeMap.find(type); it != m_typeMap.end()) return m_map[it->second];
+
+        thing_type_id id  = m_counter++;
+        thing_type*   ptr = m_arena.allocate<thing_type>(type);
+        m_map[id]         = ptr;
+        m_typeMap[type]   = id;
         return ptr;
     }
 
@@ -204,6 +213,7 @@ public:
      */
     thing(const thing_type& type, const allocator_type& allocator = {})
       : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
+        if (m_type.type == thing_type::Ref) return;
         // TODO: Account for alignment
         m_data = m_allocator.allocate(m_size);
         std::memset(m_data, 0, m_size);
@@ -213,7 +223,7 @@ public:
      * @brief Destructs a thing.
      */
     ~thing() {
-        if (m_data != nullptr && m_size > 0) m_allocator.deallocate(m_data, m_size);
+        if (m_type.type != thing_type::Ref && m_data != nullptr && m_size > 0) m_allocator.deallocate(m_data, m_size);
     }
 
     /**
@@ -249,8 +259,6 @@ public:
      * @return A clone of this thing.
      */
     thing clone() const {
-        if (m_size == 0) return reference();
-
         thing res(m_type, m_allocator);
         switch (m_type.type) {
         case thing_type::S8:
@@ -263,17 +271,37 @@ public:
         case thing_type::U64:
         case thing_type::Ptr: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
         case thing_type::Array: copy_list(m_type, res.get<array>(), get<array>()); return std::move(res);
+        case thing_type::Ref: throw std::runtime_error("cannot clone references");
         case thing_type::Count: break;
         }
         throw std::runtime_error("unreachable");
     }
 public:
     /**
-     * @brief Returns the thing's type reference.
+     * @brief Returns the thing's type.
      *
-     * @return The type reference.
+     * @return The type.
      */
-    constexpr auto type() const { return m_type; }
+    constexpr thing_type type() const { return m_type; }
+
+    /**
+     * @brief Returns the thing's true type.
+     *
+     * If the thing is a reference, returns the referenced type.
+     *
+     * @return The true type.
+     */
+    constexpr thing_type true_type() const { return (m_type.type == thing_type::Ref) ? *m_type.value.typeRef : m_type; }
+
+    /**
+     * @brief Checks if the thing is of a specified type.
+     *
+     * Compares the true type.
+     *
+     * @param type Type to compare.
+     * @return true if the types match.
+     */
+    constexpr bool is(enum thing_type::type type) const { return true_type().type == type; }
 public:
     /**
      * @brief Returns a raw data pointer.
@@ -418,12 +446,8 @@ public:
         }
     }
 
-    thing reference() const { return { m_type, m_data, m_allocator }; }
-
-    constexpr bool is_reference() const { return m_size == 0; }
-
     void resize(thing_type::u64 newSize) {
-        if (m_type.type != thing_type::Array) throw bad_thing_access();
+        if (!is(thing_type::Array)) throw bad_thing_access();
         if (m_type.value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
         auto& array = get<union array>();
@@ -439,28 +463,44 @@ public:
     }
 
     thing at(thing_type::u64 index) const {
-        if (m_type.type != thing_type::Array) throw bad_thing_access();
+        if (!is(thing_type::Array)) throw bad_thing_access();
 
         std::size_t elementSize = compute_size_na(*m_type.value.array.type);
         if (m_type.value.array.size == 0) {
             auto& array = get<union array>();
             if (index < 0 || index >= array.dynamic.size) throw std::out_of_range("index out of range");
-            return { *m_type.value.array.type, array.dynamic.data + (index * elementSize), m_allocator };
+            thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
+            ref.m_data = array.dynamic.data + (index * elementSize);
+            return ref;
         }
 
         std::byte* data = reinterpret_cast<array*>(m_data)->flat;
         if (index < 0 || index >= m_type.value.array.size) throw std::out_of_range("index out of range");
-        return { *m_type.value.array.type, data + (index * elementSize), m_allocator };
+        thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
+        ref.m_data = data + (index * elementSize);
+        return ref;
     }
 
     thing_type::u64 length() const {
-        if (m_type.type != thing_type::Array) throw bad_thing_access();
-        return m_type.value.array.size == 0 ? get<array>().dynamic.size : m_type.value.array.size;
+        if (!is(thing_type::Array)) throw bad_thing_access();
+        return true_type().value.array.size == 0 ? get<array>().dynamic.size : true_type().value.array.size;
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T cast_to() const {
         return visit_primitive([](auto value) { return static_cast<T>(value); });
+    }
+
+    /**
+     * @brief Changes reference thing's referenced thing.
+     *
+     * Yes.
+     *
+     * @param thing Thing.
+     */
+    void reference(const thing& thing) {
+        if (m_type.type != thing_type::Ref || *m_type.value.typeRef != thing.type()) throw bad_thing_access();
+        m_data = thing.m_data;
     }
 private:
     static void copy_list(const thing_type& arrayType, array& dst, const array& src) {
@@ -497,7 +537,8 @@ private:
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64:
-        case thing_type::Ptr: std::memcpy(dst.flat, src.flat, size); return;
+        case thing_type::Ptr:
+        case thing_type::Ref: std::memcpy(dst.flat, src.flat, size); return;
         case thing_type::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType.value.array.type,
@@ -521,6 +562,7 @@ private:
         case thing_type::U32: return sizeof(thing_type::u32);
         case thing_type::U64: return sizeof(thing_type::u64);
         case thing_type::Ptr: return sizeof(void*);
+        case thing_type::Ref: return compute_size_na(*type.value.typeRef);
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
@@ -532,9 +574,6 @@ private:
 
     // NOTE: Align to 4 bytes
     static std::size_t compute_size(const thing_type& type) { return (compute_size_na(type) + 3) & ~3; }
-private:
-    thing(const thing_type& type, std::byte* data, const allocator_type& allocator = {})
-      : m_type(type), m_size(0), m_data(data), m_allocator(allocator) {}
 private:
     template <typename Func>
     decltype(auto) visit_primitive(Func&& func) const {
@@ -629,7 +668,7 @@ private:
                 thing_type::U64,
             };
 
-            enum thing_type::type resultType = promotions[m_type.type + (rhs.m_type.type * 8)];
+            enum thing_type::type resultType = promotions[true_type().type + (rhs.true_type().type * 8)];
 
             thing res = { thing_type{ resultType }, m_allocator };
             switch (resultType) {
@@ -658,6 +697,7 @@ private:
                 res.get<thing_type::u64>() = Op{}(cast_to<thing_type::u64>(), rhs.cast_to<thing_type::u64>());
                 return res;
             case thing_type::Ptr: // TODO: Pointer arithmetics
+            case thing_type::Ref:
             case thing_type::Array:
             case thing_type::Count: break;
             }
