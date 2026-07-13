@@ -143,11 +143,7 @@ void furvm_generator::generate_instruction(furvm::mod& mod,
         generate_jump(mod, ctx, branch.else_block(), false);
     } break;
     case furlang::ir::instruction_t::Return: {
-        if (instr.sources().empty()) {
-            mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::Return));
-        } else {
-            mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::ReturnValue));
-        }
+        mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::Return));
     } break;
     case furlang::ir::instruction_t::Call: {
         const auto& call = dynamic_cast<const furlang::ir::call_instruction&>(instr);
