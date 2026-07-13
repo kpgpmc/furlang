@@ -297,11 +297,6 @@ void executor::step() {
         pop_frame();
         if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
     } break;
-    case instruction_t::ReturnValue: {
-        auto value = pop_thing();
-        pop_frame();
-        push_thing(std::move(value));
-    } break;
     case instruction_t::PushConstant: throw std::runtime_error("unimplemented");
     default: throw std::runtime_error("unknown instruction");
     }
