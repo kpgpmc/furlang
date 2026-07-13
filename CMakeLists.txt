@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(furlang)
 add_subdirectory(furvm)
 add_subdirectory(furc)
+add_subdirectory(furas)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/docs)
