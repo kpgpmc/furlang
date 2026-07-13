@@ -6,6 +6,7 @@
 #include "furvm/handle.hpp" // IWYU pragma: keep
 
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -37,7 +38,8 @@ struct import_function {
  * @brief Function signature.
  */
 struct function_sig {
-    std::vector<mod_type_h> params;
+    std::vector<mod_type_h>   params;
+    std::optional<mod_type_h> returnType;
 
     bool operator==(const function_sig& rhs) const { return params == rhs.params; }
 

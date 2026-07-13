@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
         static_cast<furvm::byte>(furvm::instruction_t::Call),
         1,
         0,
+        static_cast<furvm::byte>(furvm::instruction_t::Drop),
         static_cast<furvm::byte>(furvm::instruction_t::Return),
     };
 
@@ -71,11 +72,13 @@ int main(int argc, char** argv) {
     auto arrayType = mod->emplace_type(charType.id(), 10);
     auto u64Type   = mod->emplace_type(furvm::mod_type::U64);
     auto mainFunc  = mod->emplace_function("main", furvm::function_sig{}, 0);
-    mod->emplace_function(furvm::function_sig{ { u64Type } }, "print").dispatch();
+    mod->emplace_function(furvm::function_sig{ { u64Type }, u64Type }, "print").dispatch();
 #endif
     mod->set_native_function("print", [](furvm::executor& executor) {
-        print_thing(*executor.load_thing(0));
+        auto arg = std::move(*executor.load_thing(0));
+        print_thing(arg);
         std::cout << '\n';
+        executor.push_thing(std::move(arg));
     });
 
     furvm::executor_h executor = context->emplace_executor(context);

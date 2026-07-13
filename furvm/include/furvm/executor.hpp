@@ -5,6 +5,7 @@
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
 
+#include <optional>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -40,7 +41,8 @@ public:
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
-        std::vector<thing_h> variables; /**< Frame variables. */
+        thing_type*          returnType; /**< Return type. */
+        std::vector<thing_h> variables;  /**< Frame variables. */
     };
 public:
     /**

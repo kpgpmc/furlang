@@ -59,14 +59,19 @@ void executor::push_frame(const mod_h& mod, function function) {
         args.push_back(std::move(arg));
     }
 
+    struct thing_type* returnType = nullptr;
+    if (function.signature().returnType.has_value())
+        returnType = thing_type(mod, *function.signature().returnType.value()); // NOLINT
+
     switch (function.type()) {
     case function_t::Normal: {
-        m_frames.emplace((struct executor::frame){ mod, function.position(), m_stack.size(), std::move(args) });
+        m_frames.emplace(
+            (struct executor::frame){ mod, function.position(), m_stack.size(), returnType, std::move(args) });
     } break;
     case function_t::Native: {
-        m_frames.emplace((struct executor::frame){ mod, 0, m_stack.size(), std::move(args) });
+        m_frames.emplace((struct executor::frame){ mod, 0, m_stack.size(), returnType, std::move(args) });
         modInst->get_native_function(function.native())(*this);
-        m_frames.pop();
+        pop_frame();
     } break;
     default: throw std::runtime_error("unexpected function type");
     }
@@ -76,6 +81,10 @@ struct executor::frame executor::pop_frame() {
     if (m_frames.empty()) throw stack_underflow();
     struct executor::frame frame = m_frames.top();
     m_frames.pop();
+    thing_h returnValue;
+    if (frame.returnType != nullptr) returnValue = pop_thing();
+    if (m_stack.size() != frame.stackBase) throw std::runtime_error("unexhausted stack");
+    if (frame.returnType != nullptr) push_thing(std::move(returnValue));
     return frame;
 }
 
@@ -146,8 +155,6 @@ void executor::step() {
             std::int64_t size      = sizeThing->integer();
             array->resize(size);
         }
-
-        push_thing(std::move(array));
     } break;
     case instruction_t::Get: {
         auto index = pop_thing();
