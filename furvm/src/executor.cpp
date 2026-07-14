@@ -161,6 +161,12 @@ void executor::step() {
         auto array = pop_thing();
         push_thing(array->at(index->integer()));
     } break;
+    case instruction_t::Set: {
+        auto index                  = pop_thing();
+        auto array                  = pop_thing();
+        auto element                = pop_thing();
+        array->at(index->integer()) = std::move(element->clone());
+    } break;
     case instruction_t::Drop: {
         pop_thing();
     } break;

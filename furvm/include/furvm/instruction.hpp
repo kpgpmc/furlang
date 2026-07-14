@@ -39,6 +39,11 @@ enum class instruction_t : byte {
     Get,
 
     /**
+     * @brief Sets an array element.
+     */
+    Set,
+
+    /**
      * @brief Pops top element from the stack.
      */
     Drop,
