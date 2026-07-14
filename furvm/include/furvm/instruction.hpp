@@ -12,11 +12,34 @@ enum class instruction_t : byte {
     NoOperation = 0,
 
     /**
-     * @brief Pushes an integer from a byte onto the stack.
-     *
-     * Pushes an integer constructed from a next byte onto the stack.
+     * @brief Pushes an s8 integer from a byte onto the stack.
      */
-    PushB2I,
+    PushS8,
+
+    /**
+     * @brief Pushes an u8 integer from a byte onto the stack.
+     */
+    PushU8,
+
+    /**
+     * @brief Pushes an s16 integer from two byte onto the stack.
+     */
+    PushS16,
+
+    /**
+     * @brief Pushes an u16 integer from two byte onto the stack.
+     */
+    PushU16,
+
+    /**
+     * @brief Pushes an s32 integer from a byte onto the stack.
+     */
+    PushS32,
+
+    /**
+     * @brief Pushes an u32 integer from a byte onto the stack.
+     */
+    PushU32,
 
     /**
      * @brief Pushes a constant onto the stack.

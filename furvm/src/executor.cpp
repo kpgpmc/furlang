@@ -133,9 +133,33 @@ void executor::step() {
     instruction_t instr = static_cast<instruction_t>((*frame.mod).byte(frame.position++));
     switch (instr) {
     case instruction_t::NoOperation: break;
-    case instruction_t::PushB2I: {
-        push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() })->get<int>() =
-            frame.mod->byte(frame.position++);
+    case instruction_t::PushS8: {
+        push_thing({ (struct thing_type){ thing_type::S8 }, m_context->thing_alloc() })->get<thing_type::s8>() =
+            static_cast<thing_type::s8>(frame.mod->byte(frame.position++));
+    } break;
+    case instruction_t::PushU8: {
+        push_thing({ (struct thing_type){ thing_type::U8 }, m_context->thing_alloc() })->get<thing_type::u8>() =
+            static_cast<thing_type::u8>(frame.mod->byte(frame.position++));
+    } break;
+    case instruction_t::PushS16: {
+        thing_type::u16 value = frame.mod->byte(frame.position++);
+        value                |= static_cast<thing_type::u16>(frame.mod->byte(frame.position++) << 8);
+        push_thing({ (struct thing_type){ thing_type::S16 }, m_context->thing_alloc() })->get<thing_type::s16>() =
+            static_cast<thing_type::s16>(value);
+    } break;
+    case instruction_t::PushU16: {
+        thing_type::u16 value = frame.mod->byte(frame.position++);
+        value                |= static_cast<thing_type::u16>(frame.mod->byte(frame.position++) << 8);
+        push_thing({ (struct thing_type){ thing_type::U16 }, m_context->thing_alloc() })->get<thing_type::u16>() =
+            value;
+    } break;
+    case instruction_t::PushS32: {
+        push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() })->get<thing_type::s32>() =
+            static_cast<thing_type::s32>(frame.mod->byte(frame.position++));
+    } break;
+    case instruction_t::PushU32: {
+        push_thing({ (struct thing_type){ thing_type::U32 }, m_context->thing_alloc() })->get<thing_type::u32>() =
+            static_cast<thing_type::u32>(frame.mod->byte(frame.position++));
     } break;
     case instruction_t::Array: {
         mod_type_id typeId = static_cast<mod_type_id>(frame.mod->byte(frame.position)) |

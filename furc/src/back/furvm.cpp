@@ -170,7 +170,7 @@ void furvm_generator::generate_operand(furvm::mod& mod, function_context& ctx, c
         static_assert(sizeof(var) == 2, "sizeof(furvm::variable_t) has changed");
     } break;
     case furlang::ir::operand_t::Integer: {
-        mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushB2I));
+        mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushS32));
         mod.bytecode().push_back(operand.integer());
     } break;
     case furlang::ir::operand_t::Variable:
