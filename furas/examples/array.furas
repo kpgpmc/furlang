@@ -1,0 +1,26 @@
+type arr = array $s8 11
+
+func println $arr = native println
+
+public func main = #main
+main:
+    array $arr
+    store %0
+    push $s32 0
+loop:
+    dup
+    push $s32 10
+    eq
+    jnz #end
+body:
+    dup
+    load %0
+    push $s8 69
+    set
+
+    jmp #loop
+end:
+    drop
+    load %0
+    call $arr println
+    ret

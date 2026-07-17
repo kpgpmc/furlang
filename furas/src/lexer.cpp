@@ -33,6 +33,9 @@ token_r lexer::next_token() {
     }
 
     static std::unordered_map<std::string_view, enum token::type> s_tokens = {
+        { "func", token::Func },
+        { "type", token::Type },
+        { "native", token::Native },
         { "import", token::Import },
         { "public", token::Public },
         { "private", token::Private },
@@ -40,6 +43,7 @@ token_r lexer::next_token() {
         { "push", token::Push },
         { "array", token::Array },
         { "get", token::Get },
+        { "set", token::Set },
         { "drop", token::Drop },
         { "dup", token::Dup },
         { "clone", token::Clone },
@@ -61,7 +65,7 @@ token_r lexer::next_token() {
         { "load", token::Load },
         { "store", token::Store },
         { "call", token::Call },
-        { "jump", token::Jump },
+        { "jmp", token::Jmp },
         { "jnz", token::Jnz },
         { "ret", token::Ret },
     };
@@ -80,7 +84,9 @@ token_r lexer::next_token() {
     case '$': ++m_cursor; return { token::Dolar };
     case '#': ++m_cursor; return { token::Sha256 };
     case '%': ++m_cursor; return { token::Percent };
+    case '=': ++m_cursor; return { token::EqSign };
     case '.': ++m_cursor; return { token::Dot };
+    case ':': ++m_cursor; return { token::Colon };
     default:
         return token_r{
             lexer_error{ lexer_error::UnknownCharacter, location(), "Unknown character '"s + m_content[m_cursor] + "'" }

@@ -18,9 +18,14 @@ struct token {
         Sha256,  /**< Label marker(`#`). */
         Percent, /**< Variable marker(`%`). The more the better. */
 
-        Dot, /**< . */
+        EqSign, /**< `=` */
+        Dot,    /**< . */
+        Colon,  /**< `:` */
 
         // Keywords
+        Func,    /**< `func` keyword for defining functions. */
+        Type,    /**< `type` keyword for defining types. */
+        Native,  /**< `native` keyword for native functions. :v: */
         Import,  /**< `import` keyword for importing functions and types. */
         Public,  /**< `public` access specifier. */
         Private, /**< `private` access specifier. */
@@ -29,6 +34,7 @@ struct token {
         Push,
         Array,
         Get,
+        Set,
         Drop,
         Dup,
         Clone,
@@ -50,7 +56,7 @@ struct token {
         Load,
         Store,
         Call,
-        Jump,
+        Jmp,
         Jnz,
         Ret,
 
