@@ -433,7 +433,7 @@ public:
      * @return The integer value.
      */
     thing_type::s64 integer() const {
-        switch (m_type.type) {
+        switch (true_type().type) {
         case thing_type::S8: return get<thing_type::s8>();
         case thing_type::S16: return get<thing_type::s16>();
         case thing_type::S32: return get<thing_type::s32>();
@@ -448,11 +448,11 @@ public:
 
     void resize(thing_type::u64 newSize) {
         if (!is(thing_type::Array)) throw bad_thing_access();
-        if (m_type.value.array.size > 0) throw std::runtime_error("cannot resize a static array");
+        if (true_type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
         auto& array = get<union array>();
         if (newSize < 0 || newSize == array.dynamic.size) return;
-        std::size_t innerSize = compute_size_na(*m_type.value.array.type);
+        std::size_t innerSize = compute_size_na(*true_type().value.array.type);
         std::byte*  newData   = new std::byte[innerSize * newSize];
         std::memcpy(newData,
             array.dynamic.data,
@@ -577,7 +577,7 @@ private:
 private:
     template <typename Func>
     decltype(auto) visit_primitive(Func&& func) const {
-        switch (m_type.type) {
+        switch (true_type().type) {
         case thing_type::S8: return std::forward<Func>(func)(get<thing_type::s8>());
         case thing_type::S16: return std::forward<Func>(func)(get<thing_type::s16>());
         case thing_type::S32: return std::forward<Func>(func)(get<thing_type::s32>());
@@ -592,7 +592,7 @@ private:
 
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        if (thing_type::is_primitive(m_type.type) && thing_type::is_primitive(rhs.m_type.type)) {
+        if (thing_type::is_primitive(true_type().type) && thing_type::is_primitive(true_type().type)) {
             static constexpr enum thing_type::type promotions[8 * 8] = {
                 // S8
                 thing_type::S8,

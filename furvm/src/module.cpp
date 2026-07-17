@@ -25,6 +25,7 @@ std::ostream& mod::serialize(std::ostream& os) const {
         }
 
         auto type = *m_types.at(id);
+        detail::serialize(os, static_cast<std::uint8_t>(type.type));
         switch (type.type) {
         case mod_type::S8:
         case mod_type::S16:
@@ -67,7 +68,7 @@ std::ostream& mod::serialize(std::ostream& os) const {
         }
 
         // Function signature
-        detail::serialize(os, func->signature().params.size());
+        detail::serialize(os, static_cast<std::uint32_t>(func->signature().params.size()));
         for (std::uint32_t i = 0; i < func->signature().params.size(); ++i)
             detail::serialize(os, func->signature().params[i].id());
 
@@ -116,7 +117,10 @@ mod mod::load(std::istream& is) {
         case mod_type::U8:
         case mod_type::U16:
         case mod_type::U32:
-        case mod_type::U64: break;
+        case mod_type::U64: {
+            mod_type theType = { (enum mod_type::type)type };
+            mod.emplace_type(id, theType).dispatch();
+        } break;
         case mod_type::Ptr: {
             mod_type_id typeId = 0;
             detail::load(is, typeId);
@@ -165,17 +169,17 @@ mod mod::load(std::istream& is) {
             decltype(std::declval<function>().position()) offset = 0;
             detail::load(is, offset);
             if (name.empty())
-                mod.emplace_function(std::move(name), id, std::move(signature), offset).dispatch();
-            else
                 mod.emplace_function(id, std::move(signature), offset).dispatch();
+            else
+                mod.emplace_function(std::move(name), id, std::move(signature), offset).dispatch();
         } break;
         case function_t::Native: {
             std::string native;
             detail::load(is, native);
             if (name.empty())
-                mod.emplace_function(std::move(name), id, std::move(signature), std::move(native)).dispatch();
-            else
                 mod.emplace_function(id, std::move(signature), std::move(native)).dispatch();
+            else
+                mod.emplace_function(std::move(name), id, std::move(signature), std::move(native)).dispatch();
         } break;
         case function_t::Import: {
             std::string modName;
