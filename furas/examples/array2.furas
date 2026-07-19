@@ -7,14 +7,14 @@ main:
     array $arr
     store %0
 
-    push $s32 1
+    push $s32 2
     store %1
 
     push $s32 0
 loop:
     dup
     load %1
-    eq
+    ge
     jnz #end
 body:
     dup

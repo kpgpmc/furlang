@@ -101,7 +101,7 @@ thing_h executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     thing_h top = std::move(m_stack.top());
     m_stack.pop();
-    return top;
+    return std::move(top);
 }
 
 thing_h executor::thing() const {

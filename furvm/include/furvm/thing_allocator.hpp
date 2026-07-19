@@ -69,8 +69,9 @@ public:
     [[nodiscard]] T* allocate(std::size_t count = 1) {
         for (auto it = m_deadThings->begin(); it != m_deadThings->end(); ++it) {
             if (it->second != count) continue;
+            T* data = it->first;
             m_deadThings->erase(it);
-            return it->first;
+            return data;
         }
         return m_arena->allocate<T>(count);
     }

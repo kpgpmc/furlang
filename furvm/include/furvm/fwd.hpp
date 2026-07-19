@@ -111,7 +111,7 @@ using function_id = std::uint16_t;
 /**
  * @brief A handle to a furvm function.
  */
-using function_h = handle<function, generic_header<function_id>>;
+using function_h = handle<function, refcount_header<function_id>>;
 
 // module.hpp
 
