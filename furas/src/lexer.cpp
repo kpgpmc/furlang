@@ -46,6 +46,7 @@ token_r lexer::next_token() {
         { "set", token::Set },
         { "drop", token::Drop },
         { "dup", token::Dup },
+        { "swap", token::Swap },
         { "clone", token::Clone },
         { "ref", token::Ref },
         { "add", token::Add },

@@ -5,12 +5,9 @@ func println $arr = native println
 public func main = #main
 main:
     array $arr
-    dup
     store %0
 
-    lenof
     push $s32 1
-    sub
     store %1
 
     push $s32 0

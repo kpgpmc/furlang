@@ -502,6 +502,32 @@ public:
         if (m_type.type != thing_type::Ref || *m_type.value.typeRef != thing.type()) throw bad_thing_access();
         m_data = thing.m_data;
     }
+
+    /**
+     * @brief Self-explainatory.
+     *
+     * TODO: Document
+     */
+    void assign(thing&& thing) {
+        class thing rhs = std::move(thing);
+        if (true_type() != rhs.true_type()) throw std::runtime_error("thing type mismatch");
+        // TODO: Move this to another function
+        switch (true_type().type) {
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64: std::memcpy(m_data, rhs.m_data, m_size); return;
+        case thing_type::Ptr:
+        case thing_type::Ref:
+        case thing_type::Array: throw std::runtime_error("unimplemented");
+        case thing_type::Count: break;
+        }
+        throw std::runtime_error("unreachable");
+    }
 private:
     static void copy_list(const thing_type& arrayType, array& dst, const array& src) {
         if (arrayType.type != thing_type::Array || arrayType.value.array.type == nullptr)

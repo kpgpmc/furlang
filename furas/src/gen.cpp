@@ -40,6 +40,7 @@ std::unordered_map<enum token::type, instruction> instructions = {
     { token::Set, { furvm::instruction_t::Set } },
     { token::Drop, { furvm::instruction_t::Drop } },
     { token::Dup, { furvm::instruction_t::Duplicate } },
+    { token::Swap, { furvm::instruction_t::Swap } },
     { token::Clone, { furvm::instruction_t::Clone } },
     { token::Ref, { furvm::instruction_t::Reference } },
     { token::Add, { furvm::instruction_t::Add } },
@@ -89,6 +90,7 @@ const char* token_type(enum token::type type) {
     case token::Set: return "set";
     case token::Drop: return "drop";
     case token::Dup: return "dup";
+    case token::Swap: return "swap";
     case token::Clone: return "clone";
     case token::Ref: return "ref";
     case token::Add: return "add";
@@ -384,27 +386,36 @@ struct mod_context {
             auto it = types.find(std::string(typeName->value.string));
             if (it == types.end())
                 return { generator_error::UnexpectedToken, "Unknown type "s + std::string(typeName->value.string) };
+            // TODO: Add support for signed integers
             auto value = eat_token(lexer, token::Unsigned);
             if (!value) return result.error;
             auto type = it->second;
             switch (type->type) {
             case furvm::mod_type::S8: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushS8));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
             } break;
             case furvm::mod_type::U8: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushU8));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
             } break;
             case furvm::mod_type::S16: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushS16));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
+                mod.bytecode().push_back((value->value.uint >> 8) & 0xFF);
             } break;
             case furvm::mod_type::U16: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushU16));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
+                mod.bytecode().push_back((value->value.uint >> 8) & 0xFF);
             } break;
             case furvm::mod_type::S32: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushS32));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
             } break;
             case furvm::mod_type::U32: {
                 mod.bytecode().push_back(static_cast<furvm::byte>(furvm::instruction_t::PushU32));
+                mod.bytecode().push_back(value->value.uint & 0xFF);
             } break;
             default:
                 return { generator_error::UnexpectedToken, "Unexpected type "s + std::string(typeName->value.string) };
@@ -417,6 +428,7 @@ struct mod_context {
         case token::Set:
         case token::Drop:
         case token::Dup:
+        case token::Swap:
         case token::Clone:
         case token::Ref:
         case token::Add:
@@ -503,7 +515,7 @@ struct mod_context {
                     mod.bytecode().push_back(0);
                     return { generator_error::Success };
                 }
-                std::ptrdiff_t jmpOff = static_cast<std::ptrdiff_t>(offset - mod.bytecode().size() + 1);
+                std::ptrdiff_t jmpOff = static_cast<std::ptrdiff_t>(offset - mod.bytecode().size() - 1);
                 if (jmpOff < std::numeric_limits<std::int8_t>::min() ||
                     jmpOff > std::numeric_limits<std::int8_t>::max()) {
                     assert(false); // TODO: Further jumps are not implemented

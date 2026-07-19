@@ -75,8 +75,8 @@ int main(int argc, char** argv) {
     mod->emplace_function(furvm::function_sig{ { u64Type }, u64Type }, "print").dispatch();
 #endif
     mod->set_native_function("println", [](furvm::executor& executor) {
-        auto arg = std::move(*executor.load_thing(0));
-        print_thing(arg);
+        auto arg = executor.load_thing(0);
+        print_thing(*arg);
         std::cout << '\n';
     });
 

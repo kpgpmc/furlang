@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -122,7 +123,7 @@ void executor::store_thing(variable_t variable, thing_h&& thing) {
 
 thing_h executor::load_thing(variable_t variable) const {
     const auto& frame = m_frames.top();
-    return frame.variables[variable];
+    return { frame.variables[variable] };
 }
 
 void executor::step() {
@@ -186,16 +187,22 @@ void executor::step() {
         push_thing(array->at(index->integer()));
     } break;
     case instruction_t::Set: {
-        auto index                  = pop_thing();
-        auto array                  = pop_thing();
-        auto element                = pop_thing();
-        array->at(index->integer()) = std::move(element->clone());
+        auto element = pop_thing();
+        auto index   = pop_thing();
+        auto array   = pop_thing();
+        array->at(index->integer()).assign(std::move(element->clone()));
     } break;
     case instruction_t::Drop: {
         pop_thing();
     } break;
     case instruction_t::Duplicate: {
         push_thing(thing());
+    } break;
+    case instruction_t::Swap: {
+        auto thing1 = pop_thing();
+        auto thing2 = pop_thing();
+        push_thing(std::move(thing1));
+        push_thing(std::move(thing2));
     } break;
     case instruction_t::Clone: {
         push_thing(std::move(thing()->clone()));
@@ -316,7 +323,8 @@ void executor::step() {
         push_frame(frame.mod, *frame.mod->function_at(funcId));
     } break;
     case instruction_t::Jump: {
-        frame.position += ((std::int8_t)frame.mod->byte(frame.position)) + 1;
+        std::int8_t offset = static_cast<std::int8_t>(frame.mod->byte(frame.position++));
+        frame.position    += offset;
     } break;
     case instruction_t::JumpNotZero: {
         byte offset = frame.mod->byte(frame.position++);

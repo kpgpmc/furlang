@@ -77,6 +77,11 @@ enum class instruction_t : byte {
     Duplicate,
 
     /**
+     * @brief Swaps two top elements of the stack.
+     */
+    Swap,
+
+    /**
      * @brief Clones top element on the stack.
      */
     Clone,

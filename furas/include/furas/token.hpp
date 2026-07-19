@@ -37,6 +37,7 @@ struct token {
         Set,
         Drop,
         Dup,
+        Swap,
         Clone,
         Ref,
         Add,

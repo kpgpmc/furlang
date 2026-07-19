@@ -1,0 +1,23 @@
+func println $u32 = native println
+
+public func main = #main
+main:
+    push $u32 0
+    store %0
+loop_header:
+    load %0
+    push $u32 10
+    ge
+    jnz #loop_end
+loop_body:
+    load %0
+    call $u32 println
+
+    load %0
+    push $u32 1
+    add
+    store %0
+
+    jmp #loop_header
+loop_end:
+    ret
