@@ -30,18 +30,18 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
     case thing_type::U16:
     case thing_type::U32:
     case thing_type::U64: return { static_cast<enum thing_type::type>(type.type) };
-    case thing_type::Ptr: return { thing_type::Ptr, thing_type(mod, *mod->type_at(type.value.typeRef)) };
+    case thing_type::Ptr: return { thing_type::Ptr, mod_to_thing_type(mod, *mod->type_at(type.value.typeRef)) };
     case thing_type::Array: {
         return { static_cast<enum thing_type::type>(type.type),
-            { thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
+            { mod_to_thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
     }
     default: throw std::runtime_error("invalid thing type");
     }
 }
 
-thing_type* executor::thing_type(const mod_h& mod, const mod_type& type) const {
+thing_type* executor::mod_to_thing_type(const mod_h& mod, const mod_type& type) const {
     struct thing_type thingType = thing_type_impl(mod, type);
-    return m_context->thing_type_store().insert(thingType);
+    return m_context->tt_store().insert(thingType);
 }
 
 void executor::push_frame(const mod_h& mod, function function) {
@@ -56,13 +56,13 @@ void executor::push_frame(const mod_h& mod, function function) {
     args.reserve(signature.params.size());
     for (const auto& param : signature.params) {
         auto arg = pop_thing();
-        if (arg->type() != *thing_type(mod, *param)) throw std::runtime_error("function argument type mismatch");
+        if (arg->type() != *mod_to_thing_type(mod, *param)) throw std::runtime_error("function argument type mismatch");
         args.push_back(std::move(arg));
     }
 
     struct thing_type* returnType = nullptr;
     if (function.signature().returnType.has_value())
-        returnType = thing_type(mod, *function.signature().returnType.value()); // NOLINT
+        returnType = mod_to_thing_type(mod, *function.signature().returnType.value()); // NOLINT
 
     switch (function.type()) {
     case function_t::Normal: {
@@ -131,45 +131,45 @@ void executor::step() {
 
     struct frame& frame = m_frames.top();
 
-    instruction_t instr = static_cast<instruction_t>((*frame.mod).byte(frame.position++));
+    instruction_t instr = static_cast<instruction_t>((*frame.mod).byte_at(frame.position++));
     switch (instr) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushS8: {
         push_thing({ (struct thing_type){ thing_type::S8 }, m_context->thing_alloc() })->get<thing_type::s8>() =
-            static_cast<thing_type::s8>(frame.mod->byte(frame.position++));
+            static_cast<thing_type::s8>(frame.mod->byte_at(frame.position++));
     } break;
     case instruction_t::PushU8: {
         push_thing({ (struct thing_type){ thing_type::U8 }, m_context->thing_alloc() })->get<thing_type::u8>() =
-            static_cast<thing_type::u8>(frame.mod->byte(frame.position++));
+            static_cast<thing_type::u8>(frame.mod->byte_at(frame.position++));
     } break;
     case instruction_t::PushS16: {
-        thing_type::u16 value = frame.mod->byte(frame.position++);
-        value                |= static_cast<thing_type::u16>(frame.mod->byte(frame.position++) << 8);
+        thing_type::u16 value = frame.mod->byte_at(frame.position++);
+        value                |= static_cast<thing_type::u16>(frame.mod->byte_at(frame.position++) << 8);
         push_thing({ (struct thing_type){ thing_type::S16 }, m_context->thing_alloc() })->get<thing_type::s16>() =
             static_cast<thing_type::s16>(value);
     } break;
     case instruction_t::PushU16: {
-        thing_type::u16 value = frame.mod->byte(frame.position++);
-        value                |= static_cast<thing_type::u16>(frame.mod->byte(frame.position++) << 8);
+        thing_type::u16 value = frame.mod->byte_at(frame.position++);
+        value                |= static_cast<thing_type::u16>(frame.mod->byte_at(frame.position++) << 8);
         push_thing({ (struct thing_type){ thing_type::U16 }, m_context->thing_alloc() })->get<thing_type::u16>() =
             value;
     } break;
     case instruction_t::PushS32: {
         push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() })->get<thing_type::s32>() =
-            static_cast<thing_type::s32>(frame.mod->byte(frame.position++));
+            static_cast<thing_type::s32>(frame.mod->byte_at(frame.position++));
     } break;
     case instruction_t::PushU32: {
         push_thing({ (struct thing_type){ thing_type::U32 }, m_context->thing_alloc() })->get<thing_type::u32>() =
-            static_cast<thing_type::u32>(frame.mod->byte(frame.position++));
+            static_cast<thing_type::u32>(frame.mod->byte_at(frame.position++));
     } break;
     case instruction_t::Array: {
-        mod_type_id typeId = static_cast<mod_type_id>(frame.mod->byte(frame.position)) |
-                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 1)) << 8) |
-                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 2)) << 16) |
-                             (static_cast<mod_type_id>(frame.mod->byte(frame.position + 3)) << 24);
+        mod_type_id typeId = static_cast<mod_type_id>(frame.mod->byte_at(frame.position)) |
+                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 1)) << 8) |
+                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 2)) << 16) |
+                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 3)) << 24);
         frame.position    += 4;
 
-        const auto& type = *thing_type(frame.mod, *frame.mod->type_at(typeId));
+        const auto& type = *mod_to_thing_type(frame.mod, *frame.mod->type_at(typeId));
         if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
             throw std::runtime_error("invalid array type");
 
@@ -209,7 +209,7 @@ void executor::step() {
     } break;
     case instruction_t::Reference: {
         auto thing = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::Ref, m_context->thing_type_store().insert(thing->type()) },
+        push_thing({ (struct thing_type){ thing_type::Ref, m_context->tt_store().insert(thing->type()) },
                        m_context->thing_alloc() })
             ->reference(*thing);
     } break;
@@ -270,9 +270,8 @@ void executor::step() {
     } break;
     case instruction_t::Pointerof: {
         auto thing = pop_thing();
-        auto ptr =
-            push_thing({ (struct thing_type){ thing_type::Ptr, m_context->thing_type_store().at(thing->type().id) },
-                m_context->thing_alloc() });
+        auto ptr   = push_thing({ (struct thing_type){ thing_type::Ptr, m_context->tt_store().at(thing->type().id) },
+            m_context->thing_alloc() });
         ptr->get<void*>() = thing->raw();
     } break;
     case instruction_t::Sizeof: {
@@ -305,29 +304,29 @@ void executor::step() {
         length->get<thing_type::u64>() = thing->length();
     } break;
     case instruction_t::Load: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
+                              (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
         frame.position     += 2;
         push_thing(load_thing(variable));
     } break;
     case instruction_t::Store: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
+                              (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
         frame.position     += 2;
         store_thing(variable, std::move(pop_thing()));
     } break;
     case instruction_t::Call: {
-        function_id funcId = static_cast<std::uint16_t>(frame.mod->byte(frame.position)) |
-                             (static_cast<std::uint16_t>(frame.mod->byte(frame.position + 1)) << 8);
+        function_id funcId = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
+                             (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
         frame.position    += 2;
         push_frame(frame.mod, *frame.mod->function_at(funcId));
     } break;
     case instruction_t::Jump: {
-        std::int8_t offset = static_cast<std::int8_t>(frame.mod->byte(frame.position++));
+        std::int8_t offset = static_cast<std::int8_t>(frame.mod->byte_at(frame.position++));
         frame.position    += offset;
     } break;
     case instruction_t::JumpNotZero: {
-        byte offset = frame.mod->byte(frame.position++);
+        byte offset = frame.mod->byte_at(frame.position++);
         auto cond   = pop_thing();
         if (cond->integer() != 0) frame.position += (std::int8_t)offset;
     } break;

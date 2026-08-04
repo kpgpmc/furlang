@@ -18,12 +18,12 @@
 namespace furvm {
 
 struct mod_type {
-    struct array {
+    struct array_value {
         mod_type_id typeId;
         std::size_t size;
     };
 
-    struct imprt {
+    struct import_value {
         mod_id      modId;
         mod_type_id typeId;
     };
@@ -47,8 +47,8 @@ struct mod_type {
     union value {
         std::nullptr_t null = nullptr;
         mod_type_id    typeRef;
-        array          array;
-        imprt          imprt;
+        array_value    array;
+        import_value   imprt;
 
         value() = default;
 
@@ -91,8 +91,8 @@ struct mod_type {
 
     ~mod_type() {
         switch (type) {
-        case Array: value.array.~array(); break;
-        case Import: value.imprt.~imprt(); break;
+        case Array: value.array.~array_value(); break;
+        case Import: value.imprt.~import_value(); break;
         default: break;
         }
     }
@@ -100,8 +100,8 @@ struct mod_type {
     mod_type(mod_type&& other) noexcept
       : type(other.type) {
         switch (type) {
-        case Array: new (&value.array) array(other.value.array); break;
-        case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
+        case Array: new (&value.array) array_value(other.value.array); break;
+        case Import: new (&value.imprt) import_value(std::move(other.value.imprt)); break;
         default: break;
         }
         other.type = Count;
@@ -111,8 +111,8 @@ struct mod_type {
         if (this == &other) return *this;
         type = other.type;
         switch (type) {
-        case Array: new (&value.array) array(other.value.array); break;
-        case Import: new (&value.imprt) imprt(std::move(other.value.imprt)); break;
+        case Array: new (&value.array) array_value(other.value.array); break;
+        case Import: new (&value.imprt) import_value(std::move(other.value.imprt)); break;
         default: break;
         }
         other.type = Count;
@@ -122,8 +122,8 @@ struct mod_type {
     mod_type(const mod_type& other)
       : type(other.type) {
         switch (type) {
-        case Array: new (&value.array) array(other.value.array); break;
-        case Import: new (&value.imprt) imprt(other.value.imprt); break;
+        case Array: new (&value.array) array_value(other.value.array); break;
+        case Import: new (&value.imprt) import_value(other.value.imprt); break;
         default: break;
         }
     }
@@ -132,8 +132,8 @@ struct mod_type {
         if (this == &other) return *this;
         type = other.type;
         switch (type) {
-        case Array: new (&value.array) array(other.value.array); break;
-        case Import: new (&value.imprt) imprt(other.value.imprt); break;
+        case Array: new (&value.array) array_value(other.value.array); break;
+        case Import: new (&value.imprt) import_value(other.value.imprt); break;
         default: break;
         }
         return *this;
@@ -181,7 +181,7 @@ public:
      * @param offset An offset of the byte.
      * @return The byte.
      */
-    constexpr byte byte(std::size_t offset) const { return m_bytecode.at(offset); }
+    byte byte_at(std::size_t offset) const { return m_bytecode.at(offset); }
 
     /**
      * @brief Returns the module's bytecode.

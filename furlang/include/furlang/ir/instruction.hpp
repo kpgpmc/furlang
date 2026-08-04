@@ -3,6 +3,7 @@
 
 #include "furlang/ir/operand.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
 #include <ostream>
@@ -63,6 +64,7 @@ static inline std::ostream& operator<<(std::ostream& os, instruction_t type) {
     case instruction_t::Return: return os << "return";
     case instruction_t::Phi: return os << "phi";
     }
+    throw std::runtime_error("unreachable");
 }
 
 /**
@@ -272,9 +274,7 @@ private:
     operand m_source;
     operand m_destination;
 protected:
-    std::ostream& print(std::ostream& os) const override {
-        return os << "assign " << m_source << ", " << m_destination;
-    }
+    std::ostream& print(std::ostream& os) const override { return os << m_destination << " = " << m_source; }
 };
 
 /**
@@ -751,14 +751,13 @@ private:
     std::vector<operand> m_args;
 protected:
     std::ostream& print(std::ostream& os) const override {
-        os << "call " << m_name << '(';
+        os << m_dst << " = " << m_name << '(';
         bool first = true;
-        for (const auto& op : m_args) {
+        for (std::size_t i = 0; i < m_args.size(); ++i) {
             if (!first) os << ", ";
             first = false;
-            os << op;
         }
-        return os << ") = " << m_dst;
+        return os << ')';
     }
 };
 

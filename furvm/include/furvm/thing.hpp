@@ -30,7 +30,7 @@ struct thing_type {
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
 
-    struct array {
+    struct array_value {
         thing_type* type;
         std::size_t size;
     };
@@ -53,7 +53,7 @@ struct thing_type {
     union value {
         std::nullptr_t null = nullptr;
         thing_type*    typeRef;
-        array          array;
+        array_value    array;
 
         value() = default;
 
@@ -197,12 +197,9 @@ class thing final {
 public:
     using allocator_type = Allocator<std::byte>; /**< Allocator type. */
 public:
-    union array {
-        std::byte flat[];
-        struct {
-            std::size_t size;
-            std::byte*  data;
-        } dynamic;
+    struct dynamic_array {
+        std::size_t size;
+        std::byte*  data;
     };
 public:
     /**
@@ -270,7 +267,7 @@ public:
         case thing_type::U32:
         case thing_type::U64:
         case thing_type::Ptr: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
-        case thing_type::Array: copy_list(m_type, res.get<array>(), get<array>()); return std::move(res);
+        case thing_type::Array: copy_list(m_type, res.m_data, m_data); return std::move(res);
         case thing_type::Ref: throw std::runtime_error("cannot clone references");
         case thing_type::Count: break;
         }
@@ -450,16 +447,14 @@ public:
         if (!is(thing_type::Array)) throw bad_thing_access();
         if (true_type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
-        auto& array = get<union array>();
-        if (newSize < 0 || newSize == array.dynamic.size) return;
+        auto& array = get<dynamic_array>();
+        if (newSize < 0 || newSize == array.size) return;
         std::size_t innerSize = compute_size_na(*true_type().value.array.type);
         std::byte*  newData   = new std::byte[innerSize * newSize];
-        std::memcpy(newData,
-            array.dynamic.data,
-            innerSize * std::min(static_cast<thing_type::u64>(array.dynamic.size), newSize));
-        array.dynamic.size = newSize;
-        delete[] array.dynamic.data;
-        array.dynamic.data = newData;
+        std::memcpy(newData, array.data, innerSize * std::min(static_cast<thing_type::u64>(array.size), newSize));
+        array.size = newSize;
+        delete[] array.data;
+        array.data = newData;
     }
 
     thing at(thing_type::u64 index) const {
@@ -467,23 +462,22 @@ public:
 
         std::size_t elementSize = compute_size_na(*m_type.value.array.type);
         if (m_type.value.array.size == 0) {
-            auto& array = get<union array>();
-            if (index < 0 || index >= array.dynamic.size) throw std::out_of_range("index out of range");
+            auto& array = get<dynamic_array>();
+            if (index < 0 || index >= array.size) throw std::out_of_range("index out of range");
             thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
-            ref.m_data = array.dynamic.data + (index * elementSize);
+            ref.m_data = array.data + (index * elementSize);
             return ref;
         }
 
-        std::byte* data = reinterpret_cast<array*>(m_data)->flat;
         if (index < 0 || index >= m_type.value.array.size) throw std::out_of_range("index out of range");
         thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
-        ref.m_data = data + (index * elementSize);
+        ref.m_data = m_data + (index * elementSize);
         return ref;
     }
 
     thing_type::u64 length() const {
         if (!is(thing_type::Array)) throw bad_thing_access();
-        return true_type().value.array.size == 0 ? get<array>().dynamic.size : true_type().value.array.size;
+        return true_type().value.array.size == 0 ? get<dynamic_array>().size : true_type().value.array.size;
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
@@ -529,29 +523,28 @@ public:
         throw std::runtime_error("unreachable");
     }
 private:
-    static void copy_list(const thing_type& arrayType, array& dst, const array& src) {
+    static void copy_list(const thing_type& arrayType, void* dst, const void* src) {
         if (arrayType.type != thing_type::Array || arrayType.value.array.type == nullptr)
             throw std::runtime_error("invalid type");
 
         const auto& innerType   = *arrayType.value.array.type;
         std::size_t elementSize = compute_size_na(innerType);
 
-        std::byte*       data    = nullptr;
-        const std::byte* srcData = nullptr;
-        std::size_t      size    = 0;
+        std::size_t size = 0;
         if (arrayType.value.array.size == 0) {
-            size = dst.dynamic.size = src.dynamic.size;
-            if (dst.dynamic.size < 0) {
-                dst.dynamic.data = nullptr;
+            const dynamic_array& srcDynArr = *std::launder(reinterpret_cast<const dynamic_array*>(src));
+            dynamic_array&       dstDynArr = *std::launder(reinterpret_cast<dynamic_array*>(dst));
+
+            size = dstDynArr.size = srcDynArr.size;
+            if (dstDynArr.size < 0) {
+                dstDynArr.data = nullptr;
                 return;
             }
 
-            srcData = src.dynamic.data;
-            data = dst.dynamic.data = new std::byte[dst.dynamic.size];
+            src = srcDynArr.data;
+            dst = dstDynArr.data = new std::byte[dstDynArr.size];
         } else {
-            data    = dst.flat;
-            srcData = src.flat;
-            size    = arrayType.value.array.size;
+            size = arrayType.value.array.size;
         }
 
         switch (innerType.type) {
@@ -564,12 +557,12 @@ private:
         case thing_type::U32:
         case thing_type::U64:
         case thing_type::Ptr:
-        case thing_type::Ref: std::memcpy(dst.flat, src.flat, size); return;
+        case thing_type::Ref: std::memcpy(dst, src, size * elementSize); return;
         case thing_type::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType.value.array.type,
-                    *std::launder(reinterpret_cast<array*>(data + (i * elementSize))),
-                    *std::launder(reinterpret_cast<const array*>(srcData + (i * elementSize))));
+                    reinterpret_cast<std::byte*>(dst) + (i * elementSize),
+                    reinterpret_cast<const std::byte*>(src) + (i * elementSize));
             }
             return;
         case thing_type::Count: break;
@@ -590,7 +583,7 @@ private:
         case thing_type::Ptr: return sizeof(void*);
         case thing_type::Ref: return compute_size_na(*type.value.typeRef);
         case thing_type::Array:
-            return type.value.array.size == 0 ? sizeof(array)
+            return type.value.array.size == 0 ? sizeof(dynamic_array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
         case thing_type::Count: break;
         }

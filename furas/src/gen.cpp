@@ -145,10 +145,10 @@ struct mod_context {
 
     struct token_result {
         generator_error error;
-        token           token;
+        token           value;
 
-        struct token* operator->() { return &token; }
-        struct token& operator*() { return token; }
+        token* operator->() { return &value; }
+        token& operator*() { return value; }
 
         bool operator!() const { return error.type != generator_error::Success; }
     };
@@ -180,12 +180,12 @@ struct mod_context {
     static token_result eat_token(lexer& lexer, enum token::type type) {
         auto token = next_token(lexer);
         if (!token) return token;
-        if (token.token.type != type) {
+        if (token.value.type != type) {
             return { { generator_error::UnexpectedToken,
                          "Expected "s + token_type(type) + ", but got " + token_type(token->type) },
                 { token::Count } };
         }
-        return { { generator_error::Success }, token.token };
+        return { { generator_error::Success }, token.value };
     }
 
     generator_error generate(lexer& lexer) {

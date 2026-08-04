@@ -126,7 +126,7 @@ public:
      */
     thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
 
-    thing_type_store& thing_type_store() { return m_thingTypeStore; }
+    thing_type_store& tt_store() { return m_thingTypeStore; }
 private:
     handle_container<mod_h>      m_modules;
     handle_container<thing_h>    m_things;
