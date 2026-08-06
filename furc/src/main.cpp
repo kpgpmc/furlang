@@ -1,18 +1,14 @@
 #include "furc/front/lexer.hpp"
-
-#include <iostream>
+#include "furc/front/parser.hpp"
+#include "furlang/arena.hpp"
 
 int main(void) {
-    furc::lexer lexer = { "<AK>", "func main(argc: u64) -> s32 { return '\\\\'; }" };
-    while (true) {
-        furc::token token = lexer.next_token();
-        std::cout << token.loc.filepath << ':' << token.loc.row + 1 << ':' << token.loc.col + 1 << ": " << token
-                  << '\n';
-        switch (token.type) {
-        case furc::token::UnexpectedCharacter:
-        case furc::token::UnexpectedEOF: return 1;
-        case furc::token::EndOfFile: return 0;
-        default: break;
-        }
-    }
+    furlang::arena arena;
+
+    furc::lexer  lexer  = { "<AK>", "func main(argc: u64) -> s32 { x: s32 = '\\\\'; }" };
+    furc::parser parser = { std::move(lexer), arena };
+
+    auto program = parser.parse();
+
+    return 0;
 }
