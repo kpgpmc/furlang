@@ -22,11 +22,36 @@ token lexer::next_token() {
     if (std::isdigit(get()) != 0) {}
 
     if (std::isalnum(get()) != 0 || get() == '_') {
+        static std::unordered_map<std::string_view, token_t> s_keywords = {
+            { "func", token::Func },
+            { "return", token::Return },
+            { "if", token::If },
+            { "else", token::Else },
+            { "while", token::While },
+            { "public", token::Public },
+            { "private", token::Private },
+            { "pointerof", token::Pointerof },
+            { "sizeof", token::Sizeof },
+            { "lengthof", token::Lengthof },
+            { "s8", token::S8 },
+            { "u8", token::U8 },
+            { "s16", token::S16 },
+            { "u16", token::U16 },
+            { "s32", token::S32 },
+            { "u32", token::U32 },
+            { "s64", token::S64 },
+            { "u64", token::U64 },
+        };
+
         std::size_t begin = m_cursor;
         next();
         while (m_cursor < m_content.size() && (std::isalnum(get()) != 0 || get() == '_'))
             next();
-        return { loc, token::Identifier, m_content.substr(begin, m_cursor - begin) };
+        std::string_view name = m_content.substr(begin, m_cursor - begin);
+        if (auto it = s_keywords.find(name); it != s_keywords.end()) {
+            return { loc, it->second };
+        }
+        return { loc, token::Identifier, name };
     }
 
     if (get() == '"') {
