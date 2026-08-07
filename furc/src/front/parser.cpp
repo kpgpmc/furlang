@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 
 namespace furc {
@@ -85,8 +86,7 @@ decl_node* parser::parse_decl() {
 }
 
 expr_node* parser::parse_expr() {
-    if (auto* lit = parse_lit(); lit != nullptr) return lit;
-    return nullptr;
+    return parse_expr_right(parse_expr_unary());
 }
 
 lit_node* parser::parse_lit() {
@@ -128,6 +128,100 @@ comp_stmt_node parser::parse_comp() {
     eat_token(token::RBrace);
 
     return comp;
+}
+
+expr_node* parser::parse_expr_primary() {
+    return parse_lit();
+}
+
+expr_node* parser::parse_expr_unary() {
+    static std::unordered_map<token_t, unary_op_expr_node::unary_op_type> s_prefixOps = {
+        { token::Plus, unary_op_expr_node::Positive },
+        { token::Minus, unary_op_expr_node::Negative },
+        { token::DblPlus, unary_op_expr_node::PreInc },
+        { token::DblMinus, unary_op_expr_node::PreDec },
+        { token::Tilde, unary_op_expr_node::BinNot },
+        { token::ExMark, unary_op_expr_node::Not },
+
+        { token::Sizeof, unary_op_expr_node::Sizeof },
+        { token::Pointerof, unary_op_expr_node::Pointerof },
+        { token::Lengthof, unary_op_expr_node::Lengthof },
+    };
+
+    static std::unordered_map<token_t, unary_op_expr_node::unary_op_type> s_postfixOps = {
+        { token::DblPlus, unary_op_expr_node::PostInc },
+        { token::DblMinus, unary_op_expr_node::PostDec },
+    };
+
+    auto it = s_prefixOps.find(m_lexer.peek_token().type);
+    if (it == s_prefixOps.end()) {
+        auto* expr = parse_expr_primary();
+        while (true) {
+            auto postIt = s_postfixOps.find(m_lexer.peek_token().type);
+            if (postIt == s_postfixOps.end()) return expr;
+            m_lexer.next_token();
+
+            unary_op_expr_node unary;
+            unary.lhs  = expr;
+            unary.type = postIt->second;
+            expr       = m_arena->allocate<unary_op_expr_node>(std::move(unary));
+        }
+    }
+
+    auto token = m_lexer.next_token();
+
+    unary_op_expr_node unary;
+    unary.lhs  = parse_expr_unary();
+    unary.type = it->second;
+    return m_arena->allocate<unary_op_expr_node>(std::move(unary));
+}
+
+expr_node* parser::parse_expr_right(expr_node* lhs, std::uint32_t precedence) {
+    struct op_info {
+        binary_op_expr_node::binary_op_type type;
+        std::uint32_t                       precedence;
+        bool                                right = false;
+    };
+
+    static std::unordered_map<token_t, op_info> s_ops = {
+        { token::Plus, { binary_op_expr_node::Add, 4 } },
+        { token::Minus, { binary_op_expr_node::Sub, 4 } },
+        { token::Star, { binary_op_expr_node::Mul, 3 } },
+        { token::Slash, { binary_op_expr_node::Div, 3 } },
+        { token::Percent, { binary_op_expr_node::Mod, 3 } },
+        { token::DblLT, { binary_op_expr_node::Shl, 5 } },
+        { token::DblGT, { binary_op_expr_node::Shr, 5 } },
+        { token::Ampersand, { binary_op_expr_node::BinAnd, 8 } },
+        { token::Pipe, { binary_op_expr_node::BinOr, 10 } },
+        { token::Hat, { binary_op_expr_node::BinXor, 9 } },
+        { token::DblAmpersand, { binary_op_expr_node::And, 11 } },
+        { token::DblPipe, { binary_op_expr_node::Or, 12 } },
+        { token::DblEquals, { binary_op_expr_node::Equals, 7 } },
+        { token::ExEquals, { binary_op_expr_node::NotEquals, 7 } },
+        { token::LessThan, { binary_op_expr_node::LessThan, 6 } },
+        { token::LessEquals, { binary_op_expr_node::LessEquals, 6 } },
+        { token::GreaterThan, { binary_op_expr_node::GreaterThan, 6 } },
+        { token::GreaterEquals, { binary_op_expr_node::GreaterEquals, 6 } },
+    };
+
+    while (true) {
+        auto it = s_ops.find(m_lexer.peek_token().type);
+        if (it == s_ops.end() || it->second.precedence >= precedence) return lhs;
+        auto op = it->second;
+        m_lexer.next_token();
+
+        expr_node* rhs    = parse_expr_unary();
+        auto       nextIt = s_ops.find(m_lexer.peek_token().type);
+        if (nextIt != s_ops.end()) {
+            rhs = parse_expr_right(rhs, op.precedence + (op.right ? 1 : 0));
+        }
+
+        binary_op_expr_node binary;
+        binary.lhs  = lhs;
+        binary.rhs  = rhs;
+        binary.type = op.type;
+        lhs         = m_arena->allocate<binary_op_expr_node>(std::move(binary));
+    }
 }
 
 } // namespace furc

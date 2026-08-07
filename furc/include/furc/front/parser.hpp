@@ -31,6 +31,10 @@ private:
 
     ast_type       parse_type();
     comp_stmt_node parse_comp();
+
+    expr_node* parse_expr_primary();
+    expr_node* parse_expr_unary();
+    expr_node* parse_expr_right(expr_node* lhs, std::uint32_t precedence = 15);
 private:
     template <typename... Types>
     token eat_token(Types... types) {

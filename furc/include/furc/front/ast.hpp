@@ -140,9 +140,9 @@ struct binary_op_expr_node final : public expr_node {
 
     expr_type_e expr_type() const override { return BinaryOp; }
 
-    expr_node*     lhs;
-    expr_node*     rhs;
-    binary_op_type type;
+    expr_node*     lhs  = nullptr;
+    expr_node*     rhs  = nullptr;
+    binary_op_type type = Add;
 };
 
 struct unary_op_expr_node final : public expr_node {
@@ -163,8 +163,8 @@ struct unary_op_expr_node final : public expr_node {
 
     expr_type_e expr_type() const override { return UnaryOp; }
 
-    expr_node*    lhs;
-    unary_op_type type;
+    expr_node*    lhs  = nullptr;
+    unary_op_type type = Positive;
 };
 
 class lit_node : public expr_node {

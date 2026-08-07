@@ -5,7 +5,7 @@
 int main(void) {
     furlang::arena arena;
 
-    furc::lexer  lexer  = { "<AK>", "func main(argc: u64) -> s32 { x: s32 = '\\\\'; }" };
+    furc::lexer  lexer  = { "<AK>", "func main(argc: u64) -> s32 { x: s32 = '\\\\' + 'u' - 'c' * 'd'; }" };
     furc::parser parser = { std::move(lexer), arena };
 
     auto program = parser.parse();
