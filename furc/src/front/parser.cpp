@@ -46,6 +46,15 @@ stmt_node* parser::parse_stmt() {
         }
         return m_arena->allocate<if_stmt_node>(std::move(node));
     }
+    case token::While: {
+        m_lexer.next_token();
+        eat_token(token::LParen);
+        while_stmt_node node;
+        node.cond = parse_expr();
+        eat_token(token::RParen);
+        node.body = parse_stmt();
+        return m_arena->allocate<while_stmt_node>(std::move(node));
+    }
     default: break;
     }
 

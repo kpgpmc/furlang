@@ -53,6 +53,7 @@ public:
 
         Compound,
         If,
+        While,
         Return,
     };
 public:
@@ -75,6 +76,13 @@ struct if_stmt_node final : public stmt_node {
     expr_node* cond       = nullptr;
     stmt_node* thenBranch = nullptr;
     stmt_node* elseBranch = nullptr;
+};
+
+struct while_stmt_node final : public stmt_node {
+    stmt_type_e stmt_type() const override { return While; }
+
+    expr_node* cond = nullptr;
+    stmt_node* body = nullptr;
 };
 
 struct return_stmt_node final : public stmt_node {
