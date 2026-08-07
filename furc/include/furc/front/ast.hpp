@@ -79,8 +79,6 @@ public:
     virtual decl_type_e decl_type() const = 0;
 };
 
-class expr_node;
-
 struct var_decl_node final : public decl_node {
     decl_type_e decl_type() const override { return Variable; }
 
@@ -103,6 +101,8 @@ public:
     enum expr_type_e {
         Literal,
 
+        VarRead,
+        Group,
         BinaryOp,
         UnaryOp,
     };
@@ -112,6 +112,21 @@ public:
     stmt_type_e stmt_type() const override { return Expression; }
 
     virtual expr_type_e expr_type() const = 0;
+};
+
+struct var_read_expr_node final : public expr_node {
+    expr_type_e expr_type() const override { return VarRead; }
+
+    std::string name;
+
+    var_read_expr_node(std::string&& name)
+      : name(std::move(name)) {}
+};
+
+struct group_expr_node final : public expr_node {
+    expr_type_e expr_type() const override { return Group; }
+
+    expr_node* inner = nullptr;
 };
 
 struct binary_op_expr_node final : public expr_node {

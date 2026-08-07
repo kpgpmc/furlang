@@ -89,19 +89,6 @@ expr_node* parser::parse_expr() {
     return parse_expr_right(parse_expr_unary());
 }
 
-lit_node* parser::parse_lit() {
-    auto token = eat_token(token::Integer, token::Char);
-    switch (token.type) {
-    case token::Integer: {
-        return m_arena->allocate<int_lit_node>(int_lit_node(token.value.integer));
-    }
-    case token::Char: {
-        return m_arena->allocate<char_lit_node>(char_lit_node(token.value.character));
-    }
-    default: throw std::runtime_error("unreachable");
-    }
-}
-
 ast_type parser::parse_type() {
     auto token =
         eat_token(token::S8, token::U8, token::S16, token::U16, token::S32, token::U32, token::S64, token::U64);
@@ -131,7 +118,25 @@ comp_stmt_node parser::parse_comp() {
 }
 
 expr_node* parser::parse_expr_primary() {
-    return parse_lit();
+    auto token = eat_token(token::Identifier, token::LParen, token::Integer, token::Char);
+    switch (token.type) {
+    case token::Identifier: {
+        return m_arena->allocate<var_read_expr_node>(std::string(token.value.string));
+    }
+    case token::LParen: {
+        group_expr_node group;
+        group.inner = parse_expr();
+        eat_token(token::RParen);
+        return m_arena->allocate<group_expr_node>(std::move(group));
+    }
+    case token::Integer: {
+        return m_arena->allocate<int_lit_node>(int_lit_node(token.value.integer));
+    }
+    case token::Char: {
+        return m_arena->allocate<char_lit_node>(char_lit_node(token.value.character));
+    }
+    default: throw std::runtime_error("unreachable");
+    }
 }
 
 expr_node* parser::parse_expr_unary() {

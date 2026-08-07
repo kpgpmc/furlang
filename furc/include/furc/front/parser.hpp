@@ -27,7 +27,6 @@ private:
     stmt_node* parse_stmt();
     decl_node* parse_decl();
     expr_node* parse_expr();
-    lit_node*  parse_lit();
 
     ast_type       parse_type();
     comp_stmt_node parse_comp();
