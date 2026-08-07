@@ -102,6 +102,9 @@ class expr_node : public stmt_node {
 public:
     enum expr_type_e {
         Literal,
+
+        BinaryOp,
+        UnaryOp,
     };
 public:
     category_e category() const override { return ast_node_cat::Expression; }
@@ -109,6 +112,59 @@ public:
     stmt_type_e stmt_type() const override { return Expression; }
 
     virtual expr_type_e expr_type() const = 0;
+};
+
+struct binary_op_expr_node final : public expr_node {
+    enum binary_op_type {
+        Add = 0,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+
+        Shl,
+        Shr,
+        BinAnd,
+        BinOr,
+        BinXor,
+        And,
+        Or,
+
+        Equals,
+        NotEquals,
+        LessThan,
+        LessEquals,
+        GreaterThan,
+        GreaterEquals,
+    };
+
+    expr_type_e expr_type() const override { return BinaryOp; }
+
+    expr_node*     lhs;
+    expr_node*     rhs;
+    binary_op_type type;
+};
+
+struct unary_op_expr_node final : public expr_node {
+    enum unary_op_type {
+        Positive = 0,
+        Negative,
+        PreInc,
+        PreDec,
+        PostInc,
+        PostDec,
+        BinNot,
+        Not,
+
+        Sizeof,
+        Pointerof,
+        Lengthof,
+    };
+
+    expr_type_e expr_type() const override { return UnaryOp; }
+
+    expr_node*    lhs;
+    unary_op_type type;
 };
 
 class lit_node : public expr_node {

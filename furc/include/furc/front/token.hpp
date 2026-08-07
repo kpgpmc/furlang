@@ -31,6 +31,8 @@ struct token {
         Star,         /**< `*` */
         Slash,        /**< `/` */
         Percent,      /**< `%` */
+        DblLT,        /**< `<<` */
+        DblGT,        /**< `>>` */
         Ampersand,    /**< `&` */
         Pipe,         /**< `|` */
         Hat,          /**< `^` */
@@ -39,6 +41,7 @@ struct token {
 
         DblPlus,  /**< `++` */
         DblMinus, /**< `--` */
+        Tilde,    /**< `~` */
         ExMark,   /**< `!` */
         CatEars,  /**< `^^` */
 
@@ -144,6 +147,8 @@ struct token {
         case token::Star: return os << "*";
         case token::Slash: return os << "/";
         case token::Percent: return os << "%";
+        case token::DblLT: return os << "<<";
+        case token::DblGT: return os << ">>";
         case token::Ampersand: return os << "&";
         case token::Pipe: return os << "|";
         case token::Hat: return os << "^";
@@ -151,6 +156,7 @@ struct token {
         case token::DblPipe: return os << "||";
         case token::DblPlus: return os << "++";
         case token::DblMinus: return os << "--";
+        case token::Tilde: return os << "~";
         case token::ExMark: return os << "!";
         case token::CatEars: return os << "^^";
         case token::Equals: return os << "=";
