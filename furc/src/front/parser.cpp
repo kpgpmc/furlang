@@ -24,6 +24,15 @@ ast parser::parse() {
 stmt_node* parser::parse_stmt() {
     switch (m_lexer.peek_token().type) {
     case token::LBrace: return m_arena->allocate<comp_stmt_node>(parse_comp());
+    case token::Return: {
+        m_lexer.next_token();
+        return_stmt_node node;
+        if (m_lexer.peek_token().type != token::Semicolon) {
+            node.value = parse_expr();
+        }
+        eat_token(token::Semicolon);
+        return m_arena->allocate<return_stmt_node>(std::move(node));
+    }
     case token::If: {
         m_lexer.next_token();
         eat_token(token::LParen);

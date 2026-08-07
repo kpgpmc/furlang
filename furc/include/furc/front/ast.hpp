@@ -53,6 +53,7 @@ public:
 
         Compound,
         If,
+        Return,
     };
 public:
     category_e category() const override { return ast_node_cat::Statement; }
@@ -74,6 +75,12 @@ struct if_stmt_node final : public stmt_node {
     expr_node* cond       = nullptr;
     stmt_node* thenBranch = nullptr;
     stmt_node* elseBranch = nullptr;
+};
+
+struct return_stmt_node final : public stmt_node {
+    stmt_type_e stmt_type() const override { return Return; }
+
+    expr_node* value = nullptr;
 };
 
 class decl_node : public stmt_node {
