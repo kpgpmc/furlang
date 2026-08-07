@@ -52,6 +52,7 @@ public:
         Expression,
 
         Compound,
+        If,
     };
 public:
     category_e category() const override { return ast_node_cat::Statement; }
@@ -63,6 +64,16 @@ struct comp_stmt_node final : public stmt_node {
     stmt_type_e stmt_type() const override { return Compound; }
 
     std::vector<stmt_node*> stmts;
+};
+
+class expr_node;
+
+struct if_stmt_node final : public stmt_node {
+    stmt_type_e stmt_type() const override { return If; }
+
+    expr_node* cond       = nullptr;
+    stmt_node* thenBranch = nullptr;
+    stmt_node* elseBranch = nullptr;
 };
 
 class decl_node : public stmt_node {

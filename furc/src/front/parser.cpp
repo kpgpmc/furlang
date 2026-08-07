@@ -24,6 +24,19 @@ ast parser::parse() {
 stmt_node* parser::parse_stmt() {
     switch (m_lexer.peek_token().type) {
     case token::LBrace: return m_arena->allocate<comp_stmt_node>(parse_comp());
+    case token::If: {
+        m_lexer.next_token();
+        eat_token(token::LParen);
+        if_stmt_node node;
+        node.cond = parse_expr();
+        eat_token(token::RParen);
+        node.thenBranch = parse_stmt();
+        if (m_lexer.peek_token().type == token::Else) {
+            m_lexer.next_token();
+            node.elseBranch = parse_stmt();
+        }
+        return m_arena->allocate<if_stmt_node>(std::move(node));
+    }
     default: break;
     }
 
