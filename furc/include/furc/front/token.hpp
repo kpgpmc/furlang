@@ -93,6 +93,7 @@ struct token {
         // Errors:
         UnexpectedCharacter,
         UnexpectedEOF,
+        InvalidInteger,
         EndOfFile,
     } type;
     union value {
@@ -198,6 +199,7 @@ struct token {
         case token::U64: return os << "u64";
         case token::UnexpectedCharacter: return os << "Unexpected character `" << token.value.character << "`";
         case token::UnexpectedEOF: return os << "Unexpected End Of File";
+        case token::InvalidInteger: return os << "Invalid Integer";
         case token::EndOfFile: return os << "End Of File";
         }
 

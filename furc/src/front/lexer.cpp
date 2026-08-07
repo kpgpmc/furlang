@@ -1,6 +1,7 @@
 #include "furc/front/lexer.hpp"
 
 #include <cctype>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
 
@@ -19,7 +20,28 @@ token lexer::next_token() {
 
     auto loc = location();
 
-    if (std::isdigit(get()) != 0) {}
+    if (std::isdigit(get()) != 0) {
+        std::uint64_t value = get() - '0';
+        next();
+        while (m_cursor < m_content.size() && std::isdigit(get()) != 0) {
+            static constexpr std::uint64_t MAX        = std::numeric_limits<std::uint64_t>::max();
+            static constexpr std::uint64_t MAX_MULTS  = MAX / 10;
+            static constexpr std::uint64_t LAST_DIGIT = MAX % 10;
+
+            if (value > MAX_MULTS) {
+                return { location(), token::InvalidInteger };
+            }
+            std::uint64_t digit = get() - '0';
+            if (value == MAX_MULTS && digit > LAST_DIGIT) {
+                return { location(), token::InvalidInteger };
+            }
+
+            value *= 10;
+            value += digit;
+            next();
+        }
+        return { loc, value };
+    }
 
     if (std::isalnum(get()) != 0 || get() == '_') {
         static std::unordered_map<std::string_view, token_t> s_keywords = {
