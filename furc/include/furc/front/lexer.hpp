@@ -4,7 +4,7 @@
 #include "furc/front/token.hpp"
 
 #include <cstddef>
-#include <optional>
+#include <deque>
 #include <string_view>
 
 namespace furc {
@@ -23,9 +23,10 @@ public:
     lexer& operator=(const lexer&) = delete;
 public:
     token next_token();
-    token peek_token();
-    token skip_token();
+    token peek_token(std::size_t offset = 0);
 private:
+    token get_token();
+
     void           next();
     constexpr char get(std::size_t offset = 0) const;
     void           skip_spaces();
@@ -38,7 +39,7 @@ private:
     std::size_t      m_row       = 0;
     std::size_t      m_lineStart = 0;
 
-    std::optional<token> m_peekToken;
+    std::deque<token> m_peekToken;
 };
 
 } // namespace furc

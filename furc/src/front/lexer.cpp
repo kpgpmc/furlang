@@ -8,12 +8,23 @@
 namespace furc {
 
 token lexer::next_token() {
-    if (m_peekToken.has_value()) {
-        auto tok    = m_peekToken.value();
-        m_peekToken = {};
-        return tok;
-    }
+    if (m_peekToken.empty()) return get_token();
+    auto tok = m_peekToken.front();
+    m_peekToken.pop_front();
+    return tok;
+}
 
+token lexer::peek_token(std::size_t offset) {
+    if (m_peekToken.size() <= offset) {
+        while (m_peekToken.size() <= offset) {
+            auto tok = get_token();
+            m_peekToken.push_back(tok);
+        }
+    }
+    return m_peekToken[offset];
+}
+
+token lexer::get_token() {
     skip_spaces();
 
     if (m_cursor >= m_content.size()) return { location(), token::EndOfFile };
@@ -171,18 +182,6 @@ token lexer::next_token() {
     return { loc, token::UnexpectedCharacter, get() };
 }
 
-token lexer::peek_token() {
-    if (m_peekToken.has_value()) return m_peekToken.value();
-    auto tok    = next_token();
-    m_peekToken = tok;
-    return tok;
-}
-
-token lexer::skip_token() {
-    m_peekToken = {};
-    return next_token();
-}
-
 void lexer::next() {
     if (m_cursor < m_content.size()) ++m_cursor;
 }
@@ -192,8 +191,12 @@ constexpr char lexer::get(std::size_t offset) const {
 }
 
 void lexer::skip_spaces() {
-    while (m_cursor < m_content.size() && std::isspace(get()) != 0)
-        ++m_cursor;
+    while (m_cursor < m_content.size() && std::isspace(get()) != 0) {
+        if (m_content[m_cursor++] == '\n') {
+            ++m_row;
+            m_lineStart = m_cursor;
+        }
+    }
 }
 
 constexpr token::location lexer::location() const {
