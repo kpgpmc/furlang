@@ -8,8 +8,7 @@ int main(void) {
     std::string_view content = R"(
         func main(argc: u64) -> s32 pre(arc > 1) {
             x: s32 = 1 + 2 * 3;
-            if (x == 9) return 1;
-            else return 0;
+            return if (x == 9) 1 else 0;
         }
     )";
 

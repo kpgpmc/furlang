@@ -137,6 +137,7 @@ public:
         Group,
         BinaryOp,
         UnaryOp,
+        If,
     };
 public:
     category_e category() const override { return ast_node_cat::Expression; }
@@ -212,6 +213,14 @@ struct unary_op_expr_node final : public expr_node {
 
     expr_node*    lhs  = nullptr;
     unary_op_type type = Positive;
+};
+
+struct if_expr_node final : public expr_node {
+    expr_type_e expr_type() const override { return If; }
+
+    expr_node* cond     = nullptr;
+    expr_node* thenExpr = nullptr;
+    expr_node* elseExpr = nullptr;
 };
 
 class lit_node : public expr_node {

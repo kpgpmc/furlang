@@ -169,7 +169,7 @@ comp_stmt_node parser::parse_comp() {
 }
 
 expr_node* parser::parse_expr_primary() {
-    auto token = eat_token(token::Identifier, token::LParen, token::Integer, token::Char);
+    auto token = eat_token(token::Identifier, token::LParen, token::If, token::Integer, token::Char);
     switch (token.type) {
     case token::Identifier: {
         return m_arena->allocate<var_read_expr_node>(std::string(token.value.string));
@@ -179,6 +179,16 @@ expr_node* parser::parse_expr_primary() {
         group.inner = parse_expr();
         eat_token(token::RParen);
         return m_arena->allocate<group_expr_node>(std::move(group));
+    }
+    case token::If: {
+        if_expr_node ifExpr;
+        eat_token(token::LParen);
+        ifExpr.cond = parse_expr();
+        eat_token(token::RParen);
+        ifExpr.thenExpr = parse_expr();
+        eat_token(token::Else);
+        ifExpr.elseExpr = parse_expr();
+        return m_arena->allocate<if_expr_node>(std::move(ifExpr));
     }
     case token::Integer: {
         return m_arena->allocate<int_lit_node>(int_lit_node(token.value.integer));
