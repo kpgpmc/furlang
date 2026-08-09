@@ -76,6 +76,8 @@ struct token {
         While,   /**< `while` */
         Public,  /**< `public` */
         Private, /**< `private` */
+        Pre,     /**< `pre` */
+        Post,    /**< `post` */
 
         Pointerof, /**< `pointerof` */
         Sizeof,    /**< `sizeof` */
@@ -186,6 +188,8 @@ struct token {
         case token::While: return os << "while";
         case token::Public: return os << "public";
         case token::Private: return os << "private";
+        case token::Pre: return os << "pre";
+        case token::Post: return os << "post";
         case token::Pointerof: return os << "pointerof";
         case token::Sizeof: return os << "sizeof";
         case token::Lengthof: return os << "lengthof";

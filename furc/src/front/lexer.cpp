@@ -52,6 +52,8 @@ token lexer::next_token() {
             { "while", token::While },
             { "public", token::Public },
             { "private", token::Private },
+            { "pre", token::Pre },
+            { "post", token::Post },
             { "pointerof", token::Pointerof },
             { "sizeof", token::Sizeof },
             { "lengthof", token::Lengthof },

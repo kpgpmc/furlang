@@ -116,10 +116,16 @@ struct var_decl_node final : public decl_node {
 struct func_decl_node final : public decl_node {
     decl_type_e decl_type() const override { return Function; }
 
-    std::string                   name;
-    ast_type                      type;
-    std::vector<var_decl_node>    params;
-    std::optional<comp_stmt_node> body;
+    struct def_s {
+        comp_stmt_node          body;
+        std::vector<expr_node*> preConds;
+        std::vector<expr_node*> postConds;
+    };
+
+    std::string                name;
+    ast_type                   type;
+    std::vector<var_decl_node> params;
+    std::optional<def_s>       def;
 };
 
 class expr_node : public stmt_node {

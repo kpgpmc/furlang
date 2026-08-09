@@ -99,7 +99,27 @@ decl_node* parser::parse_decl() {
             return m_arena->allocate<func_decl_node>(std::move(func));
         }
 
-        func.body = parse_comp();
+        func_decl_node::def_s def;
+
+        while (m_lexer.peek_token().type == token::Pre || m_lexer.peek_token().type == token::Post) {
+            auto token = m_lexer.next_token();
+            eat_token(token::LParen);
+            auto* expr = parse_expr();
+            eat_token(token::RParen);
+
+            switch (token.type) {
+            case token::Pre: {
+                def.preConds.push_back(expr);
+            } break;
+            case token::Post: {
+                def.postConds.push_back(expr);
+            } break;
+            default: throw std::runtime_error("unreachable");
+            }
+        }
+
+        def.body = parse_comp();
+        func.def = std::move(def);
 
         return m_arena->allocate<func_decl_node>(std::move(func));
     }
