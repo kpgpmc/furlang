@@ -134,6 +134,7 @@ public:
         Literal,
 
         VarRead,
+        FunctionCall,
         Group,
         BinaryOp,
         UnaryOp,
@@ -154,6 +155,13 @@ struct var_read_expr_node final : public expr_node {
 
     var_read_expr_node(std::string&& name)
       : name(std::move(name)) {}
+};
+
+struct func_call_expr_node final : public expr_node {
+    expr_type_e expr_type() const override { return FunctionCall; }
+
+    expr_node*              lhs = nullptr;
+    std::vector<expr_node*> args;
 };
 
 struct group_expr_node final : public expr_node {

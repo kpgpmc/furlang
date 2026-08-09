@@ -314,30 +314,37 @@ expr_node* parser::parse_expr_unary() {
 
 expr_node* parser::parse_expr_right(expr_node* lhs, std::uint32_t precedence) {
     struct op_info {
-        binary_op_expr_node::binary_op_type type;
-        std::uint32_t                       precedence;
-        bool                                right = false;
+        enum type_e {
+            Binary = 0,
+            FunctionCall,
+        } type;
+        std::uint32_t precedence;
+        union {
+            binary_op_expr_node::binary_op_type binary;
+        };
+        bool right = false;
     };
 
     static std::unordered_map<token_t, op_info> s_ops = {
-        { token::Plus, { binary_op_expr_node::Add, 4 } },
-        { token::Minus, { binary_op_expr_node::Sub, 4 } },
-        { token::Star, { binary_op_expr_node::Mul, 3 } },
-        { token::Slash, { binary_op_expr_node::Div, 3 } },
-        { token::Percent, { binary_op_expr_node::Mod, 3 } },
-        { token::DblLT, { binary_op_expr_node::Shl, 5 } },
-        { token::DblGT, { binary_op_expr_node::Shr, 5 } },
-        { token::Ampersand, { binary_op_expr_node::BinAnd, 8 } },
-        { token::Pipe, { binary_op_expr_node::BinOr, 10 } },
-        { token::Hat, { binary_op_expr_node::BinXor, 9 } },
-        { token::DblAmpersand, { binary_op_expr_node::And, 11 } },
-        { token::DblPipe, { binary_op_expr_node::Or, 12 } },
-        { token::DblEquals, { binary_op_expr_node::Equals, 7 } },
-        { token::ExEquals, { binary_op_expr_node::NotEquals, 7 } },
-        { token::LessThan, { binary_op_expr_node::LessThan, 6 } },
-        { token::LessEquals, { binary_op_expr_node::LessEquals, 6 } },
-        { token::GreaterThan, { binary_op_expr_node::GreaterThan, 6 } },
-        { token::GreaterEquals, { binary_op_expr_node::GreaterEquals, 6 } },
+        { token::Plus, { op_info::Binary, 4, binary_op_expr_node::Add } },
+        { token::Minus, { op_info::Binary, 4, binary_op_expr_node::Sub } },
+        { token::Star, { op_info::Binary, 3, binary_op_expr_node::Mul } },
+        { token::Slash, { op_info::Binary, 3, binary_op_expr_node::Div } },
+        { token::Percent, { op_info::Binary, 3, binary_op_expr_node::Mod } },
+        { token::DblLT, { op_info::Binary, 5, binary_op_expr_node::Shl } },
+        { token::DblGT, { op_info::Binary, 5, binary_op_expr_node::Shr } },
+        { token::Ampersand, { op_info::Binary, 8, binary_op_expr_node::BinAnd } },
+        { token::Pipe, { op_info::Binary, 10, binary_op_expr_node::BinOr } },
+        { token::Hat, { op_info::Binary, 9, binary_op_expr_node::BinXor } },
+        { token::DblAmpersand, { op_info::Binary, 11, binary_op_expr_node::And } },
+        { token::DblPipe, { op_info::Binary, 12, binary_op_expr_node::Or } },
+        { token::DblEquals, { op_info::Binary, 7, binary_op_expr_node::Equals } },
+        { token::ExEquals, { op_info::Binary, 7, binary_op_expr_node::NotEquals } },
+        { token::LessThan, { op_info::Binary, 6, binary_op_expr_node::LessThan } },
+        { token::LessEquals, { op_info::Binary, 6, binary_op_expr_node::LessEquals } },
+        { token::GreaterThan, { op_info::Binary, 6, binary_op_expr_node::GreaterThan } },
+        { token::GreaterEquals, { op_info::Binary, 6, binary_op_expr_node::GreaterEquals } },
+        { token::LParen, { op_info::FunctionCall, 1 } },
     };
 
     while (true) {
@@ -346,17 +353,32 @@ expr_node* parser::parse_expr_right(expr_node* lhs, std::uint32_t precedence) {
         auto op = it->second;
         m_lexer.next_token();
 
-        expr_node* rhs    = parse_expr_unary();
-        auto       nextIt = s_ops.find(m_lexer.peek_token().type);
-        if (nextIt != s_ops.end()) {
-            rhs = parse_expr_right(rhs, op.precedence + (op.right ? 1 : 0));
-        }
+        if (op.type == op_info::FunctionCall) {
+            func_call_expr_node funcCall;
+            funcCall.lhs = lhs;
 
-        binary_op_expr_node binary;
-        binary.lhs  = lhs;
-        binary.rhs  = rhs;
-        binary.type = op.type;
-        lhs         = m_arena->allocate<binary_op_expr_node>(std::move(binary));
+            if (m_lexer.peek_token().type != token::RParen) {
+                do {
+                    funcCall.args.push_back(parse_expr());
+                } while (eat_token(token::Comma, token::RParen).type == token::Comma);
+            } else {
+                m_lexer.next_token();
+            }
+
+            lhs = m_arena->allocate<func_call_expr_node>(std::move(funcCall));
+        } else {
+            binary_op_expr_node binary;
+            binary.lhs  = lhs;
+            binary.rhs  = parse_expr_unary();
+            binary.type = op.binary;
+
+            auto nextIt = s_ops.find(m_lexer.peek_token().type);
+            if (nextIt != s_ops.end()) {
+                binary.rhs = parse_expr_right(binary.rhs, op.precedence + (op.right ? 1 : 0));
+            }
+
+            lhs = m_arena->allocate<binary_op_expr_node>(std::move(binary));
+        }
     }
 }
 
