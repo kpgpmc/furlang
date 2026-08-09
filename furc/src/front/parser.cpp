@@ -58,11 +58,81 @@ stmt_node* parser::parse_stmt() {
     default: break;
     }
 
-    try {
-        return parse_decl();
-    } catch (...) {
-        return parse_expr();
+    if (m_lexer.peek_token().type == token::Func) {
+        eat_token(token::Func);
+        func_decl_node func;
+
+        func.name = std::string(eat_token(token::Identifier).value.string);
+        eat_token(token::LParen);
+        if (m_lexer.peek_token().type != token::RParen) {
+            do {
+                var_decl_node param;
+
+                param.name = std::string(eat_token(token::Identifier).value.string);
+                eat_token(token::Colon);
+                param.type = parse_type();
+                if (m_lexer.peek_token().type == token::Equals) {
+                    m_lexer.next_token();
+                    param.init = parse_expr();
+                }
+                func.params.emplace_back(std::move(param));
+            } while (eat_token(token::Comma, token::RParen).type == token::Comma);
+        } else {
+            eat_token(token::RParen);
+        }
+
+        if (m_lexer.peek_token().type == token::SlimArrow) {
+            m_lexer.next_token();
+            func.type = parse_type();
+        }
+
+        if (m_lexer.peek_token().type == token::Semicolon) {
+            m_lexer.next_token();
+            return m_arena->allocate<func_decl_node>(std::move(func));
+        }
+
+        func_decl_node::def_s def;
+
+        while (m_lexer.peek_token().type == token::Pre || m_lexer.peek_token().type == token::Post) {
+            auto token = m_lexer.next_token();
+            eat_token(token::LParen);
+            auto* expr = parse_expr();
+            eat_token(token::RParen);
+
+            switch (token.type) {
+            case token::Pre: {
+                def.preConds.push_back(expr);
+            } break;
+            case token::Post: {
+                def.postConds.push_back(expr);
+            } break;
+            default: throw std::runtime_error("unreachable");
+            }
+        }
+
+        def.body = parse_comp();
+        func.def = std::move(def);
+
+        return m_arena->allocate<func_decl_node>(std::move(func));
     }
+
+    if (m_lexer.peek_token().type == token::Identifier &&
+        (m_lexer.peek_token(1).type == token::Colon || m_lexer.peek_token(1).type == token::Equals)) {
+        var_decl_node var;
+        var.name = std::string(eat_token(token::Identifier).value.string);
+        eat_token(token::Colon); // TODO: Auto-deduce the type
+        var.type = parse_type();
+        if (eat_token(token::Equals, token::Semicolon).type == token::Equals) {
+            var.init = parse_expr();
+            eat_token(token::Semicolon);
+        }
+
+        return m_arena->allocate<var_decl_node>(std::move(var));
+    }
+
+    auto* expr = parse_expr();
+    eat_token(token::Semicolon);
+    return expr;
 }
 
 decl_node* parser::parse_decl() {
