@@ -1,4 +1,4 @@
-#include "furc/back/ir.hpp"
+#include "furc/middle/ir.hpp"
 
 #include "furc/front/ast.hpp"
 

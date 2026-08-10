@@ -1,5 +1,5 @@
-#ifndef FURC_BACK_IR_HPP
-#define FURC_BACK_IR_HPP
+#ifndef FURC_MIDDLE_IR_HPP
+#define FURC_MIDDLE_IR_HPP
 
 #include "furc/front/ast.hpp"
 #include "furlang/arena.hpp"
@@ -403,4 +403,4 @@ private:
 
 } // namespace furc
 
-#endif // FURC_BACK_IR_HPP
+#endif // FURC_MIDDLE_IR_HPP

@@ -1,6 +1,6 @@
-#include "furc/back/ir.hpp"
 #include "furc/front/lexer.hpp"
 #include "furc/front/parser.hpp"
+#include "furc/middle/ir.hpp"
 #include "furlang/arena.hpp"
 
 int main(void) {
