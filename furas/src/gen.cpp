@@ -21,48 +21,36 @@ using namespace std::string_literals;
 
 namespace {
 
-struct instruction {
-    furvm::instruction_t fur{};
-    enum arg_type {
-        None = 0,
-        Type,
-        Constant,
-        Variable,
-        Function,
-        Label,
-    } arg = None;
-};
-
 // NOLINTBEGIN
-std::unordered_map<enum token::type, instruction> instructions = {
-    { token::Array, { furvm::instruction_t::Array, instruction::Type } },
-    { token::Get, { furvm::instruction_t::Get } },
-    { token::Set, { furvm::instruction_t::Set } },
-    { token::Drop, { furvm::instruction_t::Drop } },
-    { token::Dup, { furvm::instruction_t::Duplicate } },
-    { token::Swap, { furvm::instruction_t::Swap } },
-    { token::Clone, { furvm::instruction_t::Clone } },
-    { token::Ref, { furvm::instruction_t::Reference } },
-    { token::Add, { furvm::instruction_t::Add } },
-    { token::Sub, { furvm::instruction_t::Sub } },
-    { token::Mul, { furvm::instruction_t::Mul } },
-    { token::Div, { furvm::instruction_t::Div } },
-    { token::Mod, { furvm::instruction_t::Mod } },
-    { token::Eq, { furvm::instruction_t::Equals } },
-    { token::Neq, { furvm::instruction_t::NotEquals } },
-    { token::Lt, { furvm::instruction_t::LessThan } },
-    { token::Gt, { furvm::instruction_t::GreaterThan } },
-    { token::Le, { furvm::instruction_t::LessEqual } },
-    { token::Ge, { furvm::instruction_t::GreaterEqual } },
-    { token::Ptrof, { furvm::instruction_t::Pointerof } },
-    { token::Sizeof, { furvm::instruction_t::Sizeof } },
-    { token::Lenof, { furvm::instruction_t::Lengthof } },
-    { token::Load, { furvm::instruction_t::Load, instruction::Variable } },
-    { token::Store, { furvm::instruction_t::Store, instruction::Variable } },
-    { token::Call, { furvm::instruction_t::Call, instruction::Function } },
-    { token::Jmp, { furvm::instruction_t::Jump, instruction::Label } },
-    { token::Jnz, { furvm::instruction_t::JumpNotZero, instruction::Label } },
-    { token::Ret, { furvm::instruction_t::Return } },
+std::unordered_map<enum token::type, furvm::instruction_t> instructions = {
+    { token::Array, furvm::instruction_t::Array },
+    { token::Get, furvm::instruction_t::Get },
+    { token::Set, furvm::instruction_t::Set },
+    { token::Drop, furvm::instruction_t::Drop },
+    { token::Dup, furvm::instruction_t::Duplicate },
+    { token::Swap, furvm::instruction_t::Swap },
+    { token::Clone, furvm::instruction_t::Clone },
+    { token::Ref, furvm::instruction_t::Reference },
+    { token::Add, furvm::instruction_t::Add },
+    { token::Sub, furvm::instruction_t::Sub },
+    { token::Mul, furvm::instruction_t::Mul },
+    { token::Div, furvm::instruction_t::Div },
+    { token::Mod, furvm::instruction_t::Mod },
+    { token::Eq, furvm::instruction_t::Equals },
+    { token::Neq, furvm::instruction_t::NotEquals },
+    { token::Lt, furvm::instruction_t::LessThan },
+    { token::Gt, furvm::instruction_t::GreaterThan },
+    { token::Le, furvm::instruction_t::LessEqual },
+    { token::Ge, furvm::instruction_t::GreaterEqual },
+    { token::Ptrof, furvm::instruction_t::Pointerof },
+    { token::Sizeof, furvm::instruction_t::Sizeof },
+    { token::Lenof, furvm::instruction_t::Lengthof },
+    { token::Load, furvm::instruction_t::Load },
+    { token::Store, furvm::instruction_t::Store },
+    { token::Call, furvm::instruction_t::Call },
+    { token::Jmp, furvm::instruction_t::Jump },
+    { token::Jnz, furvm::instruction_t::JumpNotZero },
+    { token::Ret, furvm::instruction_t::Return },
 };
 // NOLINTEND
 
@@ -214,12 +202,12 @@ struct mod_context {
                 handle.dispatch();
             }
             for (auto unknown : label.unknowns) {
-                std::ptrdiff_t jmpOff = static_cast<std::ptrdiff_t>(label.offset - unknown);
+                const auto jmpOff = static_cast<std::ptrdiff_t>(label.offset) - static_cast<std::ptrdiff_t>(unknown);
                 if (jmpOff < std::numeric_limits<std::int8_t>::min() ||
                     jmpOff > std::numeric_limits<std::int8_t>::max()) {
                     assert(false); // TODO: Further jumps are not implemented
                 }
-                mod.bytecode()[unknown - 1] = jmpOff;
+                mod.bytecode()[unknown - 1] = static_cast<std::int8_t>(jmpOff);
             }
             label.functions = {};
             label.unknowns  = {};
@@ -453,10 +441,11 @@ struct mod_context {
         case token::Ret: {
             auto it = instructions.find(result->type);
             assert(it != instructions.end());
-            mod.bytecode().push_back(static_cast<furvm::byte>(it->second.fur));
-            switch (it->second.arg) {
-            case instruction::None: break;
-            case instruction::Type: {
+            furvm::instruction instr{ it->second };
+            instr.arg.type = furvm::instruction::s_arguments[instr.type];
+            switch (instr.arg.type) {
+            case furvm::instruction_argument::None: break;
+            case furvm::instruction_argument::Type: {
                 result = eat_token(lexer, token::Dolar);
                 if (!result) return result.error;
                 result = eat_token(lexer, token::Identifier);
@@ -464,25 +453,19 @@ struct mod_context {
                 auto type = types.find(std::string(result->value.string));
                 if (type == types.end())
                     return { generator_error::UnknownType, "Unknown type "s + std::string(result->value.string) };
-                auto id = type->second.id();
-                mod.bytecode().push_back((id >> 0) & 0xFF);
-                mod.bytecode().push_back((id >> 8) & 0xFF);
-                mod.bytecode().push_back((id >> 16) & 0xFF);
-                mod.bytecode().push_back((id >> 24) & 0xFF);
+                instr.arg.u32 = type->second.id();
             } break;
-            case instruction::Constant: {
+            case furvm::instruction_argument::Constant: {
                 assert(false); // TODO: Unimplemented
             } break;
-            case instruction::Variable: {
+            case furvm::instruction_argument::Variable: {
                 result = eat_token(lexer, token::Percent);
                 if (!result) return result.error;
                 result = eat_token(lexer, token::Unsigned);
                 if (!result) return result.error;
-                std::uint16_t var = result->value.uint;
-                mod.bytecode().push_back((var >> 0) & 0xFF);
-                mod.bytecode().push_back((var >> 8) & 0xFF);
+                instr.arg.u16 = result->value.uint;
             } break;
-            case instruction::Function: {
+            case furvm::instruction_argument::Function: {
                 furvm::function_sig signature;
                 while ((result = next_token(lexer)).error.type == generator_error::Success &&
                        result->type == token::Dolar) {
@@ -499,11 +482,10 @@ struct mod_context {
                 auto func = functions.find(std::make_pair(name, signature));
                 if (func == functions.end())
                     return { generator_error::UnknownType, "Unknown type "s + std::string(result->value.string) };
-                auto id = func->second.id();
-                mod.bytecode().push_back((id >> 0) & 0xFF);
-                mod.bytecode().push_back((id >> 8) & 0xFF);
+                auto id       = func->second.id();
+                instr.arg.u16 = id;
             } break;
-            case instruction::Label: {
+            case furvm::instruction_argument::Offset: {
                 result = eat_token(lexer, token::Sha256);
                 if (!result) return result.error;
                 result = eat_token(lexer, token::Identifier);
@@ -511,18 +493,28 @@ struct mod_context {
                 auto& label  = labels[std::string(result->value.string)];
                 auto  offset = label.offset;
                 if (offset == label_context::INVALID) {
-                    label.unknowns.push_back(mod.bytecode().size() + 1);
-                    mod.bytecode().push_back(0);
-                    return { generator_error::Success };
+                    label.unknowns.push_back(mod.bytecode().size() + 2);
+                    instr.arg.s8 = 0;
+                    break;
                 }
-                std::ptrdiff_t jmpOff = static_cast<std::ptrdiff_t>(offset - mod.bytecode().size() - 1);
+                const auto jmpOff =
+                    static_cast<std::ptrdiff_t>(offset) - static_cast<std::ptrdiff_t>(mod.bytecode().size()) - 2;
                 if (jmpOff < std::numeric_limits<std::int8_t>::min() ||
                     jmpOff > std::numeric_limits<std::int8_t>::max()) {
                     assert(false); // TODO: Further jumps are not implemented
                 }
-                mod.bytecode().push_back(jmpOff);
+                instr.arg.s8 = static_cast<std::int8_t>(jmpOff);
             } break;
+            case furvm::instruction_argument::S8:
+            case furvm::instruction_argument::U8:
+            case furvm::instruction_argument::S16:
+            case furvm::instruction_argument::U16:
+            case furvm::instruction_argument::S32:
+            case furvm::instruction_argument::U32:
+            case furvm::instruction_argument::Count:
+            default: throw std::runtime_error("unreachable");
             }
+            instr.write(mod.bytecode());
             return { generator_error::Success };
         }
 

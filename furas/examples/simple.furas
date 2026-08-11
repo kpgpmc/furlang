@@ -1,0 +1,7 @@
+func println $s32 = native println
+
+public func main = #main
+main:
+    push $s32 69
+    call $s32 println
+    ret
