@@ -1,7 +1,8 @@
 #include "furvm/instruction.hpp"
 
+#include "furlang/view.hpp"
+
 #include <stdexcept>
-#include <string>
 
 namespace furvm {
 
@@ -17,9 +18,9 @@ const std::size_t instruction_argument::s_sizes[instruction_argument::Count] = {
     // U16:
     2,
     // S32
-    4,
+    1,
     // U32
-    4,
+    1,
     // Constant:
     4,
     // Type:
@@ -134,13 +135,15 @@ const instruction_argument_t instruction::s_arguments[instruction::Count] = {
     instruction_argument::None,
 };
 
-std::size_t instruction::read(std::string_view in) {
+std::size_t instruction::read(furlang::view<std::uint8_t> in) {
     type = static_cast<type_e>(in[0]);
     if (type >= Count) throw std::runtime_error("invalid instruction");
     arg.type = s_arguments[type];
 
-    std::string_view argView = in.substr(1, arg.size());
+    furlang::view argView = in.subview(1, arg.size());
+    if (argView.size() != arg.size()) throw std::runtime_error("invalid bytecode");
     switch (argView.size()) {
+    case 0: break;
     case 1: arg.u8 = argView[0]; break;
     case 2: arg.u16 = argView[0] | (argView[1] << 8); break;
     case 4: arg.u32 = argView[0] | (argView[1] << 8) | (argView[2] << 16) | (argView[3] << 24); break;
@@ -150,14 +153,23 @@ std::size_t instruction::read(std::string_view in) {
     return 1 + argView.size();
 }
 
-std::size_t instruction::write(std::string& out) const {
+std::size_t instruction::write(std::vector<std::uint8_t>& out) const {
     if (type >= Count) throw std::runtime_error("invalid instruction");
     if (s_arguments[type] != arg.type) throw std::runtime_error("malformed instruction");
-    out += static_cast<char>(type);
+    out.push_back(static_cast<char>(type));
     switch (arg.size()) {
-    case 1: out += arg.is_signed() ? std::to_string(arg.s8) : std::to_string(arg.u8); break;
-    case 2: out += arg.is_signed() ? std::to_string(arg.s16) : std::to_string(arg.u16); break;
-    case 4: out += arg.is_signed() ? std::to_string(arg.s32) : std::to_string(arg.u32); break;
+    case 0: break;
+    case 1: out.push_back(arg.u8); break;
+    case 2:
+        out.push_back(arg.u16 & 0xFF);
+        out.push_back((arg.u16 >> 8) & 0xFF);
+        break;
+    case 4:
+        out.push_back(arg.u32 & 0xFF);
+        out.push_back((arg.u32 >> 8) & 0xFF);
+        out.push_back((arg.u32 >> 16) & 0xFF);
+        out.push_back((arg.u32 >> 24) & 0xFF);
+        break;
     default: throw std::runtime_error("unreachable");
     }
     return 0;

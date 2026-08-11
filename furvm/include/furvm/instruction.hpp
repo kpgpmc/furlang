@@ -1,9 +1,11 @@
 #ifndef FURVM_INSTRUCTION_HPP
 #define FURVM_INSTRUCTION_HPP
 
+#include "furlang/view.hpp"
 #include "furvm/fwd.hpp"
 
 #include <cstddef>
+#include <vector>
 
 namespace furvm {
 
@@ -87,8 +89,8 @@ struct instruction {
 
     static const instruction_argument_t s_arguments[Count];
 
-    std::size_t read(std::string_view in);
-    std::size_t write(std::string& out) const;
+    std::size_t read(furlang::view<std::uint8_t> in);
+    std::size_t write(std::vector<std::uint8_t>& out) const;
 };
 
 using instruction_t = instruction::type_e;
