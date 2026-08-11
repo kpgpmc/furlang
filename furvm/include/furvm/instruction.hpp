@@ -5,216 +5,77 @@
 
 namespace furvm {
 
-enum class instruction_t : byte {
-    /**
-     * @brief No operation.
-     */
-    NoOperation = 0,
-
-    /**
-     * @brief Pushes an s8 integer from a byte onto the stack.
-     */
-    PushS8,
-
-    /**
-     * @brief Pushes an u8 integer from a byte onto the stack.
-     */
-    PushU8,
-
-    /**
-     * @brief Pushes an s16 integer from two byte onto the stack.
-     */
-    PushS16,
-
-    /**
-     * @brief Pushes an u16 integer from two byte onto the stack.
-     */
-    PushU16,
-
-    /**
-     * @brief Pushes an s32 integer from a byte onto the stack.
-     */
-    PushS32,
-
-    /**
-     * @brief Pushes an u32 integer from a byte onto the stack.
-     */
-    PushU32,
-
-    /**
-     * @brief Pushes a constant onto the stack.
-     *
-     * Pushes a constant from the constant pool denoted by two next bytes in little-endian onto the stack.
-     */
-    PushConstant,
-
-    /**
-     * @brief Pushes a new array onto the stack.
-     *
-     * Type is the next 4 bytes in little-endian.
-     * If the type is dynamic the array's size will be popped off of the stack.
-     */
-    Array,
-
-    /**
-     * @brief Pushes an element from an array onto the stack.
-     */
-    Get,
-
-    /**
-     * @brief Sets an array element.
-     */
-    Set,
-
-    /**
-     * @brief Pops top element from the stack.
-     */
-    Drop,
-
-    /**
-     * @brief Duplicates top element on the stack.
-     */
-    Duplicate,
-
-    /**
-     * @brief Swaps two top elements of the stack.
-     */
-    Swap,
-
-    /**
-     * @brief Clones top element on the stack.
-     */
-    Clone,
-
-    /**
-     * @brief Pushes a new reference onto the stack.
-     *
-     * Pops the top thing from the stack and pushes its reference.
-     */
-    Reference,
-
-    /**
-     * @brief Adds two things together on the stack.
-     */
-    Add,
-
-    /**
-     * @brief Subtracts two things together on the stack.
-     */
-    Sub,
-
-    /**
-     * @brief Multiplies two things together on the stack.
-     */
-    Mul,
-
-    /**
-     * @brief Divides two things together on the stack.
-     */
-    Div,
-
-    /**
-     * @brief Modulos two things together on the stack.
-     */
-    Mod,
-
-    /**
-     * @brief Compares two top-most things from the stack for equality.
-     */
-    Equals,
-
-    /**
-     * @brief Compares two top-most things from the stack for inequality.
-     */
-    NotEquals,
-
-    /**
-     * @brief Compares if the first top-most thing is less than the second top-most thing.
-     */
-    LessThan,
-
-    /**
-     * @brief Compares if the first top-most thing is greater than the second top-most thing.
-     */
-    GreaterThan,
-
-    /**
-     * @brief Compares if the first top-most thing is less than or equal to the second top-most thing.
-     */
-    LessEqual,
-
-    /**
-     * @brief Compares if the first top-most thing is greater than or equal to the second top-most thing.
-     */
-    GreaterEqual,
-
-    /**
-     * @brief Pushes a pointer of popped-off thing onto the stack.
-     */
-    Pointerof,
-
-    /**
-     * @brief Pushes a size of popped-off thing onto the stack.
-     */
-    Sizeof,
-
-    /**
-     * @brief Pushes a length of popped-off thing onto the stack.
-     */
-    Lengthof,
-
-    /**
-     * @brief Pushes a variable onto the stack.
-     *
-     * Fetches a variable denoted by next two bytes in little-endian and pushes it onto the stack.
-     */
-    Load,
-
-    /**
-     * @brief Stores an element from the stack in a variable.
-     *
-     * Pops a thing from the stack and stores it in a variable denoted by next two bytes in little-endian.
-     */
-    Store,
-
-    /**
-     * @brief Calls a function.
-     *
-     * Calls a function denoted by next two bytes in little-endian from current frame's module.
-     */
-    Call,
-
-    /**
-     * @brief Jumps to an instruction relative to the current instruction.
-     *
-     * Jumps to an instruction relative to the current instruction with offset denoted by next byte.
-     */
-    Jump,
-
-    /**
-     * @brief Jumps to an instruction relative to the current instruction if top thing on the stack is not zero.
-     *
-     * Jumps to an instruction relative to the current instruction with offset denoted by next byte if the top thing on
-     * the stack is not zero (is true).
-     */
-    JumpNotZero,
-
-    /**
-     * @brief Pops the current call frame.
-     */
-    Return,
+struct instruction_argument {
+    enum type_e {
+        None = 0,
+        Byte,
+        Short,
+        Int,
+        Constant,
+        Type,
+        Variable,
+        Function,
+        Offset,
+    } type;
+    union {
+        std::int8_t   s8;
+        std::uint8_t  u8;
+        std::int16_t  s16;
+        std::uint16_t u16;
+        std::int32_t  s32;
+        std::uint32_t u32;
+    };
 };
+
+using instruction_argument_t = instruction_argument::type_e;
 
 struct instruction {
-    instruction_t type; /**< Instruction type. */
+    enum type_e : byte {
+        NoOperation = 0,
+        PushS8,
+        PushU8,
+        PushS16,
+        PushU16,
+        PushS32,
+        PushU32,
+        PushConstant,
+        Array,
+        Get,
+        Set,
+        Drop,
+        Duplicate,
+        Swap,
+        Clone,
+        Reference,
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        Equals,
+        NotEquals,
+        LessThan,
+        GreaterThan,
+        LessEqual,
+        GreaterEqual,
+        Pointerof,
+        Sizeof,
+        Lengthof,
+        Load,
+        Store,
+        Call,
+        Jump,
+        JumpNotZero,
+        Return,
 
-    /**
-     * @brief Instruction value.
-     */
-    union value {
-        constant_index constant; /**< Constant instruction argument. */
-    } value;                     /**< Instruction value. */
+        Count,
+    } type;
+    instruction_argument arg;
+
+    static instruction_argument_t s_arguments[Count];
 };
+
+using instruction_t = instruction::type_e;
 
 } // namespace furvm
 

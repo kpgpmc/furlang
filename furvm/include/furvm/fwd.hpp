@@ -75,11 +75,7 @@ class constant;
 
 // instruction.hpp
 
-/**
- * @enum instruction_t
- * @brief Furvm's instruction type.
- */
-enum class instruction_t : byte;
+struct instruction_argument;
 
 /**
  * @struct instruction
