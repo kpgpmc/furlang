@@ -1,5 +1,6 @@
 #include "furvm/executor.hpp"
 
+#include "furlang/view.hpp"
 #include "furvm/context.hpp" // IWYU pragma: keep
 #include "furvm/exceptions.hpp"
 #include "furvm/function.hpp" // IWYU pragma: keep
@@ -131,45 +132,36 @@ void executor::step() {
 
     struct frame& frame = m_frames.top();
 
-    instruction_t instr = static_cast<instruction_t>((*frame.mod).byte_at(frame.position++));
-    switch (instr) {
+    instruction instr{};
+    frame.position += instr.read(frame.mod->bytecode_view().subview(frame.position));
+    switch (instr.type) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushS8: {
         push_thing({ (struct thing_type){ thing_type::S8 }, m_context->thing_alloc() })->get<thing_type::s8>() =
-            static_cast<thing_type::s8>(frame.mod->byte_at(frame.position++));
+            instr.arg.s8;
     } break;
     case instruction_t::PushU8: {
         push_thing({ (struct thing_type){ thing_type::U8 }, m_context->thing_alloc() })->get<thing_type::u8>() =
-            static_cast<thing_type::u8>(frame.mod->byte_at(frame.position++));
+            instr.arg.u8;
     } break;
     case instruction_t::PushS16: {
-        thing_type::u16 value = frame.mod->byte_at(frame.position++);
-        value                |= static_cast<thing_type::u16>(frame.mod->byte_at(frame.position++) << 8);
         push_thing({ (struct thing_type){ thing_type::S16 }, m_context->thing_alloc() })->get<thing_type::s16>() =
-            static_cast<thing_type::s16>(value);
+            instr.arg.s16;
     } break;
     case instruction_t::PushU16: {
-        thing_type::u16 value = frame.mod->byte_at(frame.position++);
-        value                |= static_cast<thing_type::u16>(frame.mod->byte_at(frame.position++) << 8);
         push_thing({ (struct thing_type){ thing_type::U16 }, m_context->thing_alloc() })->get<thing_type::u16>() =
-            value;
+            instr.arg.u16;
     } break;
     case instruction_t::PushS32: {
         push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() })->get<thing_type::s32>() =
-            static_cast<thing_type::s32>(frame.mod->byte_at(frame.position++));
+            instr.arg.s8; // NOLINT
     } break;
     case instruction_t::PushU32: {
         push_thing({ (struct thing_type){ thing_type::U32 }, m_context->thing_alloc() })->get<thing_type::u32>() =
-            static_cast<thing_type::u32>(frame.mod->byte_at(frame.position++));
+            static_cast<thing_type::u32>(instr.arg.u8);
     } break;
     case instruction_t::Array: {
-        mod_type_id typeId = static_cast<mod_type_id>(frame.mod->byte_at(frame.position)) |
-                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 1)) << 8) |
-                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 2)) << 16) |
-                             (static_cast<mod_type_id>(frame.mod->byte_at(frame.position + 3)) << 24);
-        frame.position    += 4;
-
-        const auto& type = *mod_to_thing_type(frame.mod, *frame.mod->type_at(typeId));
+        const auto& type = *mod_to_thing_type(frame.mod, *frame.mod->type_at(instr.arg.u32));
         if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
             throw std::runtime_error("invalid array type");
 
@@ -304,31 +296,19 @@ void executor::step() {
         length->get<thing_type::u64>() = thing->length();
     } break;
     case instruction_t::Load: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
-        frame.position     += 2;
-        push_thing(load_thing(variable));
+        push_thing(load_thing(instr.arg.u16));
     } break;
     case instruction_t::Store: {
-        variable_t variable = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
-                              (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
-        frame.position     += 2;
-        store_thing(variable, std::move(pop_thing()));
+        store_thing(instr.arg.u16, std::move(pop_thing()));
     } break;
     case instruction_t::Call: {
-        function_id funcId = static_cast<std::uint16_t>(frame.mod->byte_at(frame.position)) |
-                             (static_cast<std::uint16_t>(frame.mod->byte_at(frame.position + 1)) << 8);
-        frame.position    += 2;
-        push_frame(frame.mod, *frame.mod->function_at(funcId));
+        push_frame(frame.mod, *frame.mod->function_at(instr.arg.u16));
     } break;
     case instruction_t::Jump: {
-        std::int8_t offset = static_cast<std::int8_t>(frame.mod->byte_at(frame.position++));
-        frame.position    += offset;
+        frame.position += instr.arg.s8;
     } break;
     case instruction_t::JumpNotZero: {
-        byte offset = frame.mod->byte_at(frame.position++);
-        auto cond   = pop_thing();
-        if (cond->integer() != 0) frame.position += (std::int8_t)offset;
+        if (pop_thing()->integer() != 0) frame.position += instr.arg.s8;
     } break;
     case instruction_t::Return: {
         pop_frame();

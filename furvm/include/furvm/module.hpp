@@ -2,6 +2,7 @@
 #define FURVM_MODULE_HPP
 
 #include "furlang/utility/hash.hpp"
+#include "furlang/view.hpp"
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
@@ -195,7 +196,7 @@ public:
      *
      * @return A constant reference to the bytecode.
      */
-    constexpr const bytecode_t& bytecode() const { return m_bytecode; }
+    furlang::view<std::uint8_t> bytecode_view() const { return { m_bytecode.data(), m_bytecode.size() }; }
 public:
     /**
      * @brief Emplaces a function in the module's function container.
@@ -284,6 +285,10 @@ public:
             m_functionMap.erase(it);
         }
     }
+
+    const handle_container<function_h>& functions() const { return m_functions; }
+
+    const auto& function_map() const { return m_functionMap; }
 public:
     template <typename NameFwd, typename Func>
     void set_native_function(NameFwd&& name, Func&& func) {
@@ -341,6 +346,8 @@ public:
     void erase_type(Args&&... args) {
         m_types.erase(std::forward<Args>(args)...);
     }
+
+    const handle_container<mod_type_h>& types() const { return m_types; }
 public:
     /**
      * @brief Prints the module in a bytecode form to an output stream.
