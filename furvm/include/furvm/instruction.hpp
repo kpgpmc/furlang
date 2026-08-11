@@ -3,19 +3,26 @@
 
 #include "furvm/fwd.hpp"
 
+#include <cstddef>
+
 namespace furvm {
 
 struct instruction_argument {
     enum type_e {
         None = 0,
-        Byte,
-        Short,
-        Int,
+        S8,
+        U8,
+        S16,
+        U16,
+        S32,
+        U32,
         Constant,
         Type,
         Variable,
         Function,
         Offset,
+
+        Count,
     } type;
     union {
         std::int8_t   s8;
@@ -25,6 +32,12 @@ struct instruction_argument {
         std::int32_t  s32;
         std::uint32_t u32;
     };
+
+    static const std::size_t s_sizes[Count];
+    static const bool        s_signedness[Count];
+
+    std::size_t size() const { return s_sizes[type]; }
+    bool        is_signed() const { return s_signedness[type]; }
 };
 
 using instruction_argument_t = instruction_argument::type_e;
@@ -72,7 +85,10 @@ struct instruction {
     } type;
     instruction_argument arg;
 
-    static instruction_argument_t s_arguments[Count];
+    static const instruction_argument_t s_arguments[Count];
+
+    std::size_t read(std::string_view in);
+    std::size_t write(std::string& out) const;
 };
 
 using instruction_t = instruction::type_e;

@@ -1,22 +1,79 @@
 #include "furvm/instruction.hpp"
 
+#include <stdexcept>
+#include <string>
+
 namespace furvm {
 
-instruction_argument_t instruction::s_arguments[instruction::Count] = {
+const std::size_t instruction_argument::s_sizes[instruction_argument::Count] = {
+    // None:
+    0,
+    // S8:
+    1,
+    // U8:
+    1,
+    // S16:
+    2,
+    // U16:
+    2,
+    // S32
+    4,
+    // U32
+    4,
+    // Constant:
+    4,
+    // Type:
+    4,
+    // Variable:
+    2,
+    // Function:
+    4,
+    // Offset:
+    1,
+};
+
+const bool instruction_argument::s_signedness[instruction_argument::Count] = {
+    // None:
+    false,
+    // S8:
+    true,
+    // U8:
+    false,
+    // S16:
+    true,
+    // U16:
+    false,
+    // S32
+    true,
+    // U32:
+    false,
+    // Constant:
+    false,
+    // Type:
+    false,
+    // Variable:
+    false,
+    // Function:
+    false,
+    // Offset:
+    true,
+};
+
+const instruction_argument_t instruction::s_arguments[instruction::Count] = {
     // NoOperation:
     instruction_argument::None,
     // PushS8:
-    instruction_argument::Byte,
+    instruction_argument::S8,
     // PushU8:
-    instruction_argument::Byte,
+    instruction_argument::U8,
     // PushS16:
-    instruction_argument::Short,
+    instruction_argument::S16,
     // PushU16:
-    instruction_argument::Short,
+    instruction_argument::U16,
     // PushS32:
-    instruction_argument::Int,
+    instruction_argument::S32,
     // PushU32:
-    instruction_argument::Int,
+    instruction_argument::U32,
     // PushConstant:
     instruction_argument::Constant,
     // Array:
@@ -77,4 +134,33 @@ instruction_argument_t instruction::s_arguments[instruction::Count] = {
     instruction_argument::None,
 };
 
+std::size_t instruction::read(std::string_view in) {
+    type = static_cast<type_e>(in[0]);
+    if (type >= Count) throw std::runtime_error("invalid instruction");
+    arg.type = s_arguments[type];
+
+    std::string_view argView = in.substr(1, arg.size());
+    switch (argView.size()) {
+    case 1: arg.u8 = argView[0]; break;
+    case 2: arg.u16 = argView[0] | (argView[1] << 8); break;
+    case 4: arg.u32 = argView[0] | (argView[1] << 8) | (argView[2] << 16) | (argView[3] << 24); break;
+    default: throw std::runtime_error("unreachable");
+    }
+
+    return 1 + argView.size();
 }
+
+std::size_t instruction::write(std::string& out) const {
+    if (type >= Count) throw std::runtime_error("invalid instruction");
+    if (s_arguments[type] != arg.type) throw std::runtime_error("malformed instruction");
+    out += static_cast<char>(type);
+    switch (arg.size()) {
+    case 1: out += arg.is_signed() ? std::to_string(arg.s8) : std::to_string(arg.u8); break;
+    case 2: out += arg.is_signed() ? std::to_string(arg.s16) : std::to_string(arg.u16); break;
+    case 4: out += arg.is_signed() ? std::to_string(arg.s32) : std::to_string(arg.u32); break;
+    default: throw std::runtime_error("unreachable");
+    }
+    return 0;
+}
+
+} // namespace furvm
