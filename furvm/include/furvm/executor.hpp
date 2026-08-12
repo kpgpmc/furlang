@@ -5,6 +5,7 @@
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
 
+#include <functional>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -27,6 +28,8 @@ static inline executor_flags operator&(executor_flags lhs, executor_flags rhs) {
 static inline executor_flags operator~(executor_flags flags) {
     return executor_flags(~static_cast<std::uint32_t>(flags));
 }
+
+using executor_callback = std::function<void(executor&)>;
 
 class executor {
 public:
@@ -73,6 +76,11 @@ public:
      * @brief Copy constructor.
      */
     executor& operator=(const executor&) = default;
+public:
+    template <typename CallbackFwd>
+    void set_new_frame_callback(CallbackFwd&& callback) {
+        m_newFrameCb = std::forward<CallbackFwd>(callback);
+    }
 public:
     /**
      * @brief Returns flags of this executor.
@@ -177,6 +185,8 @@ private:
 
     std::stack<struct frame> m_frames;
     std::stack<thing_h>      m_stack;
+
+    executor_callback m_newFrameCb = nullptr;
 };
 
 } // namespace furvm

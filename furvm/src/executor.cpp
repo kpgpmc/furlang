@@ -74,9 +74,11 @@ void executor::push_frame(const mod_h& mod, function function) {
         m_frames.emplace((struct executor::frame){ mod, 0, m_stack.size(), returnType, std::move(args) });
         modInst->get_native_function(function.native())(*this);
         pop_frame();
-    } break;
+        return;
+    }
     default: throw std::runtime_error("unexpected function type");
     }
+    if (m_newFrameCb) m_newFrameCb(*this);
 }
 
 struct executor::frame executor::pop_frame() {
