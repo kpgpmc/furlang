@@ -16,6 +16,7 @@ add_subdirectory(furvm)
 add_subdirectory(furc)
 add_subdirectory(furas)
 add_subdirectory(disfuras)
+add_subdirectory(furdb)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/docs)
