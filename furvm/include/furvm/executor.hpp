@@ -5,7 +5,6 @@
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
 
-#include <optional>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -103,6 +102,8 @@ public:
      * @return The frame.
      */
     frame frame() const;
+
+    const std::stack<struct frame>& frames() const { return m_frames; }
 public:
     /**
      * @brief Pushes a thing handle onto the stack.
