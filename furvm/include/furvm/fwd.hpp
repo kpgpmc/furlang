@@ -196,19 +196,9 @@ enum class executor_flags : std::uint32_t;
 class executor;
 
 /**
- * @brief An alias to a executor shared pointer.
- */
-using executor_p = std::shared_ptr<executor>;
-
-/**
  * @brief Furvm executor's index.
  */
 using executor_id = std::uint32_t;
-
-/**
- * @brief A handle to an executor.
- */
-using executor_h = handle<executor, refcount_header<executor_id>>;
 
 // context.hpp
 

@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
             std::cerr << "Failed to load module " << argv[1] << ": " << ex.what() << '\n';
             return 1;
         }
-        ctx.executor     = ctx.context->emplace_executor(ctx.context);
+        ctx.executor     = &ctx.context->allocate_executor();
         ctx.mainFunction = ctx.mod->function_at("main", furvm::function_sig{});
 
         ctx.mod->set_native_function("println", [](furvm::executor& executor) {

@@ -9,7 +9,7 @@
 struct context {
     furvm::context_p  context = std::make_shared<furvm::context>();
     furvm::mod_h      mod;
-    furvm::executor_h executor;
+    furvm::executor*  executor = nullptr;
     furvm::function_h mainFunction;
 
     bool running = true;

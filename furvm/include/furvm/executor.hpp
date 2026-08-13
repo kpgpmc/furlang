@@ -32,6 +32,10 @@ static inline executor_flags operator~(executor_flags flags) {
 using executor_callback = std::function<void(executor&)>;
 
 class executor {
+    friend class context;
+private:
+    executor(context* context)
+      : m_context(context) {}
 public:
     /**
      * @brief Executor frame.
@@ -47,14 +51,6 @@ public:
         std::vector<thing_h> variables;  /**< Frame variables. */
     };
 public:
-    /**
-     * @brief Returns a new executor.
-     *
-     * @param context Context.
-     */
-    executor(const context_p& context)
-      : m_context(context) {}
-
     ~executor() = default;
 
     /**
@@ -181,7 +177,7 @@ private:
     thing_type* mod_to_thing_type(const mod_h& mod, const mod_type& type) const;
 private:
     executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
-    context_p      m_context;
+    context*       m_context;
 
     std::stack<struct frame> m_frames;
     std::stack<thing_h>      m_stack;

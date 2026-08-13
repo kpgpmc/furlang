@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <utility>
+#include <vector>
 
 namespace furvm {
 
@@ -39,15 +40,10 @@ public:
     context(const context&)            = delete;
     context& operator=(const context&) = delete;
 public:
-    /**
-     * @brief Emplaces an executor in the context.
-     *
-     * @param args Arguments forwarded to executor's constructor.
-     * @return A handle to the emplaced executor.
-     */
     template <typename... Args>
-    auto emplace_executor(Args&&... args) {
-        return m_executors.emplace_back(std::forward<Args>(args)...);
+    auto& allocate_executor() {
+        executor executor(this);
+        return m_executors.emplace_back(std::move(executor));
     }
 
     /**
@@ -57,7 +53,7 @@ public:
      * @return A handle to the executor.
      */
     template <typename... Args>
-    auto executor_at(Args&&... args) {
+    auto& executor_at(Args&&... args) {
         return m_executors.at(std::forward<Args>(args)...);
     }
 
@@ -68,19 +64,11 @@ public:
      * @return A handle to the executor.
      */
     template <typename... Args>
-    auto executor_at(Args&&... args) const {
+    const auto& executor_at(Args&&... args) const {
         return m_executors.at(std::forward<Args>(args)...);
     }
 
-    /**
-     * @brief Erases an executor from the context.
-     *
-     * @param args Id of the executor.
-     */
-    template <typename... Args>
-    void erase_executor(Args&&... args) {
-        m_executors.erase(std::forward<Args>(args)...);
-    }
+    const std::vector<executor>& executors() const { return m_executors; }
 public:
     template <typename... Args>
     auto emplace_thing(Args&&... args) {
@@ -128,9 +116,9 @@ public:
 
     thing_type_store& tt_store() { return m_thingTypeStore; }
 private:
-    handle_container<mod_h>      m_modules;
-    handle_container<thing_h>    m_things;
-    handle_container<executor_h> m_executors;
+    handle_container<mod_h>   m_modules;
+    handle_container<thing_h> m_things;
+    std::vector<executor>     m_executors;
 
     furlang::arena             m_thingArena;
     thing_allocator<std::byte> m_thingAllocator;

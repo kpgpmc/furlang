@@ -80,11 +80,11 @@ int main(int argc, char** argv) {
         std::cout << '\n';
     });
 
-    furvm::executor_h executor = context->emplace_executor(context);
-    executor->push_frame(mod, *mainFunc);
+    auto& executor = context->allocate_executor();
+    executor.push_frame(mod, *mainFunc);
 
-    while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
-        executor->step();
+    while ((executor.flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done) {
+        executor.step();
     }
 
     return 0;
