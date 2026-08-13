@@ -60,8 +60,7 @@ int main(int argc, char** argv) {
         ctx.mainFunction = ctx.mod->function_at("main", furvm::function_sig{});
 
         ctx.mod->set_native_function("println", [](furvm::executor& executor) {
-            auto arg = executor.load_thing(0);
-            print_thing(*arg);
+            print_thing(executor.load_thing(0));
             std::cout << '\n';
         });
 

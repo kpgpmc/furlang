@@ -70,43 +70,6 @@ public:
 
     const std::vector<executor>& executors() const { return m_executors; }
 public:
-    template <typename... Args>
-    auto emplace_thing(Args&&... args) {
-        return m_things.emplace_back(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Returns a thing from the context.
-     *
-     * @param args Id of the thing.
-     * @return A handle to the thing.
-     */
-    template <typename... Args>
-    auto thing_at(Args&&... args) {
-        return m_things.at(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Returns a thing from the context.
-     *
-     * @param args Id of the thing.
-     * @return A handle to the thing.
-     */
-    template <typename... Args>
-    auto thing_at(Args&&... args) const {
-        return m_things.at(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief Erases a thing from the context.
-     *
-     * @param args Id of the thing.
-     */
-    template <typename... Args>
-    void erase_thing(Args&&... args) {
-        m_things.erase(std::forward<Args>(args)...);
-    }
-
     /**
      * @brief Returns context's thing allocator.
      *
@@ -116,9 +79,8 @@ public:
 
     thing_type_store& tt_store() { return m_thingTypeStore; }
 private:
-    handle_container<mod_h>   m_modules;
-    handle_container<thing_h> m_things;
-    std::vector<executor>     m_executors;
+    handle_container<mod_h> m_modules;
+    std::vector<executor>   m_executors;
 
     furlang::arena             m_thingArena;
     thing_allocator<std::byte> m_thingAllocator;

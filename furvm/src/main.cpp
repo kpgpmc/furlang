@@ -10,7 +10,7 @@
 #include <memory>
 #include <sstream>
 
-static void print_thing(const furvm::thing<furvm::thing_allocator>& thing) {
+static void print_thing(const furvm::thing<>& thing) {
     using namespace furvm;
 
     switch (thing.true_type().type) {
@@ -75,8 +75,7 @@ int main(int argc, char** argv) {
     mod->emplace_function(furvm::function_sig{ { u64Type }, u64Type }, "print").dispatch();
 #endif
     mod->set_native_function("println", [](furvm::executor& executor) {
-        auto arg = executor.load_thing(0);
-        print_thing(*arg);
+        print_thing(executor.load_thing(0));
         std::cout << '\n';
     });
 

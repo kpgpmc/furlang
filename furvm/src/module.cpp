@@ -124,7 +124,12 @@ mod mod::load(std::istream& is) {
         case mod_type::Ptr: {
             mod_type_id typeId = 0;
             detail::load(is, typeId);
-            mod.emplace_type(id, typeId).dispatch();
+            mod.emplace_type(id, mod_type::Ptr, typeId).dispatch();
+        } break;
+        case mod_type::Ref: {
+            mod_type_id typeId = 0;
+            detail::load(is, typeId);
+            mod.emplace_type(id, mod_type::Ref, typeId).dispatch();
         } break;
         case mod_type::Array: {
             mod_type_id typeId = 0;

@@ -49,7 +49,7 @@ struct thing_type {
         Array,
 
         Count,
-    } type;
+    } type = Count;
     union value {
         std::nullptr_t null = nullptr;
         thing_type*    typeRef;
@@ -202,6 +202,8 @@ public:
         std::byte*  data;
     };
 public:
+    thing() {}
+
     /**
      * @brief Constructs a thing.
      *
@@ -239,6 +241,7 @@ public:
     thing& operator=(thing&& other) noexcept {
         if (this == &other) return *this;
         m_type            = other.m_type;
+        m_size            = other.m_size;
         m_data            = other.m_data;
         m_allocator       = std::move(other.m_allocator);
         other.m_type.type = thing_type::Count;
@@ -247,8 +250,32 @@ public:
         return *this;
     }
 
-    thing(const thing&)            = delete;
-    thing& operator=(const thing&) = delete;
+    thing(const thing& other)
+      : m_type(other.m_type), m_size(other.m_size), m_allocator(other.m_allocator) {
+        if (m_type.type == thing_type::Ref) {
+            m_data = other.m_data;
+            return;
+        }
+        m_data = m_allocator.allocate(m_size);
+        other.copy(*this);
+    }
+
+    thing& operator=(const thing& other) {
+        if (this == &other) return *this;
+
+        m_type      = other.m_type;
+        m_size      = other.m_size;
+        m_allocator = std::move(other.m_allocator);
+
+        if (m_type.type == thing_type::Ref) {
+            m_data = other.m_data;
+            return *this;
+        }
+        m_data = m_allocator.allocate(m_size);
+        other.copy(*this);
+
+        return *this;
+    }
 public:
     /**
      * @brief Returns a clone of the thing.
@@ -257,6 +284,10 @@ public:
      */
     thing clone() const {
         thing res(m_type, m_allocator);
+        copy(res);
+    }
+private:
+    void copy(thing<>& dst) const {
         switch (m_type.type) {
         case thing_type::S8:
         case thing_type::S16:
@@ -266,9 +297,9 @@ public:
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64:
-        case thing_type::Ptr: std::memcpy(res.m_data, m_data, m_size); return std::move(res);
-        case thing_type::Array: copy_list(m_type, res.m_data, m_data); return std::move(res);
-        case thing_type::Ref: throw std::runtime_error("cannot clone references");
+        case thing_type::Ptr: std::memcpy(dst.m_data, m_data, m_size); return;
+        case thing_type::Array: copy_list(m_type, dst.m_data, m_data); return;
+        case thing_type::Ref: throw std::runtime_error("cannot copy references");
         case thing_type::Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -460,17 +491,17 @@ public:
     thing at(thing_type::u64 index) const {
         if (!is(thing_type::Array)) throw bad_thing_access();
 
-        std::size_t elementSize = compute_size_na(*m_type.value.array.type);
-        if (m_type.value.array.size == 0) {
+        std::size_t elementSize = compute_size_na(*true_type().value.array.type);
+        if (true_type().value.array.size == 0) {
             auto& array = get<dynamic_array>();
             if (index < 0 || index >= array.size) throw std::out_of_range("index out of range");
-            thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
+            thing ref  = { { thing_type::Ref, true_type().value.array.type }, m_allocator };
             ref.m_data = array.data + (index * elementSize);
             return ref;
         }
 
-        if (index < 0 || index >= m_type.value.array.size) throw std::out_of_range("index out of range");
-        thing ref  = { { thing_type::Ref, m_type.value.array.type }, m_allocator };
+        if (index < 0 || index >= true_type().value.array.size) throw std::out_of_range("index out of range");
+        thing ref  = { { thing_type::Ref, true_type().value.array.type }, m_allocator };
         ref.m_data = m_data + (index * elementSize);
         return ref;
     }
@@ -727,8 +758,8 @@ private:
     }
 private:
     thing_type  m_type;
-    std::size_t m_size;
-    std::byte*  m_data;
+    std::size_t m_size = 0;
+    std::byte*  m_data = nullptr;
 
     allocator_type m_allocator;
 };

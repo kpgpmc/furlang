@@ -169,11 +169,6 @@ class thing;
  */
 using thing_id = std::uint32_t;
 
-/**
- * @brief A handle to a thing.
- */
-using thing_h = handle<thing<thing_allocator>, refcount_header<thing_id>>;
-
 // executor.hpp
 
 /**

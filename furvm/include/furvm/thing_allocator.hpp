@@ -16,6 +16,8 @@ class thing_allocator {
 public:
     using value_type = T; /**< Value type. */
 public:
+    thing_allocator() = default;
+
     /**
      * @brief Constructs a thing allocator.
      *
@@ -101,7 +103,7 @@ public:
         return m_arena != other.m_arena || m_deadThings != other.m_deadThings;
     }
 private:
-    furlang::arena* m_arena;
+    furlang::arena* m_arena = nullptr;
 
     std::shared_ptr<dead_things> m_deadThings;
 };

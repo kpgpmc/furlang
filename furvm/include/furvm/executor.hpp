@@ -48,7 +48,7 @@ public:
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
         thing_type*          returnType; /**< Return type. */
-        std::vector<thing_h> variables;  /**< Frame variables. */
+        std::vector<thing<>> variables;  /**< Frame variables. */
     };
 public:
     ~executor() = default;
@@ -105,20 +105,10 @@ public:
      *
      * @return The frame.
      */
-    frame frame() const;
+    frame top_frame() const;
 
-    const std::stack<struct frame>& frames() const { return m_frames; }
+    const std::stack<frame>& frames() const { return m_frames; }
 public:
-    /**
-     * @brief Pushes a thing handle onto the stack.
-     *
-     * @param handle Thing handle.
-     */
-    template <typename HandleFwd>
-    void push_thing(HandleFwd&& handle) {
-        m_stack.emplace(std::forward<HandleFwd>(handle));
-    }
-
     /**
      * @brief Pushes a thing onto the stack.
      *
@@ -127,21 +117,25 @@ public:
      * @param thing Thing.
      * @return The pushed handle.
      */
-    thing_h push_thing(class thing<>&& thing);
+    thing<>& push_thing(thing<>&& thing);
+
+    thing<>& push_thing(const thing<>& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
      * @return A handle to the popped thing.
      */
-    thing_h pop_thing();
+    thing<> pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
      * @return A handle to the top thing.
      */
-    thing_h thing() const;
+    thing<>& top_thing();
+
+    const thing<>& top_thing() const;
 public:
     /**
      * @brief Stores a thing in a frame variable.
@@ -149,7 +143,7 @@ public:
      * @param variable Id of the variable in which the handle will be put.
      * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, const thing_h& thing);
+    void store_thing(variable_t variable, const thing<>& thing);
 
     /**
      * @brief Stores a thing in a frame variable.
@@ -157,7 +151,7 @@ public:
      * @param variable Id of the variable in which the handle will be put.
      * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, thing_h&& thing);
+    void store_thing(variable_t variable, thing<>&& thing);
 
     /**
      * @brief Returns a thing stored in a variable.
@@ -165,7 +159,9 @@ public:
      * @param variable Id of the variable from which the handle will be fetched.
      * @return A handle stored in the variable.
      */
-    thing_h load_thing(variable_t variable) const;
+    thing<>& load_thing(variable_t variable);
+
+    const thing<>& load_thing(variable_t variable) const;
 public:
     /**
      * @brief Executes next instruction.
@@ -175,12 +171,14 @@ private:
     thing_type thing_type_impl(mod_h mod, mod_type type) const;
 
     thing_type* mod_to_thing_type(const mod_h& mod, const mod_type& type) const;
+
+    thing<> make_reference(const thing<>& thing) const;
 private:
     executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
     context*       m_context;
 
-    std::stack<struct frame> m_frames;
-    std::stack<thing_h>      m_stack;
+    std::stack<frame>   m_frames;
+    std::stack<thing<>> m_stack;
 
     executor_callback m_newFrameCb = nullptr;
 };
