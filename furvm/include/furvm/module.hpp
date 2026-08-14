@@ -6,10 +6,14 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
+#include "furvm/thing.hpp"
 
 #include <functional>
 #include <istream>
+#include <limits>
+#include <optional>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -349,6 +353,33 @@ public:
 
     const handle_container<mod_type_h>& types() const { return m_types; }
 public:
+    void set_global_variable_count(std::uint16_t count) {
+        m_globalVariables.resize(count);
+        m_globalVariables.shrink_to_fit();
+    }
+
+    std::uint16_t get_global_variable_count() const { return static_cast<std::uint16_t>(m_globalVariables.size()); }
+
+    void store_global_variable(std::uint16_t var, thing<>&& thing) {
+        if (var >= m_globalVariables.size()) throw std::runtime_error("invalid slot");
+        m_globalVariables.emplace(m_globalVariables.cbegin() + var, std::move(thing));
+    }
+
+    void store_global_variable(std::uint16_t var, const thing<>& thing) {
+        if (var >= m_globalVariables.size()) throw std::runtime_error("invalid slot");
+        m_globalVariables.emplace(m_globalVariables.cbegin() + var, thing);
+    }
+
+    thing<>& load_global_variable(std::uint16_t var) {
+        if (var >= m_globalVariables.size()) throw std::runtime_error("invalid slot");
+        return m_globalVariables[var];
+    }
+
+    const thing<>& load_global_variable(std::uint16_t var) const {
+        if (var >= m_globalVariables.size()) throw std::runtime_error("invalid slot");
+        return m_globalVariables[var];
+    }
+public:
     /**
      * @brief Prints the module in a bytecode form to an output stream.
      *
@@ -375,6 +406,8 @@ private:
     handle_container<function_h>                          m_functions;
 
     handle_container<mod_type_h> m_types;
+
+    std::vector<thing<>> m_globalVariables;
 
     std::unordered_map<std::string, native_function> m_nativeFunctions;
 };

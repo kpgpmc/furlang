@@ -27,6 +27,8 @@ const std::size_t instruction_argument::s_sizes[instruction_argument::Count] = {
     4,
     // Variable:
     2,
+    // GlobalVariable:
+    2,
     // Function:
     4,
     // Offset:
@@ -53,6 +55,8 @@ const bool instruction_argument::s_signedness[instruction_argument::Count] = {
     // Type:
     false,
     // Variable:
+    false,
+    // GlobalVariable:
     false,
     // Function:
     false,
@@ -125,6 +129,10 @@ const instruction_argument_t instruction::s_arguments[instruction::Count] = {
     instruction_argument::Variable,
     // Store:
     instruction_argument::Variable,
+    // LoadGlobal:
+    instruction_argument::GlobalVariable,
+    // StoreGlobal:
+    instruction_argument::GlobalVariable,
     // Call:
     instruction_argument::Function,
     // Jump:

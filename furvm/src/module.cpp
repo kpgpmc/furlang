@@ -88,6 +88,8 @@ std::ostream& mod::serialize(std::ostream& os) const {
         }
     }
 
+    detail::serialize(os, static_cast<std::uint16_t>(m_globalVariables.size()));
+
     detail::serialize(os, std::uint64_t(m_bytecode.size()));
     return os.write(reinterpret_cast<const char*>(m_bytecode.data()), static_cast<std::streamsize>(m_bytecode.size()));
 }
@@ -196,6 +198,10 @@ mod mod::load(std::istream& is) {
         default: throw std::runtime_error("unknown function type");
         }
     }
+
+    std::uint16_t globalVariables = 0;
+    detail::load(is, globalVariables);
+    mod.set_global_variable_count(globalVariables);
 
     std::uint64_t bytecodeLength = 0;
     detail::load(is, bytecodeLength);

@@ -21,6 +21,7 @@ struct instruction_argument {
         Constant,
         Type,
         Variable,
+        GlobalVariable,
         Function,
         Offset,
 
@@ -78,6 +79,8 @@ struct instruction {
         Lengthof,
         Load,
         Store,
+        LoadGlobal,
+        StoreGlobal,
         Call,
         Jump,
         JumpNotZero,

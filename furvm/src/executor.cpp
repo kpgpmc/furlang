@@ -326,6 +326,12 @@ void executor::step() {
     case instruction_t::Store: {
         store_thing(instr.arg.u16, std::move(pop_thing()));
     } break;
+    case instruction_t::LoadGlobal: {
+        push_thing(make_reference(frame.mod->load_global_variable(instr.arg.u16)));
+    } break;
+    case instruction_t::StoreGlobal: {
+        frame.mod->store_global_variable(instr.arg.u16, std::move(pop_thing()));
+    } break;
     case instruction_t::Call: {
         push_frame(frame.mod, *frame.mod->function_at(instr.arg.u16));
     } break;
