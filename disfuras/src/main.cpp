@@ -110,6 +110,10 @@ static const char* typeNames[furvm::instruction::Count] = {
     "load",
     // Store:
     "store",
+    // LoadGlobal:
+    "loadg",
+    // StoreGlobal:
+    "storeg",
     // Call:
     "call",
     // Jump:
@@ -132,7 +136,7 @@ int main(int argc, char** argv) {
         furvm::mod mod;
         try {
             mod = furvm::mod::load(file);
-        } catch (std::exception ex) {
+        } catch (const std::exception& ex) {
             std::cerr << "Failed to load module " << argv[1] << ": " << ex.what() << '\n';
             return 1;
         }
@@ -154,7 +158,7 @@ int main(int argc, char** argv) {
         std::unordered_set<std::size_t>              deadLabels;
         std::size_t                                  labelCounter = 0;
 
-        std::cout << "; Functions:\n";
+        std::cout << "\n; Functions:\n";
         for (const auto& ptr : mod.functions()) {
             const auto& [header, func] = *ptr;
             auto it                    = mod.function_map().find(header.id());
@@ -187,7 +191,14 @@ int main(int argc, char** argv) {
             std::cout << '\n';
         }
 
-        std::cout << "; Bytecode:\n";
+        if (mod.get_global_variable_count() > 0) {
+            std::cout << "\n; Global Variables:\n";
+            for (std::uint16_t i = 0; i < mod.get_global_variable_count(); ++i) {
+                std::cout << "allocate __g" << i << '\n';
+            }
+        }
+
+        std::cout << "\n; Bytecode:\n";
         // Label pass:
         for (std::size_t off = 0; off < mod.bytecode().size();) {
             furvm::instruction instr{};
@@ -217,6 +228,7 @@ int main(int argc, char** argv) {
             case furvm::instruction_argument::Constant: throw std::runtime_error("unimplemented");
             case furvm::instruction_argument::Type: std::cout << " $__t" << instr.arg.u16; break;
             case furvm::instruction_argument::Variable: std::cout << " %" << instr.arg.u16; break;
+            case furvm::instruction_argument::GlobalVariable: std::cout << " %__g" << instr.arg.u16; break;
             case furvm::instruction_argument::Function: std::cout << ' ' << funcNames[instr.arg.s16]; break;
             case furvm::instruction_argument::Offset: std::cout << " #" << labels[instr.arg.s16]; break;
             case furvm::instruction_argument::Count: break;
