@@ -1,6 +1,6 @@
 type arr = array $s8 10
 
-func println $arr = native println
+func println ref $arr = native println
 
 public func main = #main
 main:
@@ -30,5 +30,5 @@ body:
 end:
     drop
     load %0
-    call $arr println
+    call ref $arr println
     ret

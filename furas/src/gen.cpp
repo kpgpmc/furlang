@@ -126,14 +126,10 @@ struct mod_context {
         std::vector<std::size_t>   unknowns;
     };
 
-    furvm::mod mod;
-    std::unordered_map<std::pair<std::string, furvm::function_sig>,
-        furvm::function_h,
-        furlang::utility::
-            pair_hash<std::string, furvm::function_sig, std::hash<std::string>, furvm::detail::function_sig_hash>>
-                                                       functions;
-    std::unordered_map<std::string, furvm::mod_type_h> types;
-    std::unordered_map<std::string, std::uint16_t>     variables;
+    furvm::mod                                                      mod;
+    std::unordered_map<std::string, std::vector<furvm::function_h>> functions;
+    std::unordered_map<std::string, furvm::mod_type_h>              types;
+    std::unordered_map<std::string, std::uint16_t>                  variables;
 
     std::unordered_map<std::string, label_context> labels;
 
@@ -146,6 +142,46 @@ struct mod_context {
 
         bool operator!() const { return error.type != generator_error::Success; }
     };
+
+    bool compare_types(const furvm::mod_type_h& lhs, const furvm::mod_type_h& rhs) const {
+        if (lhs->type != rhs->type) return false;
+        switch (lhs->type) {
+        case furvm::mod_type::S8:
+        case furvm::mod_type::S16:
+        case furvm::mod_type::S32:
+        case furvm::mod_type::S64:
+        case furvm::mod_type::U8:
+        case furvm::mod_type::U16:
+        case furvm::mod_type::U32:
+        case furvm::mod_type::U64: return true;
+        case furvm::mod_type::Ptr:
+        case furvm::mod_type::Ref:
+            return compare_types(mod.type_at(lhs->value.typeRef), mod.type_at(rhs->value.typeRef));
+        case furvm::mod_type::Array:
+            return lhs->value.array.size == rhs->value.array.size &&
+                   compare_types(mod.type_at(lhs->value.array.typeId), mod.type_at(rhs->value.array.typeId));
+        case furvm::mod_type::Import:
+            return lhs->value.imprt.modId == rhs->value.imprt.modId &&
+                   lhs->value.imprt.typeId == rhs->value.imprt.typeId;
+        case furvm::mod_type::Count: break;
+        }
+        throw std::runtime_error("unreachable");
+    }
+
+    furvm::function_h find_function(const std::string& name, const furvm::function_sig& signature) const {
+        if (auto it = functions.find(name); it != functions.end()) {
+            for (const auto& func : it->second) {
+                if (func->signature().params.size() != signature.params.size()) continue;
+                std::size_t idx = 0;
+                while (idx < signature.params.size()) {
+                    if (!compare_types(func->signature().params[idx], signature.params[idx])) break;
+                    ++idx;
+                }
+                if (idx == signature.params.size()) return func;
+            }
+        }
+        return {};
+    }
 
     mod_context() {
         types.emplace("s8", mod.emplace_type(furvm::mod_type::S8));
@@ -182,6 +218,44 @@ struct mod_context {
         return { { generator_error::Success }, token.value };
     }
 
+    furvm::mod_type_h eat_type(lexer& lexer, const token& tok) {
+        switch (tok.type) {
+        case token::Dolar: {
+            auto result = eat_token(lexer, token::Identifier);
+            if (auto it = types.find(std::string(result->value.string)); it != types.end()) {
+                return it->second;
+            }
+            throw std::runtime_error("unknown type");
+        }
+        case token::Import: {
+            throw std::runtime_error("unimplemented");
+            // auto typeNameRes = eat_token(lexer, token::Identifier);
+            // if (!typeNameRes) return typeNameRes.error;
+            // return { generator_error::Success };
+        }
+        case token::Ref: {
+            auto result = next_token(lexer);
+            if (!result) throw std::runtime_error("error");
+
+            auto inner = eat_type(lexer, result.value);
+
+            return mod.emplace_type(furvm::mod_type::Ref, inner.id());
+        }
+        case token::Array: {
+            auto result = next_token(lexer);
+            if (!result) throw std::runtime_error("error");
+
+            auto inner = eat_type(lexer, result.value);
+
+            auto size = eat_token(lexer, token::Unsigned);
+            if (!size) throw std::runtime_error("error");
+
+            return mod.emplace_type(inner.id(), size->value.uint);
+        }
+        default: throw std::runtime_error("error");
+        }
+    }
+
     generator_error generate(lexer& lexer) {
         auto result = next_token(lexer);
         if (result.error.type == generator_error::UnexpectedEof) return { generator_error::Eof };
@@ -203,8 +277,7 @@ struct mod_context {
                     (func.pub ? mod.emplace_function(func.name, std::move(func.signature), label.offset)
                               : mod.emplace_function(std::move(func.signature), label.offset));
 
-                functions.emplace(std::make_pair(std::move(func.name), std::move(func.signature)), handle);
-
+                functions[std::move(func.name)].push_back(handle);
                 handle.dispatch();
             }
             for (auto unknown : label.unknowns) {
@@ -251,14 +324,8 @@ struct mod_context {
 
                 result = next_token(lexer);
                 if (!result) return result.error;
-                while (result->type == token::Dolar) {
-                    result = eat_token(lexer, token::Identifier);
-                    if (!result) return result.error;
-                    if (auto it = types.find(std::string(result->value.string)); it != types.end()) {
-                        signature.params.push_back(it->second);
-                    } else {
-                        return { generator_error::UnknownType, "Unknown type "s + std::string(result->value.string) };
-                    }
+                while (result->type != token::EqSign) {
+                    signature.params.push_back(eat_type(lexer, result.value));
 
                     result = next_token(lexer);
                     if (!result) return result.error;
@@ -280,12 +347,14 @@ struct mod_context {
                     if (!result) return result.error;
                 }
 
+                std::string name = std::string(nameRes->value.string);
+
+                if (!find_function(name, signature).empty()) throw std::runtime_error("function already defined");
+
                 switch (result->type) {
                 case token::Sha256: {
                     result = eat_token(lexer, token::Identifier);
                     if (!result) return result.error;
-
-                    std::string name = std::string(nameRes->value.string);
 
                     std::string labelName = std::string(result->value.string);
                     std::size_t offset    = 0;
@@ -299,10 +368,9 @@ struct mod_context {
 
                     furvm::function_h handle =
                         (pub ? mod.emplace_function(name, signature, offset) : mod.emplace_function(signature, offset));
-
-                    functions.emplace(std::make_pair(name, std::move(signature)), handle);
-
+                    functions[name].push_back(handle);
                     handle.dispatch();
+
                     return { generator_error::Success };
                 }
                 case token::Native: {
@@ -315,10 +383,9 @@ struct mod_context {
 
                     furvm::function_h handle = (pub ? mod.emplace_function(name, signature, std::move(nativeName))
                                                     : mod.emplace_function(signature, std::move(nativeName)));
-
-                    functions.emplace(std::make_pair(name, std::move(signature)), handle);
-
+                    functions[name].push_back(handle);
                     handle.dispatch();
+
                     return { generator_error::Success };
                 }
                 case token::Import: {
@@ -340,41 +407,10 @@ struct mod_context {
 
                 result = next_token(lexer);
                 if (!result) return result.error;
-                switch (result->type) {
-                case token::Import: {
-                    auto typeNameRes = eat_token(lexer, token::Identifier);
-                    if (!typeNameRes) return typeNameRes.error;
-                    return { generator_error::Success };
-                }
-                case token::Array: {
-                    result = eat_token(lexer, token::Dolar);
-                    if (!result) return result.error;
 
-                    auto typeNameRes = eat_token(lexer, token::Identifier);
-                    if (!typeNameRes) return typeNameRes.error;
-
-                    auto size = eat_token(lexer, token::Unsigned);
-                    if (!size) return size.error;
-
-                    furvm::mod_type_id innerId = 0;
-                    if (auto it = types.find(std::string(typeNameRes->value.string)); it != types.end()) {
-                        innerId = it->second.id();
-                    } else {
-                        return { generator_error::UnknownType,
-                            "Unknown type "s + std::string(typeNameRes->value.string) };
-                    }
-
-                    auto type = mod.emplace_type(innerId, size->value.uint);
-                    types.emplace(std::string(nameRes->value.string), type);
-                    type.dispatch();
-
-                    return { generator_error::Success };
-                }
-                default:
-                    return { generator_error::UnexpectedToken,
-                        "Unexpected token "s + token_type(result->type) +
-                            ", expected either type, `import`, or `array`" };
-                }
+                auto type = eat_type(lexer, result.value);
+                types.emplace(std::string(nameRes->value.string), std::move(type));
+                return { generator_error::Success };
             }
 
             return { generator_error::UnexpectedToken,
@@ -450,6 +486,8 @@ struct mod_context {
         case token::Lenof:
         case token::Load:
         case token::Store:
+        case token::LoadGlobal:
+        case token::StoreGlobal:
         case token::Call:
         case token::Jmp:
         case token::Jnz:
@@ -493,22 +531,16 @@ struct mod_context {
             case furvm::instruction_argument::Function: {
                 furvm::function_sig signature;
                 while ((result = next_token(lexer)).error.type == generator_error::Success &&
-                       result->type == token::Dolar) {
-                    result = eat_token(lexer, token::Identifier);
-                    if (!result) return result.error;
-                    auto type = types.find(std::string(result->value.string));
-                    if (type == types.end())
-                        return { generator_error::UnknownType, "Unknown type "s + std::string(result->value.string) };
-                    signature.params.push_back(type->second);
+                       result->type != token::Identifier) {
+                    signature.params.push_back(eat_type(lexer, result.value));
                 }
                 if (!result || result->type != token::Identifier) return result.error;
                 std::string name(result->value.string);
 
-                auto func = functions.find(std::make_pair(name, signature));
-                if (func == functions.end())
-                    return { generator_error::UnknownType, "Unknown type "s + std::string(result->value.string) };
-                auto id       = func->second.id();
-                instr.arg.u16 = id;
+                auto func = find_function(name, signature);
+                if (func.empty())
+                    return { generator_error::UnknownType, "Unknown function "s + std::string(result->value.string) };
+                instr.arg.u16 = func.id();
             } break;
             case furvm::instruction_argument::Offset: {
                 result = eat_token(lexer, token::Sha256);

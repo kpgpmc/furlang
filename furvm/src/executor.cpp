@@ -33,12 +33,14 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
     case thing_type::U32:
     case thing_type::U64: return { static_cast<enum thing_type::type>(type.type) };
     case thing_type::Ptr: return { thing_type::Ptr, mod_to_thing_type(mod, *mod->type_at(type.value.typeRef)) };
+    case thing_type::Ref: return { thing_type::Ref, mod_to_thing_type(mod, *mod->type_at(type.value.typeRef)) };
     case thing_type::Array: {
         return { static_cast<enum thing_type::type>(type.type),
             { mod_to_thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
     }
-    default: throw std::runtime_error("invalid thing type");
+    case thing_type::Count: break;
     }
+    throw std::runtime_error("invalid thing type");
 }
 
 thing_type* executor::mod_to_thing_type(const mod_h& mod, const mod_type& type) const {
@@ -53,6 +55,27 @@ thing<> executor::make_reference(const thing<>& thing) const {
     return std::move(ref);
 }
 
+bool executor::compare_thing_types(const thing_type& lhs, const thing_type& rhs) {
+    if (lhs.type != rhs.type) return false;
+    switch (lhs.type) {
+    case thing_type::S8:
+    case thing_type::S16:
+    case thing_type::S32:
+    case thing_type::S64:
+    case thing_type::U8:
+    case thing_type::U16:
+    case thing_type::U32:
+    case thing_type::U64: return true;
+    case thing_type::Ptr:
+    case thing_type::Ref: return compare_thing_types(*lhs.value.typeRef, *rhs.value.typeRef);
+    case thing_type::Array:
+        return lhs.value.array.size == rhs.value.array.size &&
+               compare_thing_types(*lhs.value.array.type, *rhs.value.array.type);
+    case thing_type::Count: break;
+    }
+    throw std::runtime_error("unreachable");
+}
+
 void executor::push_frame(const mod_h& mod, function function) {
     mod_h modInst = mod;
     while (function.type() == function_t::Import) {
@@ -65,7 +88,7 @@ void executor::push_frame(const mod_h& mod, function function) {
     args.reserve(signature.params.size());
     for (const auto& param : signature.params) {
         auto arg = pop_thing();
-        if (arg.true_type() != *mod_to_thing_type(mod, *param))
+        if (compare_thing_types(arg.type(), *mod_to_thing_type(mod, *param)))
             throw std::runtime_error("function argument type mismatch");
         args.push_back(std::move(arg));
     }

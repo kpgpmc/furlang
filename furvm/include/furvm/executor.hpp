@@ -174,6 +174,8 @@ private:
 
     thing<> make_reference(const thing<>& thing) const;
 private:
+    static bool compare_thing_types(const thing_type& lhs, const thing_type& rhs);
+private:
     executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
     context*       m_context;
 
