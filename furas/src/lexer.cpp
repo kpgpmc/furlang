@@ -39,6 +39,7 @@ token_r lexer::next_token() {
         { "import", token::Import },
         { "public", token::Public },
         { "private", token::Private },
+        { "allocate", token::Allocate },
 
         { "push", token::Push },
         { "array", token::Array },
@@ -65,6 +66,8 @@ token_r lexer::next_token() {
         { "lenof", token::Lenof },
         { "load", token::Load },
         { "store", token::Store },
+        { "loadg", token::LoadGlobal },
+        { "storeg", token::StoreGlobal },
         { "call", token::Call },
         { "jmp", token::Jmp },
         { "jnz", token::Jnz },

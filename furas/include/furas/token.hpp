@@ -23,12 +23,13 @@ struct token {
         Colon,  /**< `:` */
 
         // Keywords
-        Func,    /**< `func` keyword for defining functions. */
-        Type,    /**< `type` keyword for defining types. */
-        Native,  /**< `native` keyword for native functions. :v: */
-        Import,  /**< `import` keyword for importing functions and types. */
-        Public,  /**< `public` access specifier. */
-        Private, /**< `private` access specifier. */
+        Func,     /**< `func` keyword for defining functions. */
+        Type,     /**< `type` keyword for defining types. */
+        Native,   /**< `native` keyword for native functions. :v: */
+        Import,   /**< `import` keyword for importing functions and types. */
+        Public,   /**< `public` access specifier. */
+        Private,  /**< `private` access specifier. */
+        Allocate, /**< `allocate` keyword for global variables. */
 
         // Instructions
         Push,
@@ -56,6 +57,8 @@ struct token {
         Lenof,
         Load,
         Store,
+        LoadGlobal,
+        StoreGlobal,
         Call,
         Jmp,
         Jnz,

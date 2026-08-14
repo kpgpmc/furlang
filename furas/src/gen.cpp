@@ -47,6 +47,8 @@ std::unordered_map<enum token::type, furvm::instruction_t> instructions = {
     { token::Lenof, furvm::instruction_t::Lengthof },
     { token::Load, furvm::instruction_t::Load },
     { token::Store, furvm::instruction_t::Store },
+    { token::LoadGlobal, furvm::instruction_t::LoadGlobal },
+    { token::StoreGlobal, furvm::instruction_t::StoreGlobal },
     { token::Call, furvm::instruction_t::Call },
     { token::Jmp, furvm::instruction_t::Jump },
     { token::Jnz, furvm::instruction_t::JumpNotZero },
@@ -72,6 +74,7 @@ const char* token_type(enum token::type type) {
     case token::Import: return "import";
     case token::Public: return "public";
     case token::Private: return "private";
+    case token::Allocate: return "allocate";
     case token::Push: return "push";
     case token::Array: return "array";
     case token::Get: return "get";
@@ -97,6 +100,8 @@ const char* token_type(enum token::type type) {
     case token::Lenof: return "lenof";
     case token::Load: return "load";
     case token::Store: return "store";
+    case token::LoadGlobal: return "loadg";
+    case token::StoreGlobal: return "storeg";
     case token::Call: return "call";
     case token::Jmp: return "jmp";
     case token::Jnz: return "jnz";
@@ -128,6 +133,7 @@ struct mod_context {
             pair_hash<std::string, furvm::function_sig, std::hash<std::string>, furvm::detail::function_sig_hash>>
                                                        functions;
     std::unordered_map<std::string, furvm::mod_type_h> types;
+    std::unordered_map<std::string, std::uint16_t>     variables;
 
     std::unordered_map<std::string, label_context> labels;
 
@@ -211,6 +217,15 @@ struct mod_context {
             }
             label.functions = {};
             label.unknowns  = {};
+            return { generator_error::Success };
+        }
+
+        case token::Allocate: {
+            result = eat_token(lexer, token::Identifier);
+            if (!result) return result.error;
+            std::string name = std::string(result->value.string);
+            variables.emplace(name, variables.size());
+            mod.set_global_variable_count(variables.size());
             return { generator_error::Success };
         }
 
@@ -464,6 +479,16 @@ struct mod_context {
                 result = eat_token(lexer, token::Unsigned);
                 if (!result) return result.error;
                 instr.arg.u16 = result->value.uint;
+            } break;
+            case furvm::instruction_argument::GlobalVariable: {
+                result = eat_token(lexer, token::Percent);
+                if (!result) return result.error;
+                result = eat_token(lexer, token::Identifier);
+                if (!result) return result.error;
+                if (auto it = variables.find(std::string(result->value.string)); it != variables.end())
+                    instr.arg.u16 = it->second;
+                else
+                    throw std::runtime_error("Unknown global variable");
             } break;
             case furvm::instruction_argument::Function: {
                 furvm::function_sig signature;
