@@ -7,9 +7,7 @@
 #include "furvm/handle.hpp"
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
-#include "furvm/thing_allocator.hpp"
 
-#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -22,8 +20,7 @@ public:
     /**
      * @brief Constructs a context.
      */
-    context()
-      : m_thingAllocator(m_thingArena) {}
+    context() {}
 
     ~context() = default;
 
@@ -70,21 +67,13 @@ public:
 
     const std::vector<executor>& executors() const { return m_executors; }
 public:
-    /**
-     * @brief Returns context's thing allocator.
-     *
-     * @return The thing allocator.
-     */
-    thing_allocator<std::byte> thing_alloc() const { return m_thingAllocator; }
-
     thing_type_store& tt_store() { return m_thingTypeStore; }
 private:
     handle_container<mod_h> m_modules;
     std::vector<executor>   m_executors;
 
-    furlang::arena             m_thingArena;
-    thing_allocator<std::byte> m_thingAllocator;
-    class thing_type_store     m_thingTypeStore;
+    furlang::arena         m_thingArena;
+    class thing_type_store m_thingTypeStore;
 };
 
 } // namespace furvm

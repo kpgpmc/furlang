@@ -5,7 +5,6 @@
 #include "furlang/utility/hash.hpp"
 #include "furvm/exceptions.hpp"
 #include "furvm/fwd.hpp"
-#include "furvm/thing_allocator.hpp" // IWYU pragma: keep
 
 #include <algorithm>
 #include <cstddef>

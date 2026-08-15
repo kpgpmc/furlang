@@ -49,8 +49,7 @@ thing_type* executor::mod_to_thing_type(const mod_h& mod, const mod_type& type) 
 }
 
 thing<> executor::make_reference(const thing<>& thing) const {
-    furvm::thing<> ref = { (struct thing_type){ thing_type::Ref, m_context->tt_store().insert(thing.type()) },
-        m_context->thing_alloc() };
+    furvm::thing<> ref = { (struct thing_type){ thing_type::Ref, m_context->tt_store().insert(thing.type()) } };
     ref.reference(thing);
     return std::move(ref);
 }
@@ -188,27 +187,22 @@ void executor::step() {
     switch (instr.type) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushS8: {
-        push_thing({ (struct thing_type){ thing_type::S8 }, m_context->thing_alloc() }).get<thing_type::s8>() =
-            instr.arg.s8;
+        push_thing({ (struct thing_type){ thing_type::S8 } }).get<thing_type::s8>() = instr.arg.s8;
     } break;
     case instruction_t::PushU8: {
-        push_thing({ (struct thing_type){ thing_type::U8 }, m_context->thing_alloc() }).get<thing_type::u8>() =
-            instr.arg.u8;
+        push_thing({ (struct thing_type){ thing_type::U8 } }).get<thing_type::u8>() = instr.arg.u8;
     } break;
     case instruction_t::PushS16: {
-        push_thing({ (struct thing_type){ thing_type::S16 }, m_context->thing_alloc() }).get<thing_type::s16>() =
-            instr.arg.s16;
+        push_thing({ (struct thing_type){ thing_type::S16 } }).get<thing_type::s16>() = instr.arg.s16;
     } break;
     case instruction_t::PushU16: {
-        push_thing({ (struct thing_type){ thing_type::U16 }, m_context->thing_alloc() }).get<thing_type::u16>() =
-            instr.arg.u16;
+        push_thing({ (struct thing_type){ thing_type::U16 } }).get<thing_type::u16>() = instr.arg.u16;
     } break;
     case instruction_t::PushS32: {
-        push_thing({ (struct thing_type){ thing_type::S32 }, m_context->thing_alloc() }).get<thing_type::s32>() =
-            instr.arg.s8; // NOLINT
+        push_thing({ (struct thing_type){ thing_type::S32 } }).get<thing_type::s32>() = instr.arg.s8; // NOLINT
     } break;
     case instruction_t::PushU32: {
-        push_thing({ (struct thing_type){ thing_type::U32 }, m_context->thing_alloc() }).get<thing_type::u32>() =
+        push_thing({ (struct thing_type){ thing_type::U32 } }).get<thing_type::u32>() =
             static_cast<thing_type::u32>(instr.arg.u8);
     } break;
     case instruction_t::Array: {
@@ -216,7 +210,7 @@ void executor::step() {
         if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
             throw std::runtime_error("invalid array type");
 
-        auto& array = push_thing({ type, m_context->thing_alloc() });
+        auto& array = push_thing({ type });
 
         if (type.value.array.size == 0) {
             auto         sizeThing = pop_thing();
@@ -310,13 +304,12 @@ void executor::step() {
     } break;
     case instruction_t::Pointerof: {
         auto thing = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::Ptr, m_context->tt_store().at(thing.type().id) },
-                       m_context->thing_alloc() })
-            .get<void*>() = thing.raw();
+        push_thing({ (struct thing_type){ thing_type::Ptr, m_context->tt_store().at(thing.type().id) } }).get<void*>() =
+            thing.raw();
     } break;
     case instruction_t::Sizeof: {
         auto  thing = pop_thing();
-        auto& size  = push_thing({ (struct thing_type){ thing_type::U64 }, m_context->thing_alloc() });
+        auto& size  = push_thing({ (struct thing_type){ thing_type::U64 } });
         switch (thing.type().type) {
         case thing_type::S8:
         case thing_type::S16:
@@ -339,9 +332,8 @@ void executor::step() {
         }
     } break;
     case instruction_t::Lengthof: {
-        auto thing = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::U64 }, m_context->thing_alloc() }).get<thing_type::u64>() =
-            thing.length();
+        auto thing                                                                    = pop_thing();
+        push_thing({ (struct thing_type){ thing_type::U64 } }).get<thing_type::u64>() = thing.length();
     } break;
     case instruction_t::Load: {
         push_thing(make_reference(load_thing(instr.arg.u16)));

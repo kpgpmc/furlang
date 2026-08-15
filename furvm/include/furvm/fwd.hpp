@@ -140,11 +140,6 @@ using mod_id = std::string;
  */
 using mod_h = handle<mod, refcount_header<mod_id>>;
 
-// thing_allocator.hpp
-
-template <typename T>
-class thing_allocator;
-
 // thing.hpp
 
 /**
@@ -161,7 +156,7 @@ using thing_type_id = std::uint32_t;
  *
  * A stack element. Think of it like of a value in C++ or I guess a class in java.
  */
-template <template <typename> typename Allocator = thing_allocator>
+template <template <typename> typename Allocator = std::allocator>
 class thing;
 
 /**

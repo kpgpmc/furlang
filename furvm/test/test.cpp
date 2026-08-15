@@ -1,7 +1,6 @@
 #include "furlang/arena.hpp"
 #include "furvm/furvm.hpp"
 #include "furvm/thing.hpp"
-#include "furvm/thing_allocator.hpp"
 
 #include "gtest/gtest.h" // IWYU pragma: keep
 
@@ -10,12 +9,11 @@ namespace {
 // TODO: Basic program tests (e.g. for loops)
 
 TEST(Things, Ops) {
-    furlang::arena                    arena;
-    furvm::thing_allocator<std::byte> alloc{ arena };
+    furlang::arena arena;
 
-    furvm::thing lhs{ furvm::thing_type{ furvm::thing_type::U32 }, alloc };
+    furvm::thing lhs{ furvm::thing_type{ furvm::thing_type::U32 } };
     lhs.get<furvm::thing_type::u32>() = 6;
-    furvm::thing rhs{ furvm::thing_type{ furvm::thing_type::U32 }, alloc };
+    furvm::thing rhs{ furvm::thing_type{ furvm::thing_type::U32 } };
     rhs.get<furvm::thing_type::u32>() = 7;
 
     auto res = lhs.add(rhs);

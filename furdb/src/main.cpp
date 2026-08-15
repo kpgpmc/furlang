@@ -10,7 +10,7 @@
 #include <utility>
 
 // taken from furvm uwu :3 ^^ nya~ ngh~
-static void print_thing(const furvm::thing<furvm::thing_allocator>& thing) {
+static void print_thing(const furvm::thing<>& thing) {
     using namespace furvm;
 
     switch (thing.true_type().type) {
