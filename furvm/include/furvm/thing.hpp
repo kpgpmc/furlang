@@ -7,6 +7,7 @@
 #include "furvm/fwd.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <functional>
@@ -214,34 +215,49 @@ public:
      * @param allocator Allocator for the thing's data.
      */
     thing(const thing_type& type, const allocator_type& allocator = {})
-      : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
-        if (m_type.type == thing_type::Ref) return;
-        // TODO: Account for alignment
-        m_data = m_allocator.allocate(sizeof(header) + m_size);
+      : m_size(compute_size_na(type)), m_allocator(allocator) {
+        assert(type.type != thing_type::Ref);
+        allocate(type);
+    }
 
-        header* hdr = reinterpret_cast<header*>(m_data);
-        hdr->type   = type;
-
-        m_data += sizeof(header);
-        std::memset(m_data, 0, m_size);
+    /* NOTE: Furvm forbids allocating references on the heap.
+     * This limitation is required for the current implementation of references.
+     * Essentialy, references are special things that point directly to other thing's data.
+     * The distinction between a reference and the owner is stored inside the reference's
+     * thing instance, which makes it impossible to represent them on the heap; however,
+     * the same does not apply to the executor's stack, nor it should apply to compound
+     * types in the future.
+     *
+     * TODO: Reword the note above.
+     */
+    static thing make_reference(const thing& owner) {
+        thing ref;
+        ref.m_reference = true;
+        ref.m_data      = owner.m_data;
+        ref.m_type      = owner.m_type;
+        ref.m_size      = owner.m_size;
+        return ref;
     }
 
     /**
      * @brief Destructs a thing.
      */
     ~thing() {
-        if (m_type.type != thing_type::Ref && m_data != nullptr && m_size > 0)
-            m_allocator.deallocate(m_data - sizeof(header), m_size);
+        if (!m_reference && m_data != nullptr) m_allocator.deallocate(m_data - sizeof(header), m_size + sizeof(header));
     }
 
     /**
      * @brief Move constructor.
      */
     thing(thing&& other) noexcept
-      : m_type(other.m_type), m_data(other.m_data), m_size(other.m_size), m_allocator(std::move(other.m_allocator)) {
-        other.m_type.type = thing_type::Count;
-        other.m_data      = nullptr;
-        other.m_size      = 0;
+      : m_reference(other.m_reference),
+        m_type(other.m_type),
+        m_data(other.m_data),
+        m_size(other.m_size),
+        m_allocator(std::move(other.m_allocator)) {
+        other.m_type = nullptr;
+        other.m_data = nullptr;
+        other.m_size = 0;
     }
 
     /**
@@ -249,38 +265,41 @@ public:
      */
     thing& operator=(thing&& other) noexcept {
         if (this == &other) return *this;
-        m_type            = other.m_type;
-        m_size            = other.m_size;
-        m_data            = other.m_data;
-        m_allocator       = std::move(other.m_allocator);
-        other.m_type.type = thing_type::Count;
-        other.m_data      = nullptr;
-        other.m_size      = 0;
+        m_reference  = other.m_reference;
+        m_type       = other.m_type;
+        m_size       = other.m_size;
+        m_data       = other.m_data;
+        m_allocator  = std::move(other.m_allocator);
+        other.m_type = nullptr;
+        other.m_data = nullptr;
+        other.m_size = 0;
         return *this;
     }
 
     thing(const thing& other)
-      : m_type(other.m_type), m_size(other.m_size), m_allocator(other.m_allocator) {
-        if (m_type.type == thing_type::Ref) {
+      : m_reference(other.m_reference), m_size(other.m_size), m_allocator(other.m_allocator) {
+        if (m_reference) {
+            m_type = other.m_type;
             m_data = other.m_data;
             return;
         }
-        m_data = m_allocator.allocate(m_size);
+        allocate(other.type());
         other.copy(*this);
     }
 
     thing& operator=(const thing& other) {
         if (this == &other) return *this;
 
-        m_type      = other.m_type;
+        m_reference = other.m_reference;
         m_size      = other.m_size;
         m_allocator = std::move(other.m_allocator);
 
-        if (m_type.type == thing_type::Ref) {
+        if (m_reference) {
+            m_type = other.m_type;
             m_data = other.m_data;
             return *this;
         }
-        m_data = m_allocator.allocate(m_size);
+        allocate(other.type());
         other.copy(*this);
 
         return *this;
@@ -297,7 +316,7 @@ public:
     }
 private:
     void copy(thing<>& dst) const {
-        switch (m_type.type) {
+        switch (m_type->type) {
         case thing_type::S8:
         case thing_type::S16:
         case thing_type::S32:
@@ -307,8 +326,8 @@ private:
         case thing_type::U32:
         case thing_type::U64:
         case thing_type::Ptr: std::memcpy(dst.m_data, m_data, m_size); return;
-        case thing_type::Array: copy_list(m_type, dst.m_data, m_data); return;
-        case thing_type::Ref: throw std::runtime_error("cannot copy references");
+        case thing_type::Array: copy_list(*m_type, dst.m_data, m_data); return;
+        case thing_type::Ref: // TODO: Implement arrays of references (I think they're possible).
         case thing_type::Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -319,16 +338,7 @@ public:
      *
      * @return The type.
      */
-    constexpr thing_type type() const { return m_type; }
-
-    /**
-     * @brief Returns the thing's true type.
-     *
-     * If the thing is a reference, returns the referenced type.
-     *
-     * @return The true type.
-     */
-    constexpr thing_type true_type() const { return (m_type.type == thing_type::Ref) ? *m_type.value.typeRef : m_type; }
+    constexpr thing_type type() const { return *m_type; }
 
     /**
      * @brief Checks if the thing is of a specified type.
@@ -338,21 +348,21 @@ public:
      * @param type Type to compare.
      * @return true if the types match.
      */
-    constexpr bool is(enum thing_type::type type) const { return true_type().type == type; }
+    constexpr bool is(enum thing_type::type type) const { return m_type->type == type; }
 public:
     /**
      * @brief Returns a raw data pointer.
      *
      * @return The data pointer.
      */
-    void* raw() { return m_data; }
+    std::byte* raw() { return m_data; }
 
     /**
      * @brief Returns a raw data pointer.
      *
      * @return The data pointer.
      */
-    const void* raw() const { return m_data; }
+    const std::byte* raw() const { return m_data; }
 public:
     /**
      * @brief Returns the thing's value.
@@ -361,7 +371,7 @@ public:
      */
     template <typename T>
     T& get() {
-        if (compute_size_na(m_type) != sizeof(T)) throw bad_thing_access();
+        if (compute_size_na(*m_type) != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
 
@@ -372,7 +382,7 @@ public:
      */
     template <typename T>
     const T& get() const {
-        if (compute_size_na(m_type) != sizeof(T)) throw bad_thing_access();
+        if (compute_size_na(*m_type) != sizeof(T)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
 public:
@@ -470,7 +480,7 @@ public:
      * @return The integer value.
      */
     thing_type::s64 integer() const {
-        switch (true_type().type) {
+        switch (type().type) {
         case thing_type::S8: return get<thing_type::s8>();
         case thing_type::S16: return get<thing_type::s16>();
         case thing_type::S32: return get<thing_type::s32>();
@@ -485,11 +495,11 @@ public:
 
     void resize(thing_type::u64 newSize) {
         if (!is(thing_type::Array)) throw bad_thing_access();
-        if (true_type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
+        if (type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
         auto& array = get<dynamic_array>();
         if (newSize < 0 || newSize == array.size) return;
-        std::size_t innerSize = compute_size_na(*true_type().value.array.type);
+        std::size_t innerSize = compute_size_na(*type().value.array.type);
         std::byte*  newData   = new std::byte[innerSize * newSize];
         std::memcpy(newData, array.data, innerSize * std::min(static_cast<thing_type::u64>(array.size), newSize));
         array.size = newSize;
@@ -500,41 +510,34 @@ public:
     thing at(thing_type::u64 index) const {
         if (!is(thing_type::Array)) throw bad_thing_access();
 
-        std::size_t elementSize = compute_size_na(*true_type().value.array.type);
-        if (true_type().value.array.size == 0) {
+        thing ref       = {};
+        ref.m_reference = true;
+        ref.m_size      = compute_size_na(*type().value.array.type);
+
+        if (type().value.array.size == 0) {
             auto& array = get<dynamic_array>();
             if (index < 0 || index >= array.size) throw std::out_of_range("index out of range");
-            thing ref  = { { thing_type::Ref, true_type().value.array.type }, m_allocator };
-            ref.m_data = array.data + (index * elementSize);
+
+            ref.m_type = type().value.array.type;
+            ref.m_data = array.data + (index * ref.m_size);
             return ref;
         }
 
-        if (index < 0 || index >= true_type().value.array.size) throw std::out_of_range("index out of range");
-        thing ref  = { { thing_type::Ref, true_type().value.array.type }, m_allocator };
-        ref.m_data = m_data + (index * elementSize);
+        if (index < 0 || index >= type().value.array.size) throw std::out_of_range("index out of range");
+
+        ref.m_type = type().value.array.type;
+        ref.m_data = m_data + (index * ref.m_size);
         return ref;
     }
 
     thing_type::u64 length() const {
         if (!is(thing_type::Array)) throw bad_thing_access();
-        return true_type().value.array.size == 0 ? get<dynamic_array>().size : true_type().value.array.size;
+        return type().value.array.size == 0 ? get<dynamic_array>().size : type().value.array.size;
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T cast_to() const {
         return visit_primitive([](auto value) { return static_cast<T>(value); });
-    }
-
-    /**
-     * @brief Changes reference thing's referenced thing.
-     *
-     * Yes.
-     *
-     * @param thing Thing.
-     */
-    void reference(const thing& thing) {
-        if (m_type.type != thing_type::Ref || *m_type.value.typeRef != thing.type()) throw bad_thing_access();
-        m_data = thing.m_data;
     }
 
     /**
@@ -544,9 +547,9 @@ public:
      */
     void assign(thing&& thing) {
         class thing rhs = std::move(thing);
-        if (true_type() != rhs.true_type()) throw std::runtime_error("thing type mismatch");
+        if (type() != rhs.type()) throw std::runtime_error("thing type mismatch");
         // TODO: Move this to another function
-        switch (true_type().type) {
+        switch (type().type) {
         case thing_type::S8:
         case thing_type::S16:
         case thing_type::S32:
@@ -621,10 +624,10 @@ private:
         case thing_type::U32: return sizeof(thing_type::u32);
         case thing_type::U64: return sizeof(thing_type::u64);
         case thing_type::Ptr: return sizeof(void*);
-        case thing_type::Ref: return compute_size_na(*type.value.typeRef);
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(dynamic_array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
+        case thing_type::Ref:
         case thing_type::Count: break;
         }
 
@@ -636,7 +639,7 @@ private:
 private:
     template <typename Func>
     decltype(auto) visit_primitive(Func&& func) const {
-        switch (true_type().type) {
+        switch (type().type) {
         case thing_type::S8: return std::forward<Func>(func)(get<thing_type::s8>());
         case thing_type::S16: return std::forward<Func>(func)(get<thing_type::s16>());
         case thing_type::S32: return std::forward<Func>(func)(get<thing_type::s32>());
@@ -651,7 +654,7 @@ private:
 
     template <typename Op>
     thing binary_op(const thing& rhs, const Op& op) const {
-        if (thing_type::is_primitive(true_type().type) && thing_type::is_primitive(true_type().type)) {
+        if (thing_type::is_primitive(type().type) && thing_type::is_primitive(type().type)) {
             static constexpr enum thing_type::type promotions[8 * 8] = {
                 // S8
                 thing_type::S8,
@@ -727,7 +730,7 @@ private:
                 thing_type::U64,
             };
 
-            enum thing_type::type resultType = promotions[true_type().type + (rhs.true_type().type * 8)];
+            enum thing_type::type resultType = promotions[type().type + (rhs.type().type * 8)];
 
             thing res = { thing_type{ resultType }, m_allocator };
             switch (resultType) {
@@ -766,7 +769,21 @@ private:
         throw std::runtime_error("unexpected operation");
     }
 private:
-    thing_type  m_type;
+    void allocate(const thing_type& type) {
+        m_data = m_allocator.allocate(sizeof(header) + compute_size(type));
+
+        header* hdr = reinterpret_cast<header*>(m_data);
+        hdr->type   = type;
+        m_type      = &hdr->type;
+
+        m_data += sizeof(header);
+        std::memset(m_data, 0, m_size);
+    }
+private:
+    // A flag indicating whether the thing instance owns the data, or not.
+    bool m_reference = false;
+
+    thing_type* m_type = nullptr;
     std::size_t m_size = 0;
     std::byte*  m_data = nullptr;
 

@@ -13,7 +13,7 @@
 static void print_thing(const furvm::thing<>& thing) {
     using namespace furvm;
 
-    switch (thing.true_type().type) {
+    switch (thing.type().type) {
     case thing_type::S8: std::cout << thing.cast_to<thing_type::s16>(); break;
     case thing_type::S16: std::cout << thing.get<thing_type::s16>(); break;
     case thing_type::S32: std::cout << thing.get<thing_type::s32>(); break;

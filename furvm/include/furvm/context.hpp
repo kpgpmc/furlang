@@ -7,6 +7,7 @@
 #include "furvm/module.hpp" // IWYU pragma: keep
 #include "furvm/thing.hpp"  // IWYU pragma: keep
 
+#include <cstddef>
 #include <utility>
 #include <vector>
 

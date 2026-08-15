@@ -48,12 +48,6 @@ thing_type* executor::mod_to_thing_type(const mod_h& mod, const mod_type& type) 
     return m_context->tt_store().insert(thingType);
 }
 
-thing<> executor::make_reference(const thing<>& thing) const {
-    furvm::thing<> ref = { (struct thing_type){ thing_type::Ref, m_context->tt_store().insert(thing.type()) } };
-    ref.reference(thing);
-    return std::move(ref);
-}
-
 bool executor::compare_thing_types(const thing_type& lhs, const thing_type& rhs) {
     if (lhs.type != rhs.type) return false;
     switch (lhs.type) {
@@ -245,7 +239,7 @@ void executor::step() {
         push_thing(top_thing());
     } break;
     case instruction_t::Reference: {
-        push_thing(std::move(make_reference(pop_thing())));
+        push_thing(thing<>::make_reference(pop_thing()));
     } break;
     case instruction_t::Add: {
         auto rhs = pop_thing();
@@ -336,13 +330,13 @@ void executor::step() {
         push_thing({ (struct thing_type){ thing_type::U64 } }).get<thing_type::u64>() = thing.length();
     } break;
     case instruction_t::Load: {
-        push_thing(make_reference(load_thing(instr.arg.u16)));
+        push_thing(std::move(thing<>::make_reference(load_thing(instr.arg.u16))));
     } break;
     case instruction_t::Store: {
         store_thing(instr.arg.u16, std::move(pop_thing()));
     } break;
     case instruction_t::LoadGlobal: {
-        push_thing(make_reference(frame.mod->load_global_variable(instr.arg.u16)));
+        push_thing(thing<>::make_reference(frame.mod->load_global_variable(instr.arg.u16)));
     } break;
     case instruction_t::StoreGlobal: {
         frame.mod->store_global_variable(instr.arg.u16, std::move(pop_thing()));

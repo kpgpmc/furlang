@@ -171,8 +171,6 @@ private:
     thing_type thing_type_impl(mod_h mod, mod_type type) const;
 
     thing_type* mod_to_thing_type(const mod_h& mod, const mod_type& type) const;
-
-    thing<> make_reference(const thing<>& thing) const;
 private:
     static bool compare_thing_types(const thing_type& lhs, const thing_type& rhs);
 private:
