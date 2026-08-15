@@ -200,6 +200,10 @@ public:
         std::size_t size;
         std::byte*  data;
     };
+
+    struct header {
+        thing_type type;
+    };
 public:
     thing() {}
 
@@ -213,7 +217,12 @@ public:
       : m_type(type), m_size(compute_size(type)), m_allocator(allocator) {
         if (m_type.type == thing_type::Ref) return;
         // TODO: Account for alignment
-        m_data = m_allocator.allocate(m_size);
+        m_data = m_allocator.allocate(sizeof(header) + m_size);
+
+        header* hdr = reinterpret_cast<header*>(m_data);
+        hdr->type   = type;
+
+        m_data += sizeof(header);
         std::memset(m_data, 0, m_size);
     }
 
@@ -221,7 +230,8 @@ public:
      * @brief Destructs a thing.
      */
     ~thing() {
-        if (m_type.type != thing_type::Ref && m_data != nullptr && m_size > 0) m_allocator.deallocate(m_data, m_size);
+        if (m_type.type != thing_type::Ref && m_data != nullptr && m_size > 0)
+            m_allocator.deallocate(m_data - sizeof(header), m_size);
     }
 
     /**
