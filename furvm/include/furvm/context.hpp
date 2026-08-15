@@ -1,7 +1,6 @@
 #ifndef FURVM_CONTEXT_HPP
 #define FURVM_CONTEXT_HPP
 
-#include "furlang/arena.hpp"
 #include "furvm/executor.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
@@ -72,7 +71,6 @@ private:
     handle_container<mod_h> m_modules;
     std::vector<executor>   m_executors;
 
-    furlang::arena         m_thingArena;
     class thing_type_store m_thingTypeStore;
 };
 
