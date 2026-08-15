@@ -271,16 +271,17 @@ public:
     thing& operator=(const thing& other) {
         if (this == &other) return *this;
 
+        free();
+
         m_reference = other.m_reference;
         m_size      = other.m_size;
-        m_allocator = std::move(other.m_allocator);
+        m_allocator = other.m_allocator;
 
         if (m_reference) {
             m_type = other.m_type;
             m_data = other.m_data;
             return *this;
         }
-        free();
         allocate(other.type());
         other.copy(*this);
 
@@ -573,7 +574,7 @@ private:
             }
 
             src = srcDynArr.data;
-            dst = dstDynArr.data = new std::byte[dstDynArr.size];
+            dst = dstDynArr.data = new std::byte[dstDynArr.size * elementSize];
         } else {
             size = arrayType.value.array.size;
         }
