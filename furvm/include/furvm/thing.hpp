@@ -242,29 +242,19 @@ public:
     /**
      * @brief Destructs a thing.
      */
-    ~thing() {
-        if (!m_reference && m_data != nullptr) m_allocator.deallocate(m_data - sizeof(header), m_size + sizeof(header));
-    }
+    ~thing() { free(); }
 
     /**
      * @brief Move constructor.
      */
-    thing(thing&& other) noexcept
-      : m_reference(other.m_reference),
-        m_type(other.m_type),
-        m_data(other.m_data),
-        m_size(other.m_size),
-        m_allocator(std::move(other.m_allocator)) {
-        other.m_type = nullptr;
-        other.m_data = nullptr;
-        other.m_size = 0;
-    }
+    thing(thing&& other) noexcept { *this = std::move(other); }
 
     /**
      * @brief Move constructor.
      */
     thing& operator=(thing&& other) noexcept {
         if (this == &other) return *this;
+        free();
         m_reference  = other.m_reference;
         m_type       = other.m_type;
         m_size       = other.m_size;
@@ -276,16 +266,7 @@ public:
         return *this;
     }
 
-    thing(const thing& other)
-      : m_reference(other.m_reference), m_size(other.m_size), m_allocator(other.m_allocator) {
-        if (m_reference) {
-            m_type = other.m_type;
-            m_data = other.m_data;
-            return;
-        }
-        allocate(other.type());
-        other.copy(*this);
-    }
+    thing(const thing& other) { *this = other; }
 
     thing& operator=(const thing& other) {
         if (this == &other) return *this;
@@ -299,6 +280,7 @@ public:
             m_data = other.m_data;
             return *this;
         }
+        free();
         allocate(other.type());
         other.copy(*this);
 
@@ -313,6 +295,7 @@ public:
     thing clone() const {
         thing res(m_type, m_allocator);
         copy(res);
+        return res;
     }
 private:
     void copy(thing<>& dst) const {
@@ -348,7 +331,12 @@ public:
      * @param type Type to compare.
      * @return true if the types match.
      */
-    constexpr bool is(enum thing_type::type type) const { return m_type->type == type; }
+    constexpr bool is(enum thing_type::type type) const {
+        if (type == thing_type::Ref) return m_reference;
+        return m_type->type == type;
+    }
+
+    constexpr bool is_reference() const { return m_reference; }
 public:
     /**
      * @brief Returns a raw data pointer.
@@ -778,6 +766,12 @@ private:
 
         m_data += sizeof(header);
         std::memset(m_data, 0, m_size);
+    }
+
+    void free() {
+        if (!m_reference && m_data != nullptr) m_allocator.deallocate(m_data - sizeof(header), m_size + sizeof(header));
+        m_data = nullptr;
+        m_type = nullptr;
     }
 private:
     // A flag indicating whether the thing instance owns the data, or not.

@@ -68,11 +68,21 @@ public:
     const std::vector<executor>& executors() const { return m_executors; }
 public:
     thing_type_store& tt_store() { return m_thingTypeStore; }
+public:
+    template <typename... Args>
+    thing<> allocate_thing(Args&&... args) {
+        thing<> thing = { std::forward<Args>(args)... };
+        m_heap.push_back(thing.raw());
+        return std::move(thing);
+    }
 private:
     handle_container<mod_h> m_modules;
     std::vector<executor>   m_executors;
 
     class thing_type_store m_thingTypeStore;
+
+    // A list of things on the heap
+    std::vector<std::byte*> m_heap;
 };
 
 } // namespace furvm
