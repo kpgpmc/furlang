@@ -7,7 +7,6 @@
 
 #include <functional>
 #include <stack>
-#include <utility>
 #include <vector>
 
 namespace furvm {
@@ -29,13 +28,13 @@ static inline executor_flags operator~(executor_flags flags) {
     return executor_flags(~static_cast<std::uint32_t>(flags));
 }
 
-using executor_callback = std::function<void(executor&)>;
-
 class executor {
     friend class context;
 private:
     executor(context* context)
       : m_context(context) {}
+public:
+    using new_frame_callback = std::function<void(executor&)>;
 public:
     /**
      * @brief Executor frame.
@@ -180,7 +179,7 @@ private:
     std::stack<frame>   m_frames;
     std::stack<thing<>> m_stack;
 
-    executor_callback m_newFrameCb = nullptr;
+    new_frame_callback m_newFrameCb = nullptr;
 };
 
 } // namespace furvm

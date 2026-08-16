@@ -176,6 +176,13 @@ void executor::step() {
 
     struct frame& frame = m_frames.top();
 
+    if (frame.mod->has_breakpoint(frame.position)) {
+        m_flags        = m_flags | executor_flags::Suspended;
+        const auto& bp = frame.mod->breakpoint_at(frame.position);
+        bp.callback(*this, bp.data);
+        return;
+    }
+
     instruction instr{};
     frame.position += instr.read(frame.mod->bytecode_view().subview(frame.position));
     switch (instr.type) {

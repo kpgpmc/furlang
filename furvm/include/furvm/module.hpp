@@ -145,6 +145,11 @@ struct mod_type {
     }
 };
 
+struct breakpoint {
+    std::function<void(executor&, void*)> callback;
+    void*                                 data;
+};
+
 class mod {
     friend class function;
     friend class serializer;
@@ -380,6 +385,15 @@ public:
         return m_globalVariables[var];
     }
 public:
+    template <typename Fwd, typename = std::enable_if_t<std::is_constructible_v<breakpoint, Fwd>>>
+    void set_breakpoint(bytecode_pos pos, Fwd&& breakpoint) {
+        m_breakpoints[pos] = std::forward<Fwd>(breakpoint);
+    }
+
+    bool has_breakpoint(bytecode_pos pos) const { return m_breakpoints.find(pos) != m_breakpoints.end(); }
+
+    const breakpoint& breakpoint_at(bytecode_pos pos) const { return m_breakpoints.at(pos); }
+public:
     /**
      * @brief Prints the module in a bytecode form to an output stream.
      *
@@ -410,6 +424,8 @@ private:
     std::vector<thing<>> m_globalVariables;
 
     std::unordered_map<std::string, native_function> m_nativeFunctions;
+
+    std::unordered_map<bytecode_pos, breakpoint> m_breakpoints;
 };
 
 } // namespace furvm
