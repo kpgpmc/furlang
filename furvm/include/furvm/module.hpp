@@ -147,7 +147,7 @@ struct mod_type {
 
 struct breakpoint {
     std::function<void(executor&, void*)> callback;
-    void*                                 data;
+    void*                                 data = nullptr;
 };
 
 class mod {

@@ -1,5 +1,10 @@
 #include "command.hpp"
 
+#include "furvm/executor.hpp"
+#include "furvm/function.hpp"
+#include "furvm/module.hpp"
+#include "furvm/thing.hpp"
+
 #include <cctype>
 #include <cstddef>
 #include <iostream>
@@ -51,5 +56,31 @@ void quit_command::execute(context& ctx, const command_info& info) {
 
 void run_command::execute(context& ctx, const command_info& info) {
     ctx.run();
-    std::cout << "Execution finished\n";
+}
+
+static void breakpoint_hit(furvm::executor& executor, void* data) {
+    std::cout << "Breakpoint hit\n";
+    context* ctx = reinterpret_cast<context*>(data);
+    ctx->halt    = true;
+}
+
+void break_command::execute(context& ctx, const command_info& info) {
+    if (info.args.empty()) {
+        std::cerr << "Usage: " << info.commandName << " <function name>\n";
+        return;
+    }
+
+    std::size_t count = 0;
+    for (const auto& [id, sigPair] : ctx.mod->function_map()) {
+        if (sigPair.first != info.args[0]) continue;
+        const auto& func = ctx.mod->function_at(id);
+        if (func->type() != furvm::function_t::Normal) continue;
+        count += 1;
+        ctx.mod->set_breakpoint(func->position(), furvm::breakpoint{ breakpoint_hit, &ctx });
+    }
+    if (count == 0) {
+        std::cerr << "No function \"" << info.args[0] << "\" found!\n";
+        return;
+    }
+    std::cout << "Breakpoint set in " << count << " places\n";
 }

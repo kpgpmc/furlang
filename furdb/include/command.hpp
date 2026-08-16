@@ -36,4 +36,9 @@ public:
     void execute(context& ctx, const command_info& info) override;
 };
 
+class break_command final : public command {
+public:
+    void execute(context& ctx, const command_info& info) override;
+};
+
 #endif // COMMAND_HPP

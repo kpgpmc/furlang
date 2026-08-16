@@ -13,6 +13,7 @@ struct context {
     furvm::function_h mainFunction;
 
     bool running = true;
+    bool halt    = false;
 
     void run();
 };

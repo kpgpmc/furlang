@@ -43,8 +43,9 @@ int main(int argc, char** argv) {
     }
 
     static std::unordered_map<std::string_view, command*> s_commands;
-    s_commands["quit"] = s_commands["q"] = new quit_command();
+    s_commands["exit"] = s_commands["quit"] = s_commands["q"] = new quit_command();
     s_commands["run"] = s_commands["r"] = new run_command();
+    s_commands["break"] = s_commands["b"] = new break_command();
 
     try {
         std::ifstream file(argv[1], std::ios::binary | std::ios::in);
