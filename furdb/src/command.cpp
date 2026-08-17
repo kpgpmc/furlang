@@ -62,6 +62,8 @@ static void breakpoint_hit(furvm::executor& executor, void* data) {
     std::cout << "Breakpoint hit\n";
     context* ctx = reinterpret_cast<context*>(data);
     ctx->halt    = true;
+
+    ctx->print_instruction();
 }
 
 void break_command::execute(context& ctx, const command_info& info) {

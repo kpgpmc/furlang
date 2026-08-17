@@ -16,6 +16,8 @@ struct context {
     bool halt    = false;
 
     void run();
+
+    void print_instruction() const;
 };
 
 #endif // CONTEXT_HPP
