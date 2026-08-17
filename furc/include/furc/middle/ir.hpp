@@ -22,6 +22,7 @@ struct ir_operand {
         Integer = 0,
         Register,
         Variable,
+        Global,
         Function,
         Block,
         BlockPair,
@@ -34,6 +35,7 @@ struct ir_operand {
             std::uint64_t ver : 10;
         } reg;
         std::uint16_t variable;
+        std::uint16_t global;
         std::uint64_t function;
         std::uint64_t block;
         struct block_pair_s {
@@ -172,7 +174,7 @@ struct ir_module_variable : ir_variable {
 
     std::uint16_t name;
 
-    ir_operand operand() const final { return { ir_operand::Variable, name }; }
+    ir_operand operand() const final { return { ir_operand::Global, name }; }
 };
 
 struct ir_function_variable : ir_variable {
@@ -181,7 +183,7 @@ struct ir_function_variable : ir_variable {
 
     std::uint64_t name;
 
-    ir_operand operand() const final { return { ir_operand::Register, name }; }
+    ir_operand operand() const final { return { ir_operand::Variable, name }; }
 };
 
 struct ir_scope {
