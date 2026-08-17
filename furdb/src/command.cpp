@@ -71,6 +71,20 @@ void run_command::execute(context& ctx, const command_info& info) {
     ctx.run();
 }
 
+void continue_command::execute(context& ctx, const command_info& info) {
+    ctx.run();
+}
+
+void next_command::execute(context& ctx, const command_info& info) {
+    if (ctx.executor->done()) {
+        std::cout << "No program's currently running\n";
+        return;
+    }
+    ctx.executor->unsuspend();
+    ctx.executor->step();
+    ctx.print_instruction();
+}
+
 static void print_type(const furvm::thing_type& type) {
     switch (type.type) {
     case furvm::thing_type::S8: std::cout << "s8"; break;
