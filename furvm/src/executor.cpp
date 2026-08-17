@@ -140,28 +140,28 @@ struct executor::frame executor::top_frame() const {
 }
 
 thing<>& executor::push_thing(thing<>&& thing) {
-    return m_stack.emplace(std::move(thing));
+    return m_stack.emplace_back(std::move(thing));
 }
 
 thing<>& executor::push_thing(const thing<>& thing) {
-    return m_stack.emplace(thing);
+    return m_stack.emplace_back(thing);
 }
 
 thing<> executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
-    auto top = std::move(m_stack.top());
-    m_stack.pop();
+    auto top = std::move(m_stack.back());
+    m_stack.pop_back();
     return std::move(top);
 }
 
 thing<>& executor::top_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
-    return m_stack.top();
+    return m_stack.back();
 }
 
 const thing<>& executor::top_thing() const {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
-    return m_stack.top();
+    return m_stack.back();
 }
 
 void executor::store_thing(variable_t variable, const thing<>& thing) {

@@ -150,6 +150,8 @@ public:
     thing<>& top_thing();
 
     const thing<>& top_thing() const;
+
+    const std::vector<thing<>>& stack() const { return m_stack; }
 public:
     /**
      * @brief Stores a thing in a frame variable.
@@ -191,8 +193,8 @@ private:
     executor_flags m_flags = executor_flags::Done;
     context*       m_context;
 
-    std::stack<frame>   m_frames;
-    std::stack<thing<>> m_stack;
+    std::stack<frame>    m_frames;
+    std::vector<thing<>> m_stack;
 
     new_frame_callback m_newFrameCb = nullptr;
 };
