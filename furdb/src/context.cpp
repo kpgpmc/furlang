@@ -115,12 +115,12 @@ void context::print_instruction() const {
     if (instr.arg.type != furvm::instruction_argument_t::None) {
         std::cout << ' ';
         switch (instr.arg.type) {
-        case furvm::instruction_argument::S8:
-        case furvm::instruction_argument::U8:
-        case furvm::instruction_argument::S16:
-        case furvm::instruction_argument::U16:
-        case furvm::instruction_argument::S32:
-        case furvm::instruction_argument::U32:
+        case furvm::instruction_argument::S8: std::cout << std::to_string(instr.arg.s8); break;
+        case furvm::instruction_argument::U8: std::cout << std::to_string(instr.arg.u8); break;
+        case furvm::instruction_argument::S16: std::cout << instr.arg.s16; break;
+        case furvm::instruction_argument::U16: std::cout << instr.arg.u16; break;
+        case furvm::instruction_argument::S32: std::cout << instr.arg.s32; break;
+        case furvm::instruction_argument::U32: std::cout << instr.arg.u32; break;
         case furvm::instruction_argument::None:
         case furvm::instruction_argument::Count: break;
         case furvm::instruction_argument::Constant: throw std::runtime_error("unimplemented");
@@ -128,7 +128,7 @@ void context::print_instruction() const {
         case furvm::instruction_argument::Variable: std::cout << "%" << instr.arg.u16; break;
         case furvm::instruction_argument::GlobalVariable: std::cout << "%__g" << instr.arg.u16; break;
         case furvm::instruction_argument::Function: std::cout << "<a function>"; break;
-        case furvm::instruction_argument::Offset: std::cout << instr.arg.s8; break;
+        case furvm::instruction_argument::Offset: std::cout << std::to_string(instr.arg.s8); break;
         }
     }
     std::cout << '\n';

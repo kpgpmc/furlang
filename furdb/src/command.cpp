@@ -116,11 +116,11 @@ static void print_thing(const furvm::thing<>& thing) {
     print_type(thing.type());
     std::cout << ") ";
     switch (thing.type().type) {
-    case furvm::thing_type::S8: std::cout << thing.get<furvm::thing_type::s8>(); break;
+    case furvm::thing_type::S8: std::cout << std::to_string(thing.get<furvm::thing_type::s8>()); break;
     case furvm::thing_type::S16: std::cout << thing.get<furvm::thing_type::s16>(); break;
     case furvm::thing_type::S32: std::cout << thing.get<furvm::thing_type::s32>(); break;
     case furvm::thing_type::S64: std::cout << thing.get<furvm::thing_type::s64>(); break;
-    case furvm::thing_type::U8: std::cout << thing.get<furvm::thing_type::u8>(); break;
+    case furvm::thing_type::U8: std::cout << std::to_string(thing.get<furvm::thing_type::u8>()); break;
     case furvm::thing_type::U16: std::cout << thing.get<furvm::thing_type::u16>(); break;
     case furvm::thing_type::U32: std::cout << thing.get<furvm::thing_type::u32>(); break;
     case furvm::thing_type::U64: std::cout << thing.get<furvm::thing_type::u64>(); break;
@@ -137,7 +137,6 @@ static void print_thing(const furvm::thing<>& thing) {
     case furvm::thing_type::Ref:
     case furvm::thing_type::Count: break;
     }
-    std::cout << '\n';
 }
 
 static void breakpoint_hit(furvm::executor& executor, void* data) {
@@ -184,6 +183,7 @@ void info_command::execute(context& ctx, const command_info& info) {
             // TODO: Add debug information to modules
             std::cout << "- %" << i << " = ";
             print_thing(frame.variables[i]);
+            std::cout << '\n';
         }
     } else {
         std::cerr << "Unexpected argument \"" << info.args[0] << "\"\n";
