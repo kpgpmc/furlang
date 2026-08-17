@@ -1,0 +1,3 @@
+[submodule "furdb/deps/isocline"]
+	path = furdb/deps/isocline
+	url = https://github.com/daanx/isocline

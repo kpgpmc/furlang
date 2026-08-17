@@ -4,16 +4,16 @@ set -e
 
 BUILD_DIR="build"
 
-echo "Running clang-format..."
-
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(cpp|hpp)$' || true)
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(cpp|hpp)$' | grep -v 'deps/' || true)
 
 if [ -z "$FILES" ]; then
     echo "No C/C++ files to check"
     exit 0
 fi
 
-git diff -U0 --cached | \
+echo "Running clang-format..."
+
+git diff -U0 --cached -- $FILES | \
 python3 <(curl -s https://raw.githubusercontent.com/llvm/llvm-project/refs/heads/main/clang/tools/clang-format/clang-format-diff.py) -p1 -i
 
 echo "Running clang-tidy..."
@@ -21,6 +21,7 @@ echo "Running clang-tidy..."
 for file in $FILES; do
     clang-tidy \
         "$file" \
+        --header-filter="^(?!.*deps/).*" \
         -p "$BUILD_DIR"
 done
 

@@ -1,6 +1,7 @@
 #include "command.hpp"
 #include "context.hpp"
 #include "furvm/function.hpp"
+#include "isocline.h"
 
 #include <fstream>
 #include <furvm/fwd.hpp>
@@ -50,6 +51,8 @@ int main(int argc, char** argv) {
     s_commands["break"] = s_commands["b"] = new break_command();
     s_commands["info"] = s_commands["i"] = new info_command();
 
+    ic_set_history(nullptr, -1);
+
     try {
         std::ifstream file(argv[1], std::ios::binary | std::ios::in);
 
@@ -72,8 +75,11 @@ int main(int argc, char** argv) {
         std::string prevInput;
         while (ctx.running) {
             std::swap(inputLine, prevInput);
-            std::cout << "(furdb) ";
-            if (!std::getline(std::cin, inputLine)) break;
+
+            char* inputRaw = ic_readline("furdb");
+            if (inputRaw == nullptr) break;
+            inputLine = inputRaw;
+            free(inputRaw); // NOLINT
 
             if (inputLine.empty()) {
                 inputLine = prevInput;
