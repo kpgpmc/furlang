@@ -5,14 +5,27 @@
 #include <iostream>
 #include <stdexcept>
 
+void context::kill() const {
+    while (!executor->done())
+        executor->pop_frame();
+}
+
+void context::init() {
+    kill();
+    executor->push_frame(mod, *mainFunction);
+    executor->clear_flags();
+}
+
 void context::run() {
-    if ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done)
-        executor->push_frame(mod, *mainFunction);
-    while ((executor->flags() & furvm::executor_flags::Done) != furvm::executor_flags::Done && !halt) {
+    if (executor->done()) init();
+    executor->unsuspend();
+
+    halt = false;
+    while (!executor->done() && !halt)
         executor->step();
-    }
-    if ((executor->flags() & furvm::executor_flags::Done) == furvm::executor_flags::Done) {
+    if (executor->done()) {
         std::cout << "Execution finished\n";
+        halt = true;
     }
 }
 

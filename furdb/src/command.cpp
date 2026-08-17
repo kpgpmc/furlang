@@ -2,6 +2,7 @@
 
 #include "furvm/executor.hpp"
 #include "furvm/function.hpp"
+#include "furvm/instruction.hpp"
 #include "furvm/module.hpp"
 #include "furvm/thing.hpp"
 
@@ -9,6 +10,7 @@
 #include <cstddef>
 #include <iostream>
 #include <random>
+#include <string>
 #include <utility>
 
 command_info command::parse(std::string_view line) {
@@ -55,6 +57,17 @@ void quit_command::execute(context& ctx, const command_info& info) {
 }
 
 void run_command::execute(context& ctx, const command_info& info) {
+    if (!ctx.executor->done()) {
+        std::cout << "A program is currently running, do you want to kill it? (y/N) ";
+        std::string answer;
+        if (!std::getline(std::cin, answer)) {
+            ctx.running = false;
+            return;
+        }
+        if (answer != "y" && answer != "Y" && answer != "yes") return;
+        ctx.kill();
+    }
+    std::cout << "Running the program\n";
     ctx.run();
 }
 
