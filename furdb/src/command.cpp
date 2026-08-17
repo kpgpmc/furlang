@@ -71,6 +71,61 @@ void run_command::execute(context& ctx, const command_info& info) {
     ctx.run();
 }
 
+static void print_type(const furvm::thing_type& type) {
+    switch (type.type) {
+    case furvm::thing_type::S8: std::cout << "s8"; break;
+    case furvm::thing_type::S16: std::cout << "s16"; break;
+    case furvm::thing_type::S32: std::cout << "s32"; break;
+    case furvm::thing_type::S64: std::cout << "s64"; break;
+    case furvm::thing_type::U8: std::cout << "u8"; break;
+    case furvm::thing_type::U16: std::cout << "u16"; break;
+    case furvm::thing_type::U32: std::cout << "u32"; break;
+    case furvm::thing_type::U64: std::cout << "u64"; break;
+    case furvm::thing_type::Ptr: std::cout << "ptr"; break;
+    case furvm::thing_type::Ref: std::cout << "ref"; break;
+    case furvm::thing_type::Array:
+        std::cout << "array(";
+        print_type(*type.value.array.type);
+        std::cout << ", ";
+        if (type.value.array.size == 0)
+            std::cout << "dynamic";
+        else
+            std::cout << type.value.array.size;
+        std::cout << ")";
+        break;
+    case furvm::thing_type::Count: break;
+    }
+}
+
+static void print_thing(const furvm::thing<>& thing) {
+    std::cout << '(';
+    print_type(thing.type());
+    std::cout << ") ";
+    switch (thing.type().type) {
+    case furvm::thing_type::S8: std::cout << thing.get<furvm::thing_type::s8>(); break;
+    case furvm::thing_type::S16: std::cout << thing.get<furvm::thing_type::s16>(); break;
+    case furvm::thing_type::S32: std::cout << thing.get<furvm::thing_type::s32>(); break;
+    case furvm::thing_type::S64: std::cout << thing.get<furvm::thing_type::s64>(); break;
+    case furvm::thing_type::U8: std::cout << thing.get<furvm::thing_type::u8>(); break;
+    case furvm::thing_type::U16: std::cout << thing.get<furvm::thing_type::u16>(); break;
+    case furvm::thing_type::U32: std::cout << thing.get<furvm::thing_type::u32>(); break;
+    case furvm::thing_type::U64: std::cout << thing.get<furvm::thing_type::u64>(); break;
+    case furvm::thing_type::Ptr: std::cout << thing.get<const void*>(); break;
+    case furvm::thing_type::Array: {
+        if (thing.type().value.array.size == 0) std::cout << thing.length();
+        std::cout << "{ ";
+        for (std::size_t i = 0; i < thing.length(); ++i) {
+            if (i > 0) std::cout << ", ";
+            print_thing(thing.at(i));
+        }
+        std::cout << " }";
+    } break;
+    case furvm::thing_type::Ref:
+    case furvm::thing_type::Count: break;
+    }
+    std::cout << '\n';
+}
+
 static void breakpoint_hit(furvm::executor& executor, void* data) {
     std::cout << "Breakpoint hit\n";
     context* ctx = reinterpret_cast<context*>(data);
@@ -98,4 +153,25 @@ void break_command::execute(context& ctx, const command_info& info) {
         return;
     }
     std::cout << "Breakpoint set in " << count << " places\n";
+}
+
+void info_command::execute(context& ctx, const command_info& info) {
+    if (info.args.empty()) {
+        std::cout << "Possible arguments:\n";
+        std::cout << "- variables\n";
+    } else if (info.args[0] == "variables") {
+        if (ctx.executor->frames().empty()) {
+            std::cerr << "Not running\n";
+            return;
+        }
+        std::cout << "Variables:\n";
+        const auto& frame = ctx.executor->top_frame();
+        for (std::size_t i = 0; i < frame.variables.size(); ++i) {
+            // TODO: Add debug information to modules
+            std::cout << "- %" << i << " = ";
+            print_thing(frame.variables[i]);
+        }
+    } else {
+        std::cerr << "Unexpected argument \"" << info.args[0] << "\"\n";
+    }
 }

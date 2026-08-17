@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     s_commands["exit"] = s_commands["quit"] = s_commands["q"] = new quit_command();
     s_commands["run"] = s_commands["r"] = new run_command();
     s_commands["break"] = s_commands["b"] = new break_command();
+    s_commands["info"] = s_commands["i"] = new info_command();
 
     try {
         std::ifstream file(argv[1], std::ios::binary | std::ios::in);
