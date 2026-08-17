@@ -172,8 +172,9 @@ void info_command::execute(context& ctx, const command_info& info) {
     if (info.args.empty()) {
         std::cout << "Possible arguments:\n";
         std::cout << "- variables\n";
+        std::cout << "- stack\n";
     } else if (info.args[0] == "variables") {
-        if (ctx.executor->frames().empty()) {
+        if (ctx.executor->done()) {
             std::cerr << "Not running\n";
             return;
         }
@@ -183,6 +184,18 @@ void info_command::execute(context& ctx, const command_info& info) {
             // TODO: Add debug information to modules
             std::cout << "- %" << i << " = ";
             print_thing(frame.variables[i]);
+            std::cout << '\n';
+        }
+    } else if (info.args[0] == "stack") {
+        if (ctx.executor->done()) {
+            std::cerr << "Not running\n";
+            return;
+        }
+        std::cout << "Stack from top to bottom:\n";
+        const auto& frame = ctx.executor->top_frame();
+        for (std::size_t begin = frame.stackBase, i = ctx.executor->stack().size(); i > begin;) {
+            std::cout << "- ";
+            print_thing(ctx.executor->stack()[--i]);
             std::cout << '\n';
         }
     } else {
