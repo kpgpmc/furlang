@@ -14,6 +14,8 @@ namespace furvm {
 enum class executor_flags : std::uint32_t {
     Suspended = (1 << 0), /**< Execution suspended. */
     Done      = (1 << 1), /**< Execution is finished. */
+
+    JustHit = (1 << 16), /**< Executor just hit a breakpoint. */
 };
 
 static inline executor_flags operator|(executor_flags lhs, executor_flags rhs) {
@@ -34,6 +36,8 @@ private:
     executor(context* context)
       : m_context(context) {}
 public:
+    static constexpr executor_flags STATE_FLAGS = executor_flags::JustHit;
+
     using new_frame_callback = std::function<void(executor&)>;
 public:
     /**
@@ -90,7 +94,10 @@ public:
 
     void unsuspend() { m_flags = m_flags & ~executor_flags::Suspended; }
 
-    void clear_flags() { m_flags = m_frames.empty() ? executor_flags::Done : furvm::executor_flags{ 0 }; }
+    void clear_flags() {
+        m_flags = m_flags & STATE_FLAGS;
+        m_flags = m_frames.empty() ? executor_flags::Done : furvm::executor_flags{ 0 };
+    }
 public:
     /**
      * @brief Pushes a new frame.

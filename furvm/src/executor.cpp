@@ -110,6 +110,7 @@ void executor::push_frame(const mod_h& mod, function function) {
     } else {
         m_flags = m_flags | executor_flags::Done;
     }
+    m_flags = m_flags & ~executor_flags::JustHit;
 }
 
 struct executor::frame executor::pop_frame() {
@@ -129,6 +130,7 @@ struct executor::frame executor::pop_frame() {
     } else {
         m_flags = m_flags | executor_flags::Done;
     }
+    m_flags = m_flags & ~executor_flags::JustHit;
 
     return frame;
 }
@@ -189,12 +191,13 @@ void executor::step() {
 
     struct frame& frame = m_frames.top();
 
-    if (frame.mod->has_breakpoint(frame.position)) {
-        m_flags        = m_flags | executor_flags::Suspended;
+    if ((m_flags & executor_flags::JustHit) != executor_flags::JustHit && frame.mod->has_breakpoint(frame.position)) {
+        m_flags        = m_flags | executor_flags::Suspended | executor_flags::JustHit;
         const auto& bp = frame.mod->breakpoint_at(frame.position);
         bp.callback(*this, bp.data);
         return;
     }
+    m_flags = m_flags & ~executor_flags::JustHit;
 
     instruction instr{};
     frame.position += instr.read(frame.mod->bytecode_view().subview(frame.position));
