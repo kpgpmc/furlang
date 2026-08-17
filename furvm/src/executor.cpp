@@ -104,6 +104,12 @@ void executor::push_frame(const mod_h& mod, function function) {
     default: throw std::runtime_error("unexpected function type");
     }
     if (m_newFrameCb) m_newFrameCb(*this);
+
+    if (!m_frames.empty()) {
+        m_flags = m_flags & ~executor_flags::Done;
+    } else {
+        m_flags = m_flags | executor_flags::Done;
+    }
 }
 
 struct executor::frame executor::pop_frame() {
@@ -117,6 +123,13 @@ struct executor::frame executor::pop_frame() {
     }
     if (m_stack.size() != frame.stackBase) throw std::runtime_error("unexhausted stack");
     if (returnValue.has_value()) push_thing(std::move(returnValue.value()));
+
+    if (!m_frames.empty()) {
+        m_flags = m_flags & ~executor_flags::Done;
+    } else {
+        m_flags = m_flags | executor_flags::Done;
+    }
+
     return frame;
 }
 

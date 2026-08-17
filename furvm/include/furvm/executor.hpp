@@ -83,6 +83,14 @@ public:
      * @return The flags.
      */
     executor_flags flags() const { return m_flags; }
+
+    bool done() const { return (m_flags & executor_flags::Done) == executor_flags::Done; }
+
+    bool suspended() const { return (m_flags & executor_flags::Suspended) == executor_flags::Suspended; }
+
+    void unsuspend() { m_flags = m_flags & ~executor_flags::Suspended; }
+
+    void clear_flags() { m_flags = m_frames.empty() ? executor_flags::Done : furvm::executor_flags{ 0 }; }
 public:
     /**
      * @brief Pushes a new frame.
@@ -173,7 +181,7 @@ private:
 private:
     static bool compare_thing_types(const thing_type& lhs, const thing_type& rhs);
 private:
-    executor_flags m_flags{}; // NOLINT(bugprone-invalid-enum-default-initialization)
+    executor_flags m_flags = executor_flags::Done;
     context*       m_context;
 
     std::stack<frame>   m_frames;
