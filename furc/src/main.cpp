@@ -1,6 +1,7 @@
 #include "furc/front/lexer.hpp"
 #include "furc/front/parser.hpp"
 #include "furc/middle/ir.hpp"
+#include "furc/middle/ssa.hpp"
 #include "furlang/arena.hpp"
 
 int main(void) {
@@ -16,6 +17,7 @@ int main(void) {
     furc::lexer     lexer    = { "<AK>", content };
     furc::parser    parser   = { std::move(lexer), arena };
     furc::ir_module irModule = furc::ir_generator::generate(parser.parse());
+    furc::ssa::process(irModule);
 
     return 0;
 }
