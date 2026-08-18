@@ -31,6 +31,10 @@ struct block_info {
     std::unordered_set<std::size_t> df;
 };
 
+struct register_info {
+    std::unordered_set<std::size_t> sites; // Definition Sites
+};
+
 void rpo_dfs(std::unordered_set<std::size_t>& visited,
     std::vector<std::size_t>&                 order,
     std::size_t                               block,
@@ -65,28 +69,43 @@ std::size_t intersect(std::vector<block_info>& blocks, std::size_t b1, std::size
 }
 
 void process_function(ir_function& func) {
-    std::vector<block_info> blocks(func.blocks.size());
+    std::vector<block_info>    blocks(func.blocks.size());
+    std::vector<register_info> registers(func.regCount);
+
+    std::unordered_set<std::uint64_t> nonLocals;
 
     // 1. Compute CFG
     for (std::size_t i = 0; i < func.blocks.size(); ++i) {
         const auto& block = func.blocks[i];
         if (block.instructions.empty()) continue;
 
+        for (const auto& instr : block.instructions) {
+            for (const auto& op : instr.sources) {
+                if (op.type != ir_operand::Register) continue;
+                const auto& reg = registers[op.value.reg.name];
+                if (reg.sites.find(i) != reg.sites.end()) continue;
+                nonLocals.insert(op.value.reg.name);
+            }
+
+            if (!instr.destination.has_value() || instr.destination->type != ir_operand::Register) continue;
+            registers[instr.destination->value.reg.name].sites.insert(i);
+        }
+
         const auto& termInstr = block.instructions.back();
         switch (termInstr.type) {
         case ir_instruction::Branch: {
-            const auto& src = termInstr.sources.front();
-            if (src.type != ir_operand::Block) throw std::runtime_error("invalid operand");
-            blocks[src.value.block].preds.insert(i);
-            blocks[i].sucs.insert(src.value.block);
+            const auto& dst = termInstr.destination.value();
+            if (dst.type != ir_operand::Block) throw std::runtime_error("invalid operand");
+            blocks[dst.value.block].preds.insert(i);
+            blocks[i].sucs.insert(dst.value.block);
         } break;
         case ir_instruction::BranchCond: {
-            const auto& src = termInstr.sources.front();
-            if (src.type != ir_operand::Block) throw std::runtime_error("invalid operand");
-            blocks[src.value.blockPair.first].preds.insert(i);
-            blocks[src.value.blockPair.second].preds.insert(i);
-            blocks[i].preds.insert(src.value.blockPair.first);
-            blocks[i].preds.insert(src.value.blockPair.second);
+            const auto& dst = termInstr.destination.value();
+            if (dst.type != ir_operand::BlockPair) throw std::runtime_error("invalid operand");
+            blocks[dst.value.blockPair.first].preds.insert(i);
+            blocks[dst.value.blockPair.second].preds.insert(i);
+            blocks[i].preds.insert(dst.value.blockPair.first);
+            blocks[i].preds.insert(dst.value.blockPair.second);
         } break;
         default: break;
         }
@@ -128,6 +147,36 @@ void process_function(ir_function& func) {
             while (runner != join.idom) {
                 blocks[runner].df.insert(j);
                 runner = blocks[runner].idom;
+            }
+        }
+    }
+
+    // 4. Inserting Phi-nodes (Semi-Pruned SSA form)
+    std::vector<std::size_t> worklist;
+
+    for (std::size_t i = 0; i < registers.size(); ++i) {
+        const auto& reg = registers[i];
+        if (reg.sites.size() < 2 || nonLocals.find(i) == nonLocals.end()) continue;
+
+        worklist.insert(worklist.end(), reg.sites.begin(), reg.sites.end());
+
+        std::unordered_set<std::size_t> done;
+        while (!worklist.empty()) {
+            const auto blockIdx = worklist.back();
+            worklist.pop_back();
+            for (auto frontier : blocks[blockIdx].df) {
+                if (done.find(frontier) != done.end()) continue;
+                done.insert(frontier);
+
+                auto& target = func.blocks[frontier];
+
+                ir_instruction instr = { ir_instruction::Phi };
+                for (const auto& pred : blocks[frontier].preds)
+                    instr.sources.emplace_back(ir_operand::PhiPair, i, pred);
+
+                target.instructions.emplace(target.instructions.begin(), std::move(instr));
+
+                if (reg.sites.find(frontier) == reg.sites.end()) worklist.push_back(frontier);
             }
         }
     }
