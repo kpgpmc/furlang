@@ -26,6 +26,9 @@ struct block_info {
     std::unordered_set<std::size_t> preds;
     std::unordered_set<std::size_t> sucs;
     std::size_t                     idom = 0;
+
+    // Dominance Frontiers
+    std::unordered_set<std::size_t> df;
 };
 
 void rpo_dfs(std::unordered_set<std::size_t>& visited,
@@ -113,6 +116,18 @@ void process_function(ir_function& func) {
             if (block.idom != newIdom) {
                 block.idom = newIdom;
                 changed    = true;
+            }
+        }
+    }
+
+    // 3. Computing Dominance Frontiers
+    for (std::size_t j = 0; j < blocks.size(); ++j) {
+        const auto& join = blocks[j];
+        if (join.preds.size() < 2) continue;
+        for (std::size_t runner : join.preds) {
+            while (runner != join.idom) {
+                blocks[runner].df.insert(j);
+                runner = blocks[runner].idom;
             }
         }
     }
