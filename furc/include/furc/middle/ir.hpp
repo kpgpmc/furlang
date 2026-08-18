@@ -304,7 +304,11 @@ struct ir_context {
 
     void terminate() { add_instr(ir_instruction::Return); }
 
-    void terminate(ir_operand value) { add_instr(ir_instruction::Return, value); }
+    void terminate(ir_operand value) {
+        ir_instruction instr = { ir_instruction::Return };
+        instr.sources.emplace_back(value);
+        add_instr(std::move(instr));
+    }
 
     void terminate(std::uint64_t block) { add_instr(ir_instruction::Branch, ir_operand{ ir_operand::Block, block }); }
 
