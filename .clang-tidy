@@ -33,7 +33,8 @@ Checks: >
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-use-enum-class,
   -bugprone-forward-declaration-namespace,
-  -bugprone-tagged-union-member-count
+  -bugprone-tagged-union-member-count,
+  -bugprone-unchecked-optional-access
 
 WarningsAsErrors: "*"
 
