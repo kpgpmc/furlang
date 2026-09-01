@@ -194,6 +194,9 @@ private:
 template <template <typename> typename Allocator>
 class thing final {
     friend class executor;
+
+    template <template <typename> class Other>
+    friend class thing;
 public:
     using allocator_type = Allocator<std::byte>; /**< Allocator type. */
 public:
@@ -206,7 +209,8 @@ public:
         thing_type type;
     };
 public:
-    thing() {}
+    thing(const allocator_type& allocator = {})
+      : m_allocator(allocator) {}
 
     /**
      * @brief Constructs a thing.
@@ -230,15 +234,15 @@ public:
      *
      * TODO: Reword the note above.
      */
-    static thing make_reference(const thing& owner) {
-        thing ref;
+    template <template <typename> class Other = Allocator>
+    static thing make_reference(const thing<Other>& owner, const allocator_type& allocator = {}) {
+        thing ref       = { allocator };
         ref.m_reference = true;
         ref.m_data      = owner.m_data;
         ref.m_type      = owner.m_type;
         ref.m_size      = owner.m_size;
         return ref;
     }
-
     /**
      * @brief Destructs a thing.
      */
@@ -247,7 +251,16 @@ public:
     /**
      * @brief Move constructor.
      */
-    thing(thing&& other) noexcept { *this = std::move(other); }
+    thing(thing&& other) noexcept
+      : m_reference(other.m_reference),
+        m_type(other.m_type),
+        m_size(other.m_size),
+        m_data(other.m_data),
+        m_allocator(other.m_allocator) {
+        other.m_type = nullptr;
+        other.m_data = nullptr;
+        other.m_size = 0;
+    }
 
     /**
      * @brief Move constructor.
@@ -266,7 +279,16 @@ public:
         return *this;
     }
 
-    thing(const thing& other) { *this = other; }
+    thing(const thing& other)
+      : m_reference(other.m_reference), m_size(other.m_size), m_allocator(other.m_allocator) {
+        if (m_reference) {
+            m_type = other.m_type;
+            m_data = other.m_data;
+            return;
+        }
+        allocate(other.type());
+        other.copy(*this);
+    }
 
     thing& operator=(const thing& other) {
         if (this == &other) return *this;
@@ -275,7 +297,38 @@ public:
 
         m_reference = other.m_reference;
         m_size      = other.m_size;
-        m_allocator = other.m_allocator;
+
+        if (m_reference) {
+            m_type = other.m_type;
+            m_data = other.m_data;
+            return *this;
+        }
+        allocate(other.type());
+        other.copy(*this);
+
+        return *this;
+    }
+
+    template <template <typename> class Other>
+    thing(const thing<Other>& other)
+      : m_reference(other.m_reference), m_size(other.m_size) {
+        if (m_reference) {
+            m_type = other.m_type;
+            m_data = other.m_data;
+            return;
+        }
+        allocate(other.type());
+        other.copy(*this);
+    }
+
+    template <template <typename> class Other>
+    thing& operator=(const thing<Other>& other) {
+        if (this == &other) return *this;
+
+        free();
+
+        m_reference = other.m_reference;
+        m_size      = other.m_size;
 
         if (m_reference) {
             m_type = other.m_type;
@@ -299,7 +352,8 @@ public:
         return res;
     }
 private:
-    void copy(thing<>& dst) const {
+    template <template <typename> class Other>
+    void copy(thing<Other>& dst) const {
         switch (m_type->type) {
         case thing_type::S8:
         case thing_type::S16:
@@ -499,7 +553,7 @@ public:
     thing at(thing_type::u64 index) const {
         if (!is(thing_type::Array)) throw bad_thing_access();
 
-        thing ref       = {};
+        thing ref       = { m_allocator };
         ref.m_reference = true;
         ref.m_size      = compute_size_na(*type().value.array.type);
 

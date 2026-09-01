@@ -3,7 +3,8 @@
 
 #include "furvm/fwd.hpp"
 #include "furvm/module.hpp" // IWYU pragma: keep
-#include "furvm/thing.hpp"  // IWYU pragma: keep
+#include "furvm/stack.hpp"
+#include "furvm/thing.hpp" // IWYU pragma: keep
 
 #include <functional>
 #include <stack>
@@ -39,6 +40,8 @@ public:
     static constexpr executor_flags STATE_FLAGS = executor_flags::JustHit;
 
     using new_frame_callback = std::function<void(executor&)>;
+
+    using stack_thing = thing<stack_allocator>;
 public:
     /**
      * @brief Executor frame.
@@ -50,8 +53,8 @@ public:
         std::size_t position;  /**< Cursor to a current instruction in the bytecode. */
         std::size_t stackBase; /**< Snapshot of the stack size before this frame. */
 
-        thing_type*          returnType; /**< Return type. */
-        std::vector<thing<>> variables;  /**< Frame variables. */
+        thing_type*              returnType; /**< Return type. */
+        std::vector<stack_thing> variables;  /**< Frame variables. */
     };
 public:
     ~executor() = default;
@@ -131,27 +134,27 @@ public:
      * @param thing Thing.
      * @return The pushed handle.
      */
-    thing<>& push_thing(thing<>&& thing);
+    stack_thing& push_thing(stack_thing&& thing);
 
-    thing<>& push_thing(const thing<>& thing);
+    stack_thing& push_thing(const stack_thing& thing);
 
     /**
      * @brief Pops a thing from the stack.
      *
      * @return A handle to the popped thing.
      */
-    thing<> pop_thing();
+    stack_thing pop_thing();
 
     /**
      * @brief Returns the top thing on the stack.
      *
      * @return A handle to the top thing.
      */
-    thing<>& top_thing();
+    stack_thing& top_thing();
 
-    const thing<>& top_thing() const;
+    const stack_thing& top_thing() const;
 
-    const std::vector<thing<>>& stack() const { return m_stack; }
+    const std::vector<stack_thing>& stack() const { return m_stack; }
 public:
     /**
      * @brief Stores a thing in a frame variable.
@@ -159,7 +162,7 @@ public:
      * @param variable Id of the variable in which the handle will be put.
      * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, const thing<>& thing);
+    void store_thing(variable_t variable, const stack_thing& thing);
 
     /**
      * @brief Stores a thing in a frame variable.
@@ -167,7 +170,7 @@ public:
      * @param variable Id of the variable in which the handle will be put.
      * @param thing Thing handle.
      */
-    void store_thing(variable_t variable, thing<>&& thing);
+    void store_thing(variable_t variable, stack_thing&& thing);
 
     /**
      * @brief Returns a thing stored in a variable.
@@ -175,9 +178,9 @@ public:
      * @param variable Id of the variable from which the handle will be fetched.
      * @return A handle stored in the variable.
      */
-    thing<>& load_thing(variable_t variable);
+    stack_thing& load_thing(variable_t variable);
 
-    const thing<>& load_thing(variable_t variable) const;
+    const stack_thing& load_thing(variable_t variable) const;
 public:
     /**
      * @brief Executes next instruction.
@@ -190,11 +193,12 @@ private:
 private:
     static bool compare_thing_types(const thing_type& lhs, const thing_type& rhs);
 private:
-    executor_flags m_flags = executor_flags::Done;
-    context*       m_context;
+    executor_flags          m_flags = executor_flags::Done;
+    context*                m_context;
+    furvm::stack<std::byte> m_stackStorage;
 
-    std::stack<frame>    m_frames;
-    std::vector<thing<>> m_stack;
+    std::stack<frame>        m_frames;
+    std::vector<stack_thing> m_stack;
 
     new_frame_callback m_newFrameCb = nullptr;
 };

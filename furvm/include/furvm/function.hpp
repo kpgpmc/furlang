@@ -1,7 +1,6 @@
 #ifndef FURVM_FUNCTION_HPP
 #define FURVM_FUNCTION_HPP
 
-#include "furlang/utility/hash.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp" // IWYU pragma: keep
 

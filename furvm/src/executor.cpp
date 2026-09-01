@@ -70,20 +70,22 @@ bool executor::compare_thing_types(const thing_type& lhs, const thing_type& rhs)
 }
 
 void executor::push_frame(const mod_h& mod, function function) {
+    m_stackStorage.push_frame();
+
     mod_h modInst = mod;
     while (function.type() == function_t::Import) {
         modInst  = m_context->at(function.imp().mod);
         function = *modInst->function_at(function.imp().function);
     }
 
-    auto                 signature = function.signature();
-    std::vector<thing<>> args;
+    auto                     signature = function.signature();
+    std::vector<stack_thing> args;
     args.reserve(signature.params.size());
     for (const auto& param : signature.params) {
         auto arg = pop_thing();
         if (compare_thing_types(arg.type(), *mod_to_thing_type(mod, *param)))
             throw std::runtime_error("function argument type mismatch");
-        args.push_back(std::move(arg));
+        args.emplace_back(std::move(arg));
     }
 
     struct thing_type* returnType = nullptr;
@@ -117,7 +119,7 @@ struct executor::frame executor::pop_frame() {
     if (m_frames.empty()) throw stack_underflow();
     struct executor::frame frame = m_frames.top();
     m_frames.pop();
-    std::optional<thing<>> returnValue;
+    std::optional<stack_thing> returnValue;
     if (frame.returnType != nullptr) {
         returnValue = pop_thing();
         if (returnValue->type() != *frame.returnType) throw std::runtime_error("function return type mismatch");
@@ -132,6 +134,8 @@ struct executor::frame executor::pop_frame() {
     }
     m_flags = m_flags & ~executor_flags::JustHit;
 
+    m_stackStorage.pop_frame();
+
     return frame;
 }
 
@@ -139,49 +143,49 @@ struct executor::frame executor::top_frame() const {
     return m_frames.top();
 }
 
-thing<>& executor::push_thing(thing<>&& thing) {
+executor::stack_thing& executor::push_thing(stack_thing&& thing) {
     return m_stack.emplace_back(std::move(thing));
 }
 
-thing<>& executor::push_thing(const thing<>& thing) {
+executor::stack_thing& executor::push_thing(const stack_thing& thing) {
     return m_stack.emplace_back(thing);
 }
 
-thing<> executor::pop_thing() {
+executor::stack_thing executor::pop_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     auto top = std::move(m_stack.back());
     m_stack.pop_back();
     return std::move(top);
 }
 
-thing<>& executor::top_thing() {
+executor::stack_thing& executor::top_thing() {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     return m_stack.back();
 }
 
-const thing<>& executor::top_thing() const {
+const executor::stack_thing& executor::top_thing() const {
     if (m_frames.top().stackBase >= m_stack.size()) throw stack_underflow();
     return m_stack.back();
 }
 
-void executor::store_thing(variable_t variable, const thing<>& thing) {
+void executor::store_thing(variable_t variable, const stack_thing& thing) {
     auto& frame = m_frames.top();
     if (frame.variables.size() <= variable) frame.variables.resize(variable + 1);
     frame.variables[variable] = thing;
 }
 
-void executor::store_thing(variable_t variable, thing<>&& thing) {
+void executor::store_thing(variable_t variable, stack_thing&& thing) {
     auto& frame = m_frames.top();
     if (frame.variables.size() <= variable) frame.variables.resize(variable + 1);
     frame.variables[variable] = std::move(thing);
 }
 
-thing<>& executor::load_thing(variable_t variable) {
+executor::stack_thing& executor::load_thing(variable_t variable) {
     auto& frame = m_frames.top();
     return frame.variables[variable];
 }
 
-const thing<>& executor::load_thing(variable_t variable) const {
+const executor::stack_thing& executor::load_thing(variable_t variable) const {
     const auto& frame = m_frames.top();
     return frame.variables[variable];
 }
@@ -204,38 +208,45 @@ void executor::step() {
     switch (instr.type) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushS8: {
-        push_thing({ (struct thing_type){ thing_type::S8 } }).get<thing_type::s8>() = instr.arg.s8;
+        push_thing({ (struct thing_type){ thing_type::S8 }, { m_stackStorage } }).get<thing_type::s8>() = instr.arg.s8;
     } break;
     case instruction_t::PushU8: {
-        push_thing({ (struct thing_type){ thing_type::U8 } }).get<thing_type::u8>() = instr.arg.u8;
+        push_thing({ (struct thing_type){ thing_type::U8 }, { m_stackStorage } }).get<thing_type::u8>() = instr.arg.u8;
     } break;
     case instruction_t::PushS16: {
-        push_thing({ (struct thing_type){ thing_type::S16 } }).get<thing_type::s16>() = instr.arg.s16;
+        push_thing({ (struct thing_type){ thing_type::S16 }, { m_stackStorage } }).get<thing_type::s16>() =
+            instr.arg.s16;
     } break;
     case instruction_t::PushU16: {
-        push_thing({ (struct thing_type){ thing_type::U16 } }).get<thing_type::u16>() = instr.arg.u16;
+        push_thing({ (struct thing_type){ thing_type::U16 }, { m_stackStorage } }).get<thing_type::u16>() =
+            instr.arg.u16;
     } break;
     case instruction_t::PushS32: {
-        push_thing({ (struct thing_type){ thing_type::S32 } }).get<thing_type::s32>() = instr.arg.s8; // NOLINT
+        push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<thing_type::s32>() =
+            instr.arg.s8; // NOLINT
     } break;
     case instruction_t::PushU32: {
-        push_thing({ (struct thing_type){ thing_type::U32 } }).get<thing_type::u32>() =
+        push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<thing_type::u32>() =
             static_cast<thing_type::u32>(instr.arg.u8);
     } break;
     case instruction_t::PushConstant: {
         auto constant = frame.mod->constant_at(instr.arg.u16);
         switch (constant.type) {
         case constant::S32:
-            push_thing({ (struct thing_type){ thing_type::S32 } }).get<thing_type::s32>() = constant.s32; // NOLINT
+            push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<thing_type::s32>() =
+                constant.s32; // NOLINT
             break;
         case constant::U32:
-            push_thing({ (struct thing_type){ thing_type::U32 } }).get<thing_type::u32>() = constant.u32; // NOLINT
+            push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<thing_type::u32>() =
+                constant.u32; // NOLINT
             break;
         case constant::S64:
-            push_thing({ (struct thing_type){ thing_type::S64 } }).get<thing_type::s64>() = constant.s64; // NOLINT
+            push_thing({ (struct thing_type){ thing_type::S64 }, { m_stackStorage } }).get<thing_type::s64>() =
+                constant.s64; // NOLINT
             break;
         case constant::U64:
-            push_thing({ (struct thing_type){ thing_type::U64 } }).get<thing_type::u64>() = constant.u64; // NOLINT
+            push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<thing_type::u64>() =
+                constant.u64; // NOLINT
             break;
         case constant::String: throw std::runtime_error("unimplemented");
         default: throw std::runtime_error("invalid constant");
@@ -246,7 +257,7 @@ void executor::step() {
         if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
             throw std::runtime_error("invalid array type");
 
-        auto& array = push_thing({ type });
+        auto& array = push_thing({ type, { m_stackStorage } });
 
         if (type.value.array.size == 0) {
             auto         sizeThing = pop_thing();
@@ -281,7 +292,7 @@ void executor::step() {
         push_thing(top_thing());
     } break;
     case instruction_t::Reference: {
-        push_thing(thing<>::make_reference(pop_thing()));
+        push_thing(stack_thing::make_reference(pop_thing(), { m_stackStorage }));
     } break;
     case instruction_t::Add: {
         auto rhs = pop_thing();
@@ -340,12 +351,13 @@ void executor::step() {
     } break;
     case instruction_t::Pointerof: {
         auto thing = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::Ptr, m_context->tt_store().at(thing.type().id) } }).get<void*>() =
-            thing.raw();
+        push_thing(
+            { (struct thing_type){ thing_type::Ptr, m_context->tt_store().at(thing.type().id) }, { m_stackStorage } })
+            .get<void*>() = thing.raw();
     } break;
     case instruction_t::Sizeof: {
         auto  thing = pop_thing();
-        auto& size  = push_thing({ (struct thing_type){ thing_type::U64 } });
+        auto& size  = push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } });
         switch (thing.type().type) {
         case thing_type::S8:
         case thing_type::S16:
@@ -368,20 +380,21 @@ void executor::step() {
         }
     } break;
     case instruction_t::Lengthof: {
-        auto thing                                                                    = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::U64 } }).get<thing_type::u64>() = thing.length();
+        auto thing = pop_thing();
+        push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<thing_type::u64>() =
+            thing.length();
     } break;
     case instruction_t::Load: {
-        push_thing(std::move(thing<>::make_reference(load_thing(instr.arg.u16))));
+        push_thing(std::move(stack_thing::make_reference(load_thing(instr.arg.u16), { m_stackStorage })));
     } break;
     case instruction_t::Store: {
         store_thing(instr.arg.u16, std::move(pop_thing()));
     } break;
     case instruction_t::LoadGlobal: {
-        push_thing(thing<>::make_reference(frame.mod->load_global_variable(instr.arg.u16)));
+        push_thing(stack_thing::make_reference(frame.mod->load_global_variable(instr.arg.u16), { m_stackStorage }));
     } break;
     case instruction_t::StoreGlobal: {
-        frame.mod->store_global_variable(instr.arg.u16, std::move(pop_thing()));
+        frame.mod->store_global_variable(instr.arg.u16, pop_thing());
     } break;
     case instruction_t::Call: {
         push_frame(frame.mod, *frame.mod->function_at(instr.arg.u16));
