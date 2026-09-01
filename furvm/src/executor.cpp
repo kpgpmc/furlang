@@ -222,6 +222,25 @@ void executor::step() {
         push_thing({ (struct thing_type){ thing_type::U32 } }).get<thing_type::u32>() =
             static_cast<thing_type::u32>(instr.arg.u8);
     } break;
+    case instruction_t::PushConstant: {
+        auto constant = frame.mod->constant_at(instr.arg.u16);
+        switch (constant.type) {
+        case constant::S32:
+            push_thing({ (struct thing_type){ thing_type::S32 } }).get<thing_type::s32>() = constant.s32; // NOLINT
+            break;
+        case constant::U32:
+            push_thing({ (struct thing_type){ thing_type::U32 } }).get<thing_type::u32>() = constant.u32; // NOLINT
+            break;
+        case constant::S64:
+            push_thing({ (struct thing_type){ thing_type::S64 } }).get<thing_type::s64>() = constant.s64; // NOLINT
+            break;
+        case constant::U64:
+            push_thing({ (struct thing_type){ thing_type::U64 } }).get<thing_type::u64>() = constant.u64; // NOLINT
+            break;
+        case constant::String: throw std::runtime_error("unimplemented");
+        default: throw std::runtime_error("invalid constant");
+        }
+    } break;
     case instruction_t::Array: {
         const auto& type = *mod_to_thing_type(frame.mod, *frame.mod->type_at(instr.arg.u32));
         if (type.type != thing_type::Array || type.value.array.type == nullptr || type.value.array.type == &type)
@@ -377,7 +396,6 @@ void executor::step() {
         pop_frame();
         if (m_frames.empty()) m_flags = m_flags | executor_flags::Done;
     } break;
-    case instruction_t::PushConstant: throw std::runtime_error("unimplemented");
     default: throw std::runtime_error("unknown instruction");
     }
 }

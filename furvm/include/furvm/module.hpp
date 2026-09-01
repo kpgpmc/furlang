@@ -3,6 +3,7 @@
 
 #include "furlang/utility/hash.hpp"
 #include "furlang/view.hpp"
+#include "furvm/constant.hpp"
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/handle.hpp"
@@ -10,8 +11,6 @@
 
 #include <functional>
 #include <istream>
-#include <limits>
-#include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -385,6 +384,13 @@ public:
         return m_globalVariables[var];
     }
 public:
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<constant, Args...>>>
+    void emplace_constant(Args&&... args) {
+        m_constants.emplace_back(std::forward<Args>(args)...);
+    }
+
+    const constant& constant_at(constant_index index) const { return m_constants.at(index); }
+public:
     template <typename Fwd, typename = std::enable_if_t<std::is_constructible_v<breakpoint, Fwd>>>
     void set_breakpoint(bytecode_pos pos, Fwd&& breakpoint) {
         m_breakpoints[pos] = std::forward<Fwd>(breakpoint);
@@ -422,6 +428,8 @@ private:
     handle_container<mod_type_h> m_types;
 
     std::vector<thing<>> m_globalVariables;
+
+    std::vector<constant> m_constants;
 
     std::unordered_map<std::string, native_function> m_nativeFunctions;
 

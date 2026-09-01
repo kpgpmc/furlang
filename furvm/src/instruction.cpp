@@ -22,7 +22,7 @@ const std::size_t instruction_argument::s_sizes[instruction_argument::Count] = {
     // U32
     1,
     // Constant:
-    4,
+    2,
     // Type:
     4,
     // Variable:

@@ -16,6 +16,19 @@ std::ostream& mod::serialize(std::ostream& os) const {
     os.write(MAGIC, sizeof(MAGIC));
     detail::serialize(os, std::uint32_t(0)); // version
 
+    detail::serialize(os, static_cast<constant_index>(m_constants.size()));
+    for (const auto& constant : m_constants) {
+        detail::serialize(os, constant.type);
+        switch (constant.type) {
+        case constant::S32:
+        case constant::U32: detail::serialize(os, constant.u32); break;
+        case constant::S64:
+        case constant::U64: detail::serialize(os, constant.u64); break;
+        case constant::String: throw std::runtime_error("unimplemented");
+        default: throw std::runtime_error("unreachable");
+        }
+    }
+
     mod_type_id typeCount = mod_type_id(m_types.cend() - m_types.cbegin());
     detail::serialize(os, typeCount);
     for (mod_type_id id = 0; id < typeCount; ++id) {
@@ -103,6 +116,22 @@ mod mod::load(std::istream& is) {
     if (version != 0) throw std::runtime_error("unsupported version");
 
     mod mod;
+
+    constant_index constantCount = 0;
+    detail::load(is, constantCount);
+    mod.m_constants.reserve(constantCount);
+    for (; constantCount != 0; --constantCount) {
+        constant constant{};
+        detail::load(is, reinterpret_cast<std::uint32_t&>(constant.type));
+        switch (constant.type) {
+        case constant::S32:
+        case constant::U32: detail::load(is, constant.u32); break;
+        case constant::S64:
+        case constant::U64: detail::load(is, constant.u64); break;
+        case constant::String: throw std::runtime_error("unimplemented");
+        default: throw std::runtime_error("unreachable");
+        }
+    }
 
     mod_type_id typeCount = 0;
     detail::load(is, typeCount);
