@@ -38,6 +38,8 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
         return { static_cast<enum thing_type::type>(type.type),
             { mod_to_thing_type(mod, *mod->type_at(type.value.array.typeId)), type.value.array.size } };
     }
+    case thing_type::Slice:
+        return { thing_type::Slice, mod_to_thing_type(mod, *mod->type_at(type.value.slice.typeId)) };
     case thing_type::Count: break;
     }
     throw std::runtime_error("invalid thing type");
@@ -64,6 +66,7 @@ bool executor::compare_thing_types(const thing_type& lhs, const thing_type& rhs)
     case thing_type::Array:
         return lhs.value.array.size == rhs.value.array.size &&
                compare_thing_types(*lhs.value.array.type, *rhs.value.array.type);
+    case thing_type::Slice: return compare_thing_types(*lhs.value.slice.type, *rhs.value.slice.type);
     case thing_type::Count: break;
     }
     throw std::runtime_error("unreachable");
@@ -83,7 +86,7 @@ void executor::push_frame(const mod_h& mod, function function) {
     args.reserve(signature.params.size());
     for (const auto& param : signature.params) {
         auto arg = pop_thing();
-        if (compare_thing_types(arg.type(), *mod_to_thing_type(mod, *param)))
+        if (!compare_thing_types(arg.type(), *mod_to_thing_type(mod, *param)))
             throw std::runtime_error("function argument type mismatch");
         args.emplace_back(std::move(arg));
     }
@@ -264,6 +267,12 @@ void executor::step() {
             std::int64_t size      = sizeThing.integer();
             array.resize(size);
         }
+    } break;
+    case instruction_t::Slice: {
+        auto length = pop_thing();
+        auto start  = pop_thing();
+        auto array  = pop_thing();
+        push_thing(array.slice(start.integer(), length.integer()));
     } break;
     case instruction_t::Get: {
         auto index = pop_thing();

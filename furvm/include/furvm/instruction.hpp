@@ -56,6 +56,7 @@ struct instruction {
         PushU32,
         PushConstant,
         Array,
+        Slice,
         Get,
         Set,
         Drop,

@@ -83,6 +83,8 @@ const instruction_argument_t instruction::s_arguments[instruction::Count] = {
     instruction_argument::Constant,
     // Array:
     instruction_argument::Type,
+    // Slice:
+    instruction_argument::None,
     // Get:
     instruction_argument::None,
     // Set:
