@@ -54,6 +54,9 @@ std::ostream& mod::serialize(std::ostream& os) const {
             detail::serialize(os, type.value.array.typeId);
             detail::serialize(os, type.value.array.size);
         } break;
+        case mod_type::Slice: {
+            detail::serialize(os, type.value.slice.typeId);
+        } break;
         case mod_type::Import: {
             detail::serialize(os, type.value.imprt.modId);
             detail::serialize(os, type.value.imprt.typeId);
@@ -168,6 +171,11 @@ mod mod::load(std::istream& is) {
             std::size_t size = 0;
             detail::load(is, size);
             mod.emplace_type(id, typeId, size).dispatch();
+        } break;
+        case mod_type::Slice: {
+            mod_type_id typeId = 0;
+            detail::load(is, typeId);
+            mod.emplace_type(id, mod_type::Slice, typeId).dispatch();
         } break;
         case mod_type::Import: {
             std::string modName;

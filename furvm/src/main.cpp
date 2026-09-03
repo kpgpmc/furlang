@@ -30,6 +30,14 @@ static void print_thing(const furvm::thing<>& thing) {
         }
         std::cout << " }";
         break;
+    case thing_type::Slice:
+        std::cout << "Slice [" << thing.length() << "] { ";
+        for (thing_type::u64 i = 0; i < thing.length(); ++i) {
+            if (i > 0) std::cout << ", ";
+            print_thing(thing.at(i));
+        }
+        std::cout << " }";
+        break;
     default: std::cerr << "{Type not recognized}";
     }
 }

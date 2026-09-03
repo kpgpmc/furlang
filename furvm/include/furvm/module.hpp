@@ -27,6 +27,10 @@ struct mod_type {
         std::size_t size;
     };
 
+    struct slice_value {
+        mod_type_id typeId;
+    };
+
     struct import_value {
         mod_id      modId;
         mod_type_id typeId;
@@ -44,6 +48,7 @@ struct mod_type {
         Ptr,
         Ref,
         Array,
+        Slice,
 
         Import,
         Count,
@@ -52,6 +57,7 @@ struct mod_type {
         std::nullptr_t null = nullptr;
         mod_type_id    typeRef;
         array_value    array;
+        slice_value    slice;
         import_value   imprt;
 
         value() = default;
@@ -96,6 +102,7 @@ struct mod_type {
     ~mod_type() {
         switch (type) {
         case Array: value.array.~array_value(); break;
+        case Slice: value.slice.~slice_value(); break;
         case Import: value.imprt.~import_value(); break;
         default: break;
         }
@@ -105,6 +112,7 @@ struct mod_type {
       : type(other.type) {
         switch (type) {
         case Array: new (&value.array) array_value(other.value.array); break;
+        case Slice: new (&value.slice) slice_value(other.value.slice); break;
         case Import: new (&value.imprt) import_value(std::move(other.value.imprt)); break;
         default: break;
         }
@@ -116,6 +124,7 @@ struct mod_type {
         type = other.type;
         switch (type) {
         case Array: new (&value.array) array_value(other.value.array); break;
+        case Slice: new (&value.slice) slice_value(other.value.slice); break;
         case Import: new (&value.imprt) import_value(std::move(other.value.imprt)); break;
         default: break;
         }
@@ -127,6 +136,7 @@ struct mod_type {
       : type(other.type) {
         switch (type) {
         case Array: new (&value.array) array_value(other.value.array); break;
+        case Slice: new (&value.slice) slice_value(other.value.slice); break;
         case Import: new (&value.imprt) import_value(other.value.imprt); break;
         default: break;
         }
@@ -137,6 +147,7 @@ struct mod_type {
         type = other.type;
         switch (type) {
         case Array: new (&value.array) array_value(other.value.array); break;
+        case Slice: new (&value.slice) slice_value(other.value.slice); break;
         case Import: new (&value.imprt) import_value(other.value.imprt); break;
         default: break;
         }

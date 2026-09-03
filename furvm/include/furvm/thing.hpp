@@ -35,6 +35,10 @@ struct thing_type {
         std::size_t size;
     };
 
+    struct slice_value {
+        thing_type* type;
+    };
+
     enum type { // NOLINT
         S8 = 0,
         S16,
@@ -47,6 +51,7 @@ struct thing_type {
         Ptr,
         Ref,
         Array,
+        Slice,
 
         Count,
     } type = Count;
@@ -54,6 +59,7 @@ struct thing_type {
         std::nullptr_t null = nullptr;
         thing_type*    typeRef;
         array_value    array;
+        slice_value    slice;
 
         value() = default;
 
@@ -85,6 +91,7 @@ struct thing_type {
         case Ptr:
         case Ref: return *value.typeRef == *other.value.typeRef;
         case Array: return *value.array.type == *other.value.array.type && value.array.size == other.value.array.size;
+        case Slice: return *value.slice.type == *other.value.slice.type;
         case Count: break;
         }
         return false;
@@ -104,7 +111,8 @@ struct thing_type {
         case U64: return true;
         case Ptr:
         case Ref:
-        case Array: return false;
+        case Array:
+        case Slice: return false;
         case Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -122,7 +130,8 @@ struct thing_type {
         case thing_type::U64: return sizeof(u64);
         case Ptr:
         case Ref:
-        case Array: return 0;
+        case Array:
+        case Slice: return 0;
         case Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -150,6 +159,7 @@ struct thing_type_hash {
             seed = furlang::utility::hash_combine(seed,
                 std::hash<decltype(type.value.array.size)>{}(type.value.array.size));
             return seed;
+        case thing_type::Slice: return furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.slice.type));
         case thing_type::Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -203,6 +213,11 @@ public:
     struct dynamic_array {
         std::size_t size;
         std::byte*  data;
+    };
+
+    struct slice {
+        std::size_t      length;
+        std::byte* data;
     };
 
     struct header {
@@ -363,7 +378,8 @@ private:
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64:
-        case thing_type::Ptr: std::memcpy(dst.m_data, m_data, m_size); return;
+        case thing_type::Ptr:
+        case thing_type::Slice: std::memcpy(dst.m_data, m_data, m_size); return;
         case thing_type::Array: copy_list(*m_type, dst.m_data, m_data); return;
         case thing_type::Ref: // TODO: Implement arrays of references (I think they're possible).
         case thing_type::Count: break;
@@ -551,31 +567,69 @@ public:
     }
 
     thing at(thing_type::u64 index) const {
-        if (!is(thing_type::Array)) throw bad_thing_access();
-
         thing ref       = { m_allocator };
         ref.m_reference = true;
-        ref.m_size      = compute_size_na(*type().value.array.type);
+        ref.m_size      = compute_size_na(*(ref.m_type = &inner_type()));
 
-        if (type().value.array.size == 0) {
-            auto& array = get<dynamic_array>();
-            if (index < 0 || index >= array.size) throw std::out_of_range("index out of range");
+        switch (type().type) {
+        case thing_type::Array: {
+            if (type().value.array.size == 0) {
+                auto& array = get<dynamic_array>();
+                if (index < 0 || index >= array.size) throw std::out_of_range("index out of range");
 
-            ref.m_type = type().value.array.type;
-            ref.m_data = array.data + (index * ref.m_size);
+                ref.m_data = array.data + (index * ref.m_size);
+                return ref;
+            }
+
+            if (index < 0 || index >= type().value.array.size) throw std::out_of_range("index out of range");
+            ref.m_data = m_data + (index * ref.m_size);
             return ref;
         }
+        case thing_type::Slice: {
+                                    const auto& slice = get<struct slice>();
+            if (index < 0 || index >= slice.length) throw std::out_of_range("index out of range");
+            ref.m_data = slice.data + (index * ref.m_size);
+            return ref;
+        }
+        default: throw bad_thing_access();
+        }
+    }
 
-        if (index < 0 || index >= type().value.array.size) throw std::out_of_range("index out of range");
+    thing slice(thing_type::u64 begin, thing_type::u64 len) const {
+        auto& inner = inner_type();
 
-        ref.m_type = type().value.array.type;
-        ref.m_data = m_data + (index * ref.m_size);
-        return ref;
+        thing_type sliceType;
+        sliceType.type             = thing_type::Slice;
+        sliceType.value.slice.type = &inner;
+
+        thing slice = { sliceType, m_allocator };
+        auto& data  = slice.get<struct slice>();
+
+        if (begin >= length()) throw std::out_of_range("begin index out of range");
+        len = std::min(len, length() - begin);
+
+        switch (type().type) {
+        case thing_type::Array: {
+            data.data   = ((type().value.array.size != 0) ? m_data : get<dynamic_array>().data) ;
+        } break;
+        case thing_type::Slice: {
+            data.data   = get<struct slice>().data ;
+        } break;
+        default: throw bad_thing_access();
+        }
+
+        data.data += (compute_size_na(inner) * begin);
+            data.length = len;
+            return slice;
     }
 
     thing_type::u64 length() const {
-        if (!is(thing_type::Array)) throw bad_thing_access();
-        return type().value.array.size == 0 ? get<dynamic_array>().size : type().value.array.size;
+        switch (type().type) {
+        case thing_type::Array:
+            return type().value.array.size == 0 ? get<dynamic_array>().size : type().value.array.size;
+        case thing_type::Slice: return get<struct slice>().length;
+        default: throw bad_thing_access();
+        }
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
@@ -603,7 +657,8 @@ public:
         case thing_type::U64: std::memcpy(m_data, rhs.m_data, m_size); return;
         case thing_type::Ptr:
         case thing_type::Ref:
-        case thing_type::Array: throw std::runtime_error("unimplemented");
+        case thing_type::Array:
+        case thing_type::Slice: throw std::runtime_error("unimplemented");
         case thing_type::Count: break;
         }
         throw std::runtime_error("unreachable");
@@ -643,7 +698,8 @@ private:
         case thing_type::U32:
         case thing_type::U64:
         case thing_type::Ptr:
-        case thing_type::Ref: std::memcpy(dst, src, size * elementSize); return;
+        case thing_type::Ref:
+        case thing_type::Slice: std::memcpy(dst, src, size * elementSize); return;
         case thing_type::Array:
             for (std::size_t i = 0; i < size; ++i) {
                 copy_list(*innerType.value.array.type,
@@ -670,6 +726,7 @@ private:
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(dynamic_array)
                                               : compute_size_na(*type.value.array.type) * type.value.array.size;
+        case thing_type::Slice: return sizeof(struct slice);
         case thing_type::Ref:
         case thing_type::Count: break;
         }
@@ -804,6 +861,7 @@ private:
             case thing_type::Ptr: // TODO: Pointer arithmetics
             case thing_type::Ref:
             case thing_type::Array:
+            case thing_type::Slice:
             case thing_type::Count: break;
             }
             throw std::runtime_error("unreachable");
@@ -827,6 +885,14 @@ private:
         if (!m_reference && m_data != nullptr) m_allocator.deallocate(m_data - sizeof(header), m_size + sizeof(header));
         m_data = nullptr;
         m_type = nullptr;
+    }
+
+    thing_type& inner_type() const {
+        switch (type().type) {
+        case thing_type::Array: return *type().value.array.type;
+        case thing_type::Slice: return *type().value.slice.type;
+        default: throw bad_thing_access();
+        }
     }
 private:
     // A flag indicating whether the thing instance owns the data, or not.
