@@ -1,6 +1,7 @@
 type arr = array $s8 10
+type arrSlice = slice $s8
 
-func println ref $arr = native println
+func println $arrSlice = native println
 
 public func main = #main
 main:
@@ -30,5 +31,8 @@ body:
 end:
     drop
     load %0
-    call ref $arr println
+    push $u32 0
+    load %1
+    slice
+    call $arrSlice println
     ret

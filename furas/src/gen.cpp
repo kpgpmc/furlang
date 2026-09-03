@@ -4,6 +4,7 @@
 #include "furvm/function.hpp"
 #include "furvm/fwd.hpp"
 #include "furvm/instruction.hpp"
+#include "furvm/module.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -24,6 +25,7 @@ namespace {
 // NOLINTBEGIN
 std::unordered_map<enum token::type, furvm::instruction_t> instructions = {
     { token::Array, furvm::instruction_t::Array },
+    { token::Slice, furvm::instruction_t::Slice },
     { token::Get, furvm::instruction_t::Get },
     { token::Set, furvm::instruction_t::Set },
     { token::Drop, furvm::instruction_t::Drop },
@@ -77,6 +79,7 @@ const char* token_type(enum token::type type) {
     case token::Allocate: return "allocate";
     case token::Push: return "push";
     case token::Array: return "array";
+    case token::Slice: return "slice";
     case token::Get: return "get";
     case token::Set: return "set";
     case token::Drop: return "drop";
@@ -160,6 +163,8 @@ struct mod_context {
         case furvm::mod_type::Array:
             return lhs->value.array.size == rhs->value.array.size &&
                    compare_types(mod.type_at(lhs->value.array.typeId), mod.type_at(rhs->value.array.typeId));
+        case furvm::mod_type::Slice:
+            return compare_types(mod.type_at(lhs->value.slice.typeId), mod.type_at(rhs->value.slice.typeId));
         case furvm::mod_type::Import:
             return lhs->value.imprt.modId == rhs->value.imprt.modId &&
                    lhs->value.imprt.typeId == rhs->value.imprt.typeId;
@@ -251,6 +256,15 @@ struct mod_context {
             if (!size) throw std::runtime_error("error");
 
             return mod.emplace_type(inner.id(), size->value.uint);
+        }
+        case token::Slice: {
+            auto result = next_token(lexer);
+
+            if (!result) throw std::runtime_error("error");
+
+            auto inner = eat_type(lexer, result.value);
+
+            return mod.emplace_type(furvm::mod_type::Slice, inner.id());
         }
         default: throw std::runtime_error("error");
         }
@@ -463,6 +477,7 @@ struct mod_context {
         }
 
         case token::Array:
+        case token::Slice:
         case token::Get:
         case token::Set:
         case token::Drop:

@@ -43,6 +43,7 @@ token_r lexer::next_token() {
 
         { "push", token::Push },
         { "array", token::Array },
+        { "slice", token::Slice },
         { "get", token::Get },
         { "set", token::Set },
         { "drop", token::Drop },

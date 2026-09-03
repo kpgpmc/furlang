@@ -34,6 +34,7 @@ struct token {
         // Instructions
         Push,
         Array,
+        Slice,
         Get,
         Set,
         Drop,
