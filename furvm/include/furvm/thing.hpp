@@ -427,6 +427,12 @@ public:
         if (!detail::thing_traits<T>{}(*m_type)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
+
+    template <typename T>
+    void set(T&& newValue) {
+        if (!detail::thing_traits<T>{}(*m_type)) throw bad_thing_access();
+        *std::launder(reinterpret_cast<T*>(m_data)) = std::forward<T>(newValue);
+    }
 public:
     /**
      * @brief Returns a sum of two things.

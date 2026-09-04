@@ -84,6 +84,9 @@ TEST(ThingOps, Access) {
     EXPECT_THROW(thing.get<furvm::s8>(), furvm::bad_thing_access);
     EXPECT_THROW(thing.get<furvm::s32>(), furvm::bad_thing_access);
     EXPECT_THROW(thing.get<void*>(), furvm::bad_thing_access);
+
+    EXPECT_NO_THROW(thing.set<furvm::u8>(67)); // He talkin' 'bout sum 6-7 while I want sixty ni-
+    EXPECT_THROW(thing.set<furvm::s32>(1337), furvm::bad_thing_access);
 }
 
 } // namespace
