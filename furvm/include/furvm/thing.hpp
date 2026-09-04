@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstring>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <new>
 #include <stdexcept>
@@ -216,13 +217,107 @@ public:
     };
 
     struct slice {
-        std::size_t      length;
-        std::byte* data;
+        std::size_t length;
+        std::byte*  data;
     };
 
     struct header {
         thing_type type;
     };
+private:
+    template <bool Const>
+    class generic_iterator {
+        using owner_type = std::conditional_t<Const, const thing, thing>;
+        using data_type  = std::byte;
+    public:
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = thing;
+        using pointer           = std::conditional_t<Const, const value_type*, value_type*>;
+        using reference         = std::conditional_t<Const, const value_type&, value_type&>;
+        using iterator_category = std::random_access_iterator_tag;
+    public:
+        generic_iterator() = default;
+
+        generic_iterator(owner_type* owner, data_type* ptr)
+          : m_owner(owner), m_ptr(ptr) {
+            fill();
+        }
+    public:
+        reference operator*() { return m_thing; }
+
+        value_type operator*() const { return m_thing.clone(); }
+
+        reference operator[](difference_type n) { return *(*this + n); }
+
+        pointer operator->() { return &m_thing; }
+
+        generic_iterator& operator+=(difference_type n) {
+            m_ptr += n * step_size();
+            fill();
+            return *this;
+        }
+
+        generic_iterator& operator-=(difference_type n) {
+            m_ptr -= n * step_size();
+            fill();
+            return *this;
+        }
+
+        generic_iterator operator+(difference_type n) const { return { m_owner, m_ptr + (n * step_size()) }; }
+
+        friend generic_iterator operator+(difference_type n, const generic_iterator& it) {
+            return { it.m_owner, it.m_ptr + (n * it.step_size()) };
+        }
+
+        generic_iterator operator-(difference_type n) const { return { m_owner, m_ptr - (n * step_size()) }; }
+
+        difference_type operator-(const generic_iterator& other) const { return (m_ptr - other.m_ptr) / step_size(); }
+
+        generic_iterator& operator++() {
+            m_ptr += step_size();
+            fill();
+            return *this;
+        }
+
+        generic_iterator operator++(int) { return { m_owner, m_ptr + step_size() }; }
+
+        generic_iterator& operator--() {
+            m_ptr -= step_size();
+            fill();
+            return *this;
+        }
+
+        generic_iterator operator--(int) { return { m_owner, m_ptr - step_size() }; }
+
+        bool operator==(const generic_iterator& other) const {
+            return m_owner == other.m_owner && m_ptr == other.m_ptr;
+        }
+
+        bool operator!=(const generic_iterator& other) const {
+            return m_owner != other.m_owner || m_ptr != other.m_ptr;
+        }
+
+        bool operator<(const generic_iterator& other) const { return other.m_ptr < m_ptr; }
+        bool operator>(const generic_iterator& other) const { return other.m_ptr > m_ptr; }
+        bool operator<=(const generic_iterator& other) const { return other.m_ptr <= m_ptr; }
+        bool operator>=(const generic_iterator& other) const { return other.m_ptr >= m_ptr; }
+    private:
+        difference_type step_size() const { return thing::compute_size_na(m_owner->inner_type()); }
+
+        void fill() {
+            m_thing.m_reference = true;
+            m_thing.m_data      = m_ptr;
+            m_thing.m_type      = &m_owner->inner_type();
+            m_thing.m_size      = compute_size_na(m_owner->inner_type());
+        }
+    private:
+        owner_type* m_owner = nullptr;
+        data_type*  m_ptr   = nullptr;
+        thing       m_thing;
+    };
+
+    using iterator       = generic_iterator<false>;
+    using const_iterator = generic_iterator<true>;
 public:
     thing(const allocator_type& allocator = {})
       : m_allocator(allocator) {}
@@ -586,7 +681,7 @@ public:
             return ref;
         }
         case thing_type::Slice: {
-                                    const auto& slice = get<struct slice>();
+            const auto& slice = get<struct slice>();
             if (index < 0 || index >= slice.length) throw std::out_of_range("index out of range");
             ref.m_data = slice.data + (index * ref.m_size);
             return ref;
@@ -610,17 +705,17 @@ public:
 
         switch (type().type) {
         case thing_type::Array: {
-            data.data   = ((type().value.array.size != 0) ? m_data : get<dynamic_array>().data) ;
+            data.data = ((type().value.array.size != 0) ? m_data : get<dynamic_array>().data);
         } break;
         case thing_type::Slice: {
-            data.data   = get<struct slice>().data ;
+            data.data = get<struct slice>().data;
         } break;
         default: throw bad_thing_access();
         }
 
-        data.data += (compute_size_na(inner) * begin);
-            data.length = len;
-            return slice;
+        data.data  += (compute_size_na(inner) * begin);
+        data.length = len;
+        return slice;
     }
 
     thing_type::u64 length() const {
@@ -663,6 +758,30 @@ public:
         }
         throw std::runtime_error("unreachable");
     }
+public:
+    iterator begin() {
+        switch (type().type) {
+        case thing_type::Array: return { this, (type().value.array.size == 0) ? get<dynamic_array>().data : m_data };
+        case thing_type::Slice: return { this, get<struct slice>().data };
+        default: throw bad_thing_access();
+        }
+    }
+
+    iterator end() { return begin() + length(); }
+
+    const_iterator cbegin() const {
+        switch (type().type) {
+        case thing_type::Array: return { this, (type().value.array.size == 0) ? get<dynamic_array>().data : m_data };
+        case thing_type::Slice: return { this, get<struct slice>().data };
+        default: throw bad_thing_access();
+        }
+    }
+
+    const_iterator cend() const { return cbegin() + length(); }
+
+    const_iterator begin() const { return cbegin(); }
+
+    const_iterator end() const { return cend(); }
 private:
     static void copy_list(const thing_type& arrayType, void* dst, const void* src) {
         if (arrayType.type != thing_type::Array || arrayType.value.array.type == nullptr)

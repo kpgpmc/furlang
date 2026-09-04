@@ -54,4 +54,27 @@ TEST(ThingOps, Slice) {
     }
 }
 
+TEST(ThingOps, Iterators) {
+    furvm::thing_type innerType = { furvm::thing_type::U32 };
+
+    static constexpr std::size_t                                LENGTH = 10;
+    static constexpr std::array<furvm::thing_type::u32, LENGTH> values = { 0, 1, 2, 3, 4, 5, 6, 7, 6, 7 };
+
+    furvm::thing array{ furvm::thing_type{ furvm::thing_type::Array, { &innerType, LENGTH } } };
+    EXPECT_EQ(array.length(), LENGTH);
+    for (std::size_t i = 0; i < LENGTH; ++i) {
+        auto el                          = array.at(i);
+        el.get<furvm::thing_type::u32>() = values[i];
+        EXPECT_EQ(array.at(i).integer(), values[i]);
+    }
+
+    std::size_t itCount = 0;
+    for (auto it = array.begin(); it != array.end(); ++it, ++itCount) {
+        auto idx = it - array.begin();
+        ASSERT_EQ(idx, itCount);
+        ASSERT_LT(idx, LENGTH);
+        EXPECT_EQ(it->integer(), values[idx]);
+    }
+}
+
 } // namespace
