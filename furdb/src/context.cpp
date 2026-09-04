@@ -49,6 +49,8 @@ void context::print_instruction() const {
         "push",
         // Array
         "array",
+        // Slice
+        "slice",
         // Get
         "get",
         // Set

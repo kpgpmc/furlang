@@ -107,6 +107,11 @@ static void print_type(const furvm::thing_type& type) {
             std::cout << type.value.array.size;
         std::cout << ")";
         break;
+    case furvm::thing_type::Slice:
+        std::cout << "slice(";
+        print_type(*type.value.slice.type);
+        std::cout << ")";
+        break;
     case furvm::thing_type::Count: break;
     }
 }
@@ -125,12 +130,17 @@ static void print_thing(const furvm::thing<>& thing) {
     case furvm::thing_type::U32: std::cout << thing.get<furvm::thing_type::u32>(); break;
     case furvm::thing_type::U64: std::cout << thing.get<furvm::thing_type::u64>(); break;
     case furvm::thing_type::Ptr: std::cout << thing.get<const void*>(); break;
-    case furvm::thing_type::Array: {
-        if (thing.type().value.array.size == 0) std::cout << thing.length();
-        std::cout << "{ ";
-        for (std::size_t i = 0; i < thing.length(); ++i) {
-            if (i > 0) std::cout << ", ";
-            print_thing(thing.at(i));
+    case furvm::thing_type::Array:
+    case furvm::thing_type::Slice: {
+        if (thing.length() == 0) {
+            std::cout << "{}";
+            break;
+        }
+
+        std::cout << '(' << thing.length() << ") { ";
+        for (const auto& el : thing) {
+            print_thing(el);
+            std::cout << ", ";
         }
         std::cout << " }";
     } break;
