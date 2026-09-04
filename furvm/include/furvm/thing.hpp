@@ -96,11 +96,17 @@ public:
     struct dynamic_array {
         std::size_t size;
         std::byte*  data;
+
+        static bool matches(const thing_type& type) {
+            return type.type == thing_type::Array && type.value.array.size == 0;
+        }
     };
 
     struct slice {
         std::size_t length;
         std::byte*  data;
+
+        static bool matches(const thing_type& type) { return type.type == thing_type::Slice; }
     };
 
     struct header {
@@ -407,7 +413,7 @@ public:
      */
     template <typename T>
     T& get() {
-        if (compute_size_na(*m_type) != sizeof(T)) throw bad_thing_access();
+        if (!detail::thing_traits<T>{}(*m_type)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<T*>(m_data));
     }
 
@@ -418,7 +424,7 @@ public:
      */
     template <typename T>
     const T& get() const {
-        if (compute_size_na(*m_type) != sizeof(T)) throw bad_thing_access();
+        if (!detail::thing_traits<T>{}(*m_type)) throw bad_thing_access();
         return *std::launder(reinterpret_cast<const T*>(m_data));
     }
 public:

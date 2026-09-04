@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 namespace furvm {
 
@@ -126,6 +128,76 @@ struct thing_type {
         throw std::runtime_error("unreachable");
     }
 };
+
+namespace detail {
+
+template <typename T, typename = void>
+struct overrides_thing_type_matching : std::false_type {};
+
+template <typename T>
+struct overrides_thing_type_matching<T, std::void_t<decltype(T::matches(std::declval<const thing_type&>()))>>
+  : std::is_same<decltype(T::matches(std::declval<const thing_type&>())), bool> {};
+
+template <typename T>
+struct thing_traits {
+    bool operator()(const thing_type& type) const {
+        if constexpr (overrides_thing_type_matching<T>::value) {
+            return T::matches(type);
+        } else {
+            return false;
+        }
+    }
+};
+
+template <>
+struct thing_traits<s8> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::S8; }
+};
+
+template <>
+struct thing_traits<u8> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::U8; }
+};
+
+template <>
+struct thing_traits<s16> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::S16; }
+};
+
+template <>
+struct thing_traits<u16> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::U16; }
+};
+
+template <>
+struct thing_traits<s32> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::S32; }
+};
+
+template <>
+struct thing_traits<u32> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::U32; }
+};
+
+template <>
+struct thing_traits<s64> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::S64; }
+};
+
+template <>
+struct thing_traits<u64> {
+    bool operator()(const thing_type& type) const { return type.type == thing_type::U64; }
+};
+
+template <typename Inner>
+struct thing_traits<Inner*> {
+    bool operator()(const thing_type& type) const {
+        return (type.type == thing_type::Ptr || type.type == thing_type::Ref) &&
+               thing_traits<Inner>{}(*type.value.typeRef);
+    }
+};
+
+} // namespace detail
 
 } // namespace furvm
 

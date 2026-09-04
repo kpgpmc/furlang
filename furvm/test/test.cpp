@@ -1,3 +1,4 @@
+#include "furvm/exceptions.hpp"
 #include "furvm/furvm.hpp"
 #include "furvm/thing.hpp"
 
@@ -75,6 +76,14 @@ TEST(ThingOps, Iterators) {
         ASSERT_LT(idx, LENGTH);
         EXPECT_EQ(it->integer(), values[idx]);
     }
+}
+
+TEST(ThingOps, Access) {
+    furvm::thing thing{ furvm::thing_type{ furvm::thing_type::U8 } };
+    EXPECT_NO_THROW(thing.get<furvm::u8>());
+    EXPECT_THROW(thing.get<furvm::s8>(), furvm::bad_thing_access);
+    EXPECT_THROW(thing.get<furvm::s32>(), furvm::bad_thing_access);
+    EXPECT_THROW(thing.get<void*>(), furvm::bad_thing_access);
 }
 
 } // namespace
