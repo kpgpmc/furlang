@@ -211,44 +211,41 @@ void executor::step() {
     switch (instr.type) {
     case instruction_t::NoOperation: break;
     case instruction_t::PushS8: {
-        push_thing({ (struct thing_type){ thing_type::S8 }, { m_stackStorage } }).get<thing_type::s8>() = instr.arg.s8;
+        push_thing({ (struct thing_type){ thing_type::S8 }, { m_stackStorage } }).get<s8>() = instr.arg.s8;
     } break;
     case instruction_t::PushU8: {
-        push_thing({ (struct thing_type){ thing_type::U8 }, { m_stackStorage } }).get<thing_type::u8>() = instr.arg.u8;
+        push_thing({ (struct thing_type){ thing_type::U8 }, { m_stackStorage } }).get<u8>() = instr.arg.u8;
     } break;
     case instruction_t::PushS16: {
-        push_thing({ (struct thing_type){ thing_type::S16 }, { m_stackStorage } }).get<thing_type::s16>() =
-            instr.arg.s16;
+        push_thing({ (struct thing_type){ thing_type::S16 }, { m_stackStorage } }).get<s16>() = instr.arg.s16;
     } break;
     case instruction_t::PushU16: {
-        push_thing({ (struct thing_type){ thing_type::U16 }, { m_stackStorage } }).get<thing_type::u16>() =
-            instr.arg.u16;
+        push_thing({ (struct thing_type){ thing_type::U16 }, { m_stackStorage } }).get<u16>() = instr.arg.u16;
     } break;
     case instruction_t::PushS32: {
-        push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<thing_type::s32>() =
-            instr.arg.s8; // NOLINT
+        push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<s32>() = instr.arg.s8; // NOLINT
     } break;
     case instruction_t::PushU32: {
-        push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<thing_type::u32>() =
-            static_cast<thing_type::u32>(instr.arg.u8);
+        push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<u32>() =
+            static_cast<u32>(instr.arg.u8);
     } break;
     case instruction_t::PushConstant: {
         auto constant = frame.mod->constant_at(instr.arg.u16);
         switch (constant.type) {
         case constant::S32:
-            push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<thing_type::s32>() =
+            push_thing({ (struct thing_type){ thing_type::S32 }, { m_stackStorage } }).get<s32>() =
                 constant.s32; // NOLINT
             break;
         case constant::U32:
-            push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<thing_type::u32>() =
+            push_thing({ (struct thing_type){ thing_type::U32 }, { m_stackStorage } }).get<u32>() =
                 constant.u32; // NOLINT
             break;
         case constant::S64:
-            push_thing({ (struct thing_type){ thing_type::S64 }, { m_stackStorage } }).get<thing_type::s64>() =
+            push_thing({ (struct thing_type){ thing_type::S64 }, { m_stackStorage } }).get<s64>() =
                 constant.s64; // NOLINT
             break;
         case constant::U64:
-            push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<thing_type::u64>() =
+            push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<u64>() =
                 constant.u64; // NOLINT
             break;
         case constant::String: throw std::runtime_error("unimplemented");
@@ -375,23 +372,20 @@ void executor::step() {
         case thing_type::U8:
         case thing_type::U16:
         case thing_type::U32:
-        case thing_type::U64:
-            size.get<thing_type::u64>() = static_cast<thing_type::u64>(thing_type::primitive_size(thing.type().type));
-            break;
-        case thing_type::Ptr: size.get<thing_type::u64>() = static_cast<thing_type::u64>(sizeof(void*)); break;
+        case thing_type::U64: size.get<u64>() = static_cast<u64>(thing_type::primitive_size(thing.type().type)); break;
+        case thing_type::Ptr: size.get<u64>() = static_cast<u64>(sizeof(void*)); break;
         case thing_type::Array:
             /* TODO: Return actual memory size of the array
              * By the memory size I mean the length times sizeof single element.
              */
-            size.get<thing_type::u64>() = thing.length();
+            size.get<u64>() = thing.length();
             break;
         default: throw std::runtime_error("unreachable");
         }
     } break;
     case instruction_t::Lengthof: {
-        auto thing = pop_thing();
-        push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<thing_type::u64>() =
-            thing.length();
+        auto thing                                                                            = pop_thing();
+        push_thing({ (struct thing_type){ thing_type::U64 }, { m_stackStorage } }).get<u64>() = thing.length();
     } break;
     case instruction_t::Load: {
         push_thing(std::move(stack_thing::make_reference(load_thing(instr.arg.u16), { m_stackStorage })));

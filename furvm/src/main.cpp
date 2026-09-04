@@ -14,17 +14,17 @@ static void print_thing(const furvm::thing<>& thing) {
     using namespace furvm;
 
     switch (thing.type().type) {
-    case thing_type::S8: std::cout << thing.cast_to<thing_type::s16>(); break;
-    case thing_type::S16: std::cout << thing.get<thing_type::s16>(); break;
-    case thing_type::S32: std::cout << thing.get<thing_type::s32>(); break;
-    case thing_type::S64: std::cout << thing.get<thing_type::s64>(); break;
-    case thing_type::U8: std::cout << thing.get<thing_type::u8>(); break;
-    case thing_type::U16: std::cout << thing.get<thing_type::u16>(); break;
-    case thing_type::U32: std::cout << thing.get<thing_type::u32>(); break;
-    case thing_type::U64: std::cout << thing.get<thing_type::u64>(); break;
+    case thing_type::S8: std::cout << thing.cast_to<s16>(); break;
+    case thing_type::S16: std::cout << thing.get<s16>(); break;
+    case thing_type::S32: std::cout << thing.get<s32>(); break;
+    case thing_type::S64: std::cout << thing.get<s64>(); break;
+    case thing_type::U8: std::cout << thing.get<u8>(); break;
+    case thing_type::U16: std::cout << thing.get<u16>(); break;
+    case thing_type::U32: std::cout << thing.get<u32>(); break;
+    case thing_type::U64: std::cout << thing.get<u64>(); break;
     case thing_type::Array:
         std::cout << "{ ";
-        for (thing_type::u64 i = 0; i < thing.length(); ++i) {
+        for (u64 i = 0; i < thing.length(); ++i) {
             if (i > 0) std::cout << ", ";
             print_thing(thing.at(i));
         }
@@ -32,7 +32,7 @@ static void print_thing(const furvm::thing<>& thing) {
         break;
     case thing_type::Slice:
         std::cout << "Slice [" << thing.length() << "] { ";
-        for (thing_type::u64 i = 0; i < thing.length(); ++i) {
+        for (u64 i = 0; i < thing.length(); ++i) {
             if (i > 0) std::cout << ", ";
             print_thing(thing.at(i));
         }

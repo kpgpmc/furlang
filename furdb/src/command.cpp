@@ -121,14 +121,14 @@ static void print_thing(const furvm::thing<>& thing) {
     print_type(thing.type());
     std::cout << ") ";
     switch (thing.type().type) {
-    case furvm::thing_type::S8: std::cout << std::to_string(thing.get<furvm::thing_type::s8>()); break;
-    case furvm::thing_type::S16: std::cout << thing.get<furvm::thing_type::s16>(); break;
-    case furvm::thing_type::S32: std::cout << thing.get<furvm::thing_type::s32>(); break;
-    case furvm::thing_type::S64: std::cout << thing.get<furvm::thing_type::s64>(); break;
-    case furvm::thing_type::U8: std::cout << std::to_string(thing.get<furvm::thing_type::u8>()); break;
-    case furvm::thing_type::U16: std::cout << thing.get<furvm::thing_type::u16>(); break;
-    case furvm::thing_type::U32: std::cout << thing.get<furvm::thing_type::u32>(); break;
-    case furvm::thing_type::U64: std::cout << thing.get<furvm::thing_type::u64>(); break;
+    case furvm::thing_type::S8: std::cout << std::to_string(thing.get<furvm::s8>()); break;
+    case furvm::thing_type::S16: std::cout << thing.get<furvm::s16>(); break;
+    case furvm::thing_type::S32: std::cout << thing.get<furvm::s32>(); break;
+    case furvm::thing_type::S64: std::cout << thing.get<furvm::s64>(); break;
+    case furvm::thing_type::U8: std::cout << std::to_string(thing.get<furvm::u8>()); break;
+    case furvm::thing_type::U16: std::cout << thing.get<furvm::u16>(); break;
+    case furvm::thing_type::U32: std::cout << thing.get<furvm::u32>(); break;
+    case furvm::thing_type::U64: std::cout << thing.get<furvm::u64>(); break;
     case furvm::thing_type::Ptr: std::cout << thing.get<const void*>(); break;
     case furvm::thing_type::Array:
     case furvm::thing_type::Slice: {
