@@ -34,7 +34,8 @@ struct thing_type_hash {
         case thing_type::U8:
         case thing_type::U16:
         case thing_type::U32:
-        case thing_type::U64: return seed;
+        case thing_type::U64:
+        case thing_type::String: return seed;
         case thing_type::Ptr:
         case thing_type::Ref: return furlang::utility::hash_combine(seed, thing_type_hash{}(*type.value.typeRef));
         case thing_type::Array:
@@ -93,6 +94,13 @@ class thing final {
 public:
     using allocator_type = Allocator<std::byte>; /**< Allocator type. */
 public:
+    struct string {
+        std::size_t size;
+        u8*         data;
+
+        static bool matches(const thing_type& type) { return type.type == thing_type::String; }
+    };
+
     struct dynamic_array {
         std::size_t size;
         std::byte*  data;
@@ -133,7 +141,11 @@ private:
     public:
         reference operator*() { return m_thing; }
 
-        value_type operator*() const { return m_thing.clone(); }
+        value_type operator*() const {
+            thing thing = { m_thing.type() };
+            thing.assign(m_thing);
+            return thing;
+        }
 
         reference operator[](difference_type n) { return *(*this + n); }
 
@@ -542,17 +554,30 @@ public:
     }
 
     void resize(u64 newSize) {
-        if (!is(thing_type::Array)) throw bad_thing_access();
-        if (type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
+        switch (type().type) {
+        case thing_type::Array: {
+            if (type().value.array.size > 0) throw std::runtime_error("cannot resize a static array");
 
-        auto& array = get<dynamic_array>();
-        if (newSize < 0 || newSize == array.size) return;
-        std::size_t innerSize = compute_size_na(*type().value.array.type);
-        std::byte*  newData   = new std::byte[innerSize * newSize];
-        std::memcpy(newData, array.data, innerSize * std::min(static_cast<u64>(array.size), newSize));
-        array.size = newSize;
-        delete[] array.data;
-        array.data = newData;
+            auto& array = get<dynamic_array>();
+            if (newSize < 0 || newSize == array.size) return;
+            std::size_t innerSize = compute_size_na(*type().value.array.type);
+            std::byte*  newData   = new std::byte[innerSize * newSize];
+            std::memcpy(newData, array.data, innerSize * std::min(static_cast<u64>(array.size), newSize));
+            array.size = newSize;
+            delete[] array.data;
+            array.data = newData;
+        } break;
+        case thing_type::String: {
+            auto& string = get<struct string>();
+            if (newSize < 0 || newSize == string.size) return;
+            u8* newData = new u8[newSize];
+            std::memcpy(newData, string.data, std::min(static_cast<u64>(string.size), newSize));
+            string.size = newSize;
+            delete[] string.data;
+            string.data = newData;
+        } break;
+        default: throw bad_thing_access();
+        }
     }
 
     thing at(u64 index) const {
@@ -561,6 +586,13 @@ public:
         ref.m_size      = compute_size_na(*(ref.m_type = &inner_type()));
 
         switch (type().type) {
+        case thing_type::String: {
+            auto& string = get<struct string>();
+            if (index < 0 || index >= string.size) throw std::out_of_range("index out of range");
+
+            ref.m_data = reinterpret_cast<std::byte*>(string.data + index);
+            return ref;
+        }
         case thing_type::Array: {
             if (type().value.array.size == 0) {
                 auto& array = get<dynamic_array>();
@@ -598,6 +630,9 @@ public:
         len = std::min(len, length() - begin);
 
         switch (type().type) {
+        case thing_type::String: {
+            data.data = reinterpret_cast<std::byte*>(get<struct string>().data);
+        } break;
         case thing_type::Array: {
             data.data = ((type().value.array.size != 0) ? m_data : get<dynamic_array>().data);
         } break;
@@ -614,6 +649,7 @@ public:
 
     u64 length() const {
         switch (type().type) {
+        case thing_type::String: return get<struct string>().size;
         case thing_type::Array:
             return type().value.array.size == 0 ? get<dynamic_array>().size : type().value.array.size;
         case thing_type::Slice: return get<struct slice>().length;
@@ -644,6 +680,7 @@ public:
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64: std::memcpy(m_data, rhs.m_data, m_size); return;
+        case thing_type::String:
         case thing_type::Ptr:
         case thing_type::Ref:
         case thing_type::Array:
@@ -652,9 +689,49 @@ public:
         }
         throw std::runtime_error("unreachable");
     }
+
+    void assign(const thing& rhs) {
+        if (type() != rhs.type()) throw std::runtime_error("thing type mismatch");
+        // TODO: Move this to another function
+        switch (type().type) {
+        case thing_type::S8:
+        case thing_type::S16:
+        case thing_type::S32:
+        case thing_type::S64:
+        case thing_type::U8:
+        case thing_type::U16:
+        case thing_type::U32:
+        case thing_type::U64: std::memcpy(m_data, rhs.m_data, m_size); return;
+        case thing_type::Ptr:
+        case thing_type::Ref:
+        case thing_type::Array:
+        case thing_type::Slice: throw std::runtime_error("unimplemented");
+        case thing_type::Count: break;
+        }
+        throw std::runtime_error("unreachable");
+    }
+
+    template <typename T>
+    void assign(const T& value) {
+        if constexpr (detail::cassignable_to_thing<T, thing>::value) {
+            detail::thing_traits<T>::assign_to(*this, value);
+        } else {
+            get<T>() = value;
+        }
+    }
+
+    template <typename T>
+    void assign(T&& value) { // NOLINT
+        if constexpr (detail::massignable_to_thing<T, thing>::value) {
+            detail::thing_traits<T>::assign_to(*this, std::move(value)); // NOLINT
+        } else {
+            get<T>() = std::move(value); // NOLINT
+        }
+    }
 public:
     iterator begin() {
         switch (type().type) {
+        case thing_type::String: return { this, reinterpret_cast<std::byte*>(get<struct string>().data) };
         case thing_type::Array: return { this, (type().value.array.size == 0) ? get<dynamic_array>().data : m_data };
         case thing_type::Slice: return { this, get<struct slice>().data };
         default: throw bad_thing_access();
@@ -665,6 +742,7 @@ public:
 
     const_iterator cbegin() const {
         switch (type().type) {
+        case thing_type::String: return { this, reinterpret_cast<std::byte*>(get<struct string>().data) };
         case thing_type::Array: return { this, (type().value.array.size == 0) ? get<dynamic_array>().data : m_data };
         case thing_type::Slice: return { this, get<struct slice>().data };
         default: throw bad_thing_access();
@@ -710,6 +788,7 @@ private:
         case thing_type::U16:
         case thing_type::U32:
         case thing_type::U64:
+        case thing_type::String:
         case thing_type::Ptr:
         case thing_type::Ref:
         case thing_type::Slice: std::memcpy(dst, src, size * elementSize); return;
@@ -735,6 +814,7 @@ private:
         case thing_type::U16: return sizeof(u16);
         case thing_type::U32: return sizeof(u32);
         case thing_type::U64: return sizeof(u64);
+        case thing_type::String: return sizeof(string);
         case thing_type::Ptr: return sizeof(void*);
         case thing_type::Array:
             return type.value.array.size == 0 ? sizeof(dynamic_array)
@@ -855,6 +935,7 @@ private:
             case thing_type::U16: res.get<u16>() = Op{}(cast_to<u16>(), rhs.cast_to<u16>()); return res;
             case thing_type::U32: res.get<u32>() = Op{}(cast_to<u32>(), rhs.cast_to<u32>()); return res;
             case thing_type::U64: res.get<u64>() = Op{}(cast_to<u64>(), rhs.cast_to<u64>()); return res;
+            case thing_type::String:
             case thing_type::Ptr: // TODO: Pointer arithmetics
             case thing_type::Ref:
             case thing_type::Array:
@@ -886,6 +967,10 @@ private:
 
     thing_type& inner_type() const {
         switch (type().type) {
+        case thing_type::String: {
+            static thing_type s_inner = { thing_type::U8 };
+            return s_inner;
+        }
         case thing_type::Array: return *type().value.array.type;
         case thing_type::Slice: return *type().value.slice.type;
         default: throw bad_thing_access();
@@ -895,12 +980,40 @@ private:
     // A flag indicating whether the thing instance owns the data, or not.
     bool m_reference = false;
 
-    thing_type* m_type = nullptr;
-    std::size_t m_size = 0;
-    std::byte*  m_data = nullptr;
+    const thing_type* m_type = nullptr;
+    std::size_t       m_size = 0;
+    std::byte*        m_data = nullptr;
 
     allocator_type m_allocator;
 };
+
+namespace detail {
+
+template <>
+struct thing_traits<std::string_view> {
+    template <template <typename...> class Allocator>
+    static void assign_to(thing<Allocator>& thing, const std::string_view& value) {
+        using Thing = furvm::thing<Allocator>;
+
+        auto& string = thing.template get<typename Thing::string>();
+        string.data  = new furvm::u8[string.size = value.length()];
+        std::memcpy(string.data, value.data(), value.length());
+    }
+};
+
+template <>
+struct thing_traits<std::string> {
+    template <template <typename...> class Allocator>
+    static void assign_to(thing<Allocator>& thing, const std::string& value) {
+        using Thing = furvm::thing<Allocator>;
+
+        auto& string = thing.template get<typename Thing::string>();
+        string.data  = new furvm::u8[string.size = value.length()];
+        std::memcpy(string.data, value.data(), value.length());
+    }
+};
+
+} // namespace detail
 
 } // namespace furvm
 

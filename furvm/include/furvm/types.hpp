@@ -39,6 +39,7 @@ struct thing_type {
         U16,
         U32,
         U64,
+        String,
         Ptr,
         Ref,
         Array,
@@ -78,7 +79,8 @@ struct thing_type {
         case U8:
         case U16:
         case U32:
-        case U64: return true;
+        case U64:
+        case String: return true;
         case Ptr:
         case Ref: return *value.typeRef == *other.value.typeRef;
         case Array: return *value.array.type == *other.value.array.type && value.array.size == other.value.array.size;
@@ -100,6 +102,7 @@ struct thing_type {
         case U16:
         case U32:
         case U64: return true;
+        case String:
         case Ptr:
         case Ref:
         case Array:
@@ -119,6 +122,7 @@ struct thing_type {
         case thing_type::U16: return sizeof(u16);
         case thing_type::U32: return sizeof(u32);
         case thing_type::U64: return sizeof(u64);
+        case thing_type::String:
         case Ptr:
         case Ref:
         case Array:
@@ -196,6 +200,24 @@ struct thing_traits<Inner*> {
                thing_traits<Inner>{}(*type.value.typeRef);
     }
 };
+
+template <typename T, typename Thing, typename = void>
+struct cassignable_to_thing : std::false_type {};
+
+template <typename T, typename Thing>
+struct cassignable_to_thing<T,
+    Thing,
+    std::void_t<decltype(std::declval<thing_traits<T>>().assign_to(std::declval<Thing&>(), std::declval<const T&>()))>>
+  : std::true_type {};
+
+template <typename T, typename Thing, typename = void>
+struct massignable_to_thing : std::false_type {};
+
+template <typename T, typename Thing>
+struct massignable_to_thing<T,
+    Thing,
+    std::void_t<decltype(std::declval<thing_traits<T>>().assign_to(std::declval<Thing&>(), std::declval<T&&>()))>>
+  : std::true_type {};
 
 } // namespace detail
 

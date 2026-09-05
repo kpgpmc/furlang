@@ -31,7 +31,8 @@ thing_type executor::thing_type_impl(mod_h mod, mod_type type) const {
     case thing_type::U8:
     case thing_type::U16:
     case thing_type::U32:
-    case thing_type::U64: return { static_cast<enum thing_type::type>(type.type) };
+    case thing_type::U64:
+    case thing_type::String: return { static_cast<enum thing_type::type>(type.type) };
     case thing_type::Ptr: return { thing_type::Ptr, mod_to_thing_type(mod, *mod->type_at(type.value.typeRef)) };
     case thing_type::Ref: return { thing_type::Ref, mod_to_thing_type(mod, *mod->type_at(type.value.typeRef)) };
     case thing_type::Array: {
@@ -60,7 +61,8 @@ bool executor::compare_thing_types(const thing_type& lhs, const thing_type& rhs)
     case thing_type::U8:
     case thing_type::U16:
     case thing_type::U32:
-    case thing_type::U64: return true;
+    case thing_type::U64:
+    case thing_type::String: return true;
     case thing_type::Ptr:
     case thing_type::Ref: return compare_thing_types(*lhs.value.typeRef, *rhs.value.typeRef);
     case thing_type::Array:

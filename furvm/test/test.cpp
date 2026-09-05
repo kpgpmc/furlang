@@ -55,6 +55,21 @@ TEST(ThingOps, Slice) {
     }
 }
 
+TEST(ThingOps, String) {
+    static constexpr std::string_view STRING = "femboje na topie";
+    static constexpr auto             LENGTH = STRING.length();
+
+    furvm::thing string{ furvm::thing_type{ furvm::thing_type::String } };
+    string.assign(STRING);
+    EXPECT_EQ(string.length(), LENGTH);
+    furvm::thing slice = string.slice(0, LENGTH);
+    EXPECT_EQ(slice.length(), LENGTH);
+    for (std::size_t i = 0; i < LENGTH; ++i) {
+        auto el = slice.at(i);
+        EXPECT_EQ(slice.at(i).get<furvm::u8>(), STRING[i]);
+    }
+}
+
 TEST(ThingOps, Iterators) {
     furvm::thing_type innerType = { furvm::thing_type::U32 };
 
@@ -85,6 +100,9 @@ TEST(ThingOps, Access) {
     EXPECT_THROW(thing.get<furvm::s32>(), furvm::bad_thing_access);
     EXPECT_THROW(thing.get<void*>(), furvm::bad_thing_access);
 
+    EXPECT_NO_THROW(thing.assign<furvm::u8>(67));
+    EXPECT_THROW(thing.assign<furvm::s32>(1337), furvm::bad_thing_access);
+    EXPECT_EQ(thing.get<furvm::u8>(), 67);
     EXPECT_NO_THROW(thing.set<furvm::u8>(67)); // He talkin' 'bout sum 6-7 while I want sixty ni-
     EXPECT_THROW(thing.set<furvm::s32>(1337), furvm::bad_thing_access);
 }
