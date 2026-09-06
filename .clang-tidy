@@ -17,6 +17,7 @@ Checks: >
   -readability-redundant-access-specifiers,
   -readability-use-anyofallof,
   -readability-named-parameter,
+  -readability-convert-member-functions-to-static,
   -performance-enum-size,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
