@@ -2,7 +2,9 @@
 #define FURLANG_RESULT_HPP
 
 #include <exception>
+#include <optional>
 #include <ostream>
+#include <type_traits>
 #include <utility>
 
 namespace furlang {
@@ -43,6 +45,8 @@ public:
     const char* what() const noexcept override { return "bad result access"; }
 };
 
+struct error_tag {};
+
 /**
  * @brief Result.
  *
@@ -51,7 +55,7 @@ public:
  * @tparam R Value type.
  * @tparam E Error type.
  */
-template <typename R, typename E>
+template <typename E, typename R = void>
 class result {
 public:
     using value_type            = std::remove_reference_t<R>; /**< Value type. */
@@ -63,6 +67,10 @@ public:
     using error_reference       = error_type&;                /**< Error reference type. */
     using error_const_reference = const error_type&;          /**< Error const reference type. */
 public:
+    template <typename Other>
+    result(const result<E, Other>& error)
+      : result(error_tag{}, error.error()) {}
+
     /**
      * @brief Construct a new result.
      *
@@ -82,7 +90,7 @@ public:
      *
      * @param args Variadic arguments to construct the value with.
      */
-    template <typename... Args>
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args...>>>
     result(Args&&... args) {
         new (&m_value.result) value_type(std::forward<Args>(args)...);
     }
@@ -92,7 +100,7 @@ public:
      *
      * @param error Error to copy.
      */
-    explicit result(const error_type& error)
+    result(error_tag tag, const error_type& error)
       : m_error(true) {
         new (&m_value.error) error_type(error);
     }
@@ -102,7 +110,7 @@ public:
      *
      * @param error Error to move.
      */
-    explicit result(error_type&& error)
+    result(error_tag tag, error_type&& error)
       : m_error(true) {
         new (&m_value.error) error_type(std::move(error));
     }
@@ -165,6 +173,16 @@ public:
             new (&m_value.result) value_type(other.m_value.result);
         }
         return *this;
+    }
+public:
+    template <typename ResultFwd, typename = std::enable_if_t<std::is_constructible_v<R, ResultFwd>>>
+    static result ok(ResultFwd&& value) {
+        return { std::forward<ResultFwd>(value) };
+    }
+
+    template <typename ErrorFwd, typename = std::enable_if_t<std::is_constructible_v<E, ErrorFwd>>>
+    static result error(ErrorFwd&& value) {
+        return { error_tag{}, std::forward<ErrorFwd>(value) };
     }
 public:
     /**
@@ -362,6 +380,34 @@ private:
         value& operator=(const value&) {}
     } m_value;
     bool m_error = false;
+};
+
+template <typename E>
+class result<E, void> {
+public:
+    using value_type      = std::remove_reference_t<E>;
+    using reference       = value_type&;
+    using const_reference = const value_type&;
+public:
+    result() = default;
+
+    result(const value_type& value)
+      : m_error(true), m_value(value) {}
+
+    result(value_type&& value)
+      : m_error(true), m_value(std::move(value)) {}
+
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args...>>>
+    result(Args&&... args)
+      : m_error(true), m_value(std::forward<Args>(args)...) {}
+public:
+    bool has_value() const { return !m_error; }
+    bool has_error() const { return m_error; }
+
+    const value_type& error() const { return *m_value; }
+private:
+    std::optional<value_type> m_value;
+    bool                      m_error = false;
 };
 
 } // namespace furlang
