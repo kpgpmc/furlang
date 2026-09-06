@@ -24,7 +24,7 @@ struct lexer_error {
     std::string    message;
 };
 
-using token_r = furlang::result<token, lexer_error>;
+using token_r = furlang::result<lexer_error, token>;
 
 class lexer {
 public:

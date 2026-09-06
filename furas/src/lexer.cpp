@@ -19,7 +19,7 @@ token_r lexer::next_token() {
     // TODO: Add support for single-line comments
     // TODO: Add support for multi-line comments
 
-    if (m_cursor >= m_content.size()) return token_r{ lexer_error{ lexer_error::EndOfFile, location() } };
+    if (m_cursor >= m_content.size()) return token_r::error(lexer_error{ lexer_error::EndOfFile, location() });
 
     // TODO: Add support for negative integers (I am positive thanks to stasiu :v:)
     // TODO: Add support for hexadecimal and binary numeric literals
@@ -93,9 +93,9 @@ token_r lexer::next_token() {
     case '.': ++m_cursor; return { token::Dot };
     case ':': ++m_cursor; return { token::Colon };
     default:
-        return token_r{
-            lexer_error{ lexer_error::UnknownCharacter, location(), "Unknown character '"s + m_content[m_cursor] + "'" }
-        };
+        return token_r::error(lexer_error{ lexer_error::UnknownCharacter,
+            location(),
+            "Unknown character '"s + m_content[m_cursor] + "'" });
     }
 }
 
