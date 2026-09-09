@@ -225,9 +225,10 @@ struct ir_function : ir_scope {
     std::vector<ir_basic_block> blocks;
 
     std::uint64_t regCount = 0;
+    std::uint64_t varCount = 0;
 
     const ir_variable* allocate(furlang::arena& arena, const std::string& name, ir_type type) final {
-        return variables[name] = arena.allocate<ir_function_variable>(type, regCount++);
+        return variables[name] = arena.allocate<ir_function_variable>(type, varCount++);
     }
 
     static ir_function from_name(std::string&& name) {
