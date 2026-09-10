@@ -10,7 +10,6 @@ target_link_libraries(furc PRIVATE libfurc)
 
 include(GoogleTest)
 
-file(GLOB_RECURSE FURC_TESTS "test/**.cpp")
-add_executable(furc_tests ${FURC_TESTS})
+add_executable(furc_tests "test/ssa.cpp")
 target_link_libraries(furc_tests PRIVATE libfurc GTest::gtest_main)
-# gtest_discover_tests(furc_tests)
+gtest_discover_tests(furc_tests)
