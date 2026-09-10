@@ -1,3 +1,5 @@
+#ifndef LIBFURC
+
 #include "furc/front/lexer.hpp"
 #include "furc/front/parser.hpp"
 #include "furc/middle/ir.hpp"
@@ -17,7 +19,11 @@ int main(void) {
     furc::lexer     lexer    = { "<AK>", content };
     furc::parser    parser   = { std::move(lexer), arena };
     furc::ir_module irModule = furc::ir_generator::generate(parser.parse());
-    furc::ssa::process(irModule);
+    for (auto& func : irModule.functions) {
+        furc::ssa ssa(*func);
+    }
 
     return 0;
 }
+
+#endif // LIBFURC

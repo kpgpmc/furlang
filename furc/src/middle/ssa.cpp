@@ -12,168 +12,140 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
+#include <stack>
 #include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace furc {
 
-namespace {
+void ssa::compute_cfg(const std::vector<ir_basic_block>& irBlocks, std::vector<cfg_block>& cfgBlocks) {
+    cfgBlocks.resize(irBlocks.size());
 
-struct block_info {
-    std::size_t order = 0;
-
-    std::unordered_set<std::size_t> preds;
-    std::unordered_set<std::size_t> sucs;
-    std::size_t                     idom = 0;
-
-    // Dominance Frontiers
-    std::unordered_set<std::size_t> df;
-};
-
-struct register_info {
-    std::unordered_set<std::size_t> sites; // Definition Sites
-};
-
-void rpo_dfs(std::unordered_set<std::size_t>& visited,
-    std::vector<std::size_t>&                 order,
-    std::size_t                               block,
-    std::vector<block_info>&                  blocks) {
-    visited.insert(block);
-    for (auto succ : blocks[block].sucs) {
-        if (visited.find(succ) != visited.end()) continue;
-        rpo_dfs(visited, order, succ, blocks);
-    }
-    order.push_back(block);
-}
-
-void compute_rpo(std::vector<block_info>& blocks, std::vector<std::size_t>& order) {
-    std::unordered_set<std::size_t> visited;
-    if (!blocks.empty()) rpo_dfs(visited, order, 0, blocks);
-    std::reverse(order.begin(), order.begin());
-    for (std::size_t i = 0; i < order.size(); ++i) {
-        blocks[order[i]].order = i;
-    }
-}
-
-std::size_t intersect(std::vector<block_info>& blocks, std::size_t b1, std::size_t b2) {
-    std::size_t finger1 = b1;
-    std::size_t finger2 = b2;
-    while (finger1 != finger2) {
-        while (finger1 < finger2)
-            finger1 = blocks[finger1].idom;
-        while (finger2 < finger1)
-            finger2 = blocks[finger2].idom;
-    }
-    return finger1;
-}
-
-void process_function(ir_function& func) {
-    std::vector<block_info>    blocks(func.blocks.size());
-    std::vector<register_info> registers(func.regCount);
-
-    std::unordered_set<std::uint64_t> nonLocals;
-
-    // 1. Compute CFG
-    for (std::size_t i = 0; i < func.blocks.size(); ++i) {
-        const auto& block = func.blocks[i];
+    for (std::size_t i = 0; i < irBlocks.size(); ++i) {
+        const auto& block = irBlocks[i];
         if (block.instructions.empty()) continue;
-
-        for (const auto& instr : block.instructions) {
-            for (const auto& op : instr.sources) {
-                if (op.type != ir_operand::Register) continue;
-                const auto& reg = registers[op.value.reg.name];
-                if (reg.sites.find(i) != reg.sites.end()) continue;
-                nonLocals.insert(op.value.reg.name);
-            }
-
-            if (!instr.destination.has_value() || instr.destination->type != ir_operand::Register) continue;
-            registers[instr.destination->value.reg.name].sites.insert(i);
-        }
 
         const auto& termInstr = block.instructions.back();
         switch (termInstr.type) {
         case ir_instruction::Branch: {
             const auto& dst = termInstr.destination.value();
-            if (dst.type != ir_operand::Block) throw std::runtime_error("invalid operand");
-            blocks[dst.value.block].preds.insert(i);
-            blocks[i].sucs.insert(dst.value.block);
+            assert(dst.type == ir_operand::Block);
+            cfgBlocks[dst.value.block].preds.insert(i);
+            cfgBlocks[i].sucs.insert(dst.value.block);
         } break;
         case ir_instruction::BranchCond: {
             const auto& dst = termInstr.destination.value();
-            if (dst.type != ir_operand::BlockPair) throw std::runtime_error("invalid operand");
-            blocks[dst.value.blockPair.first].preds.insert(i);
-            blocks[dst.value.blockPair.second].preds.insert(i);
-            blocks[i].preds.insert(dst.value.blockPair.first);
-            blocks[i].preds.insert(dst.value.blockPair.second);
+            assert(dst.type == ir_operand::BlockPair);
+            cfgBlocks[dst.value.blockPair.first].preds.insert(i);
+            cfgBlocks[dst.value.blockPair.second].preds.insert(i);
+            cfgBlocks[i].sucs.insert(dst.value.blockPair.first);
+            cfgBlocks[i].sucs.insert(dst.value.blockPair.second);
         } break;
         default: break;
         }
     }
+}
 
-    // 2. Computing dominance tree
-    std::vector<std::size_t> order;
-    order.reserve(blocks.size());
-    compute_rpo(blocks, order);
+void ssa::collect_registers(const std::vector<ir_basic_block>& irBlocks,
+    std::vector<register_info>&                                registers,
+    std::unordered_set<std::uint64_t>&                         globals) {
+    for (std::size_t i = 0; i < irBlocks.size(); ++i) {
+        const auto& block = irBlocks[i];
+        for (const auto& instr : block.instructions) {
+            for (const auto& src : instr.sources) {
+                if (src.type != ir_operand::Register) continue;
+                const auto& reg = registers.at(src.value.reg.name);
+                if (reg.sites.find(i) != reg.sites.end()) continue;
+                globals.insert(src.value.reg.name);
+            }
+            if (!instr.destination.has_value() || instr.destination->type != ir_operand::Register) continue;
+            registers[instr.destination->value.reg.name].sites.insert(i);
+        }
+    }
+}
 
-    blocks[order.front()].idom = order.front();
+void ssa::build_dtree(const std::vector<cfg_block>& cfgBlocks,
+    std::vector<ssa_block>&                         ssaBlocks,
+    const std::vector<std::size_t>&                 order) {
+    ssaBlocks[order.front()].idom = order.front();
 
     bool changed = true;
     while (changed) {
         changed = false;
+        for (auto it = order.begin() + 1; it != order.end(); ++it) {
+            static constexpr std::uint64_t INVALID = std::numeric_limits<std::uint64_t>::max();
 
-        for (std::size_t i = 1; i < order.size(); ++i) {
-            auto&       block   = blocks[order[i]];
-            std::size_t newIdom = -1;
-            bool        found   = false;
-            for (auto pred : block.preds) {
-                if (blocks[pred].idom == -1) continue;
-                newIdom = found ? intersect(blocks, pred, newIdom) : pred;
+            std::uint64_t newIdom = -1;
+            bool          found   = false;
+
+            for (std::uint64_t pred : cfgBlocks[*it].preds) {
+                if (ssaBlocks[pred].idom == INVALID) continue;
+                newIdom = found ? intersect(ssaBlocks, pred, newIdom) : pred;
                 found   = true;
             }
-
-            if (block.idom != newIdom) {
-                block.idom = newIdom;
-                changed    = true;
+            if (ssaBlocks[*it].idom != newIdom) {
+                ssaBlocks[*it].idom = newIdom;
+                changed             = true;
             }
         }
     }
+}
 
-    // 3. Computing Dominance Frontiers
-    for (std::size_t j = 0; j < blocks.size(); ++j) {
-        const auto& join = blocks[j];
-        if (join.preds.size() < 2) continue;
-        for (std::size_t runner : join.preds) {
-            while (runner != join.idom) {
-                blocks[runner].df.insert(j);
-                runner = blocks[runner].idom;
+void ssa::compute_dfrontiers(const std::vector<cfg_block>& cfgBlocks, std::vector<ssa_block>& ssaBlocks) {
+    for (std::uint64_t i = 0; i < ssaBlocks.size(); ++i) {
+        if (cfgBlocks[i].preds.size() < 2) continue;
+        const auto& cfgBlock = cfgBlocks[i];
+        auto&       ssaBlock = ssaBlocks[i];
+
+        for (std::uint64_t worker : cfgBlock.preds) {
+            while (worker != ssaBlock.idom) {
+                ssaBlocks[worker].df.insert(i);
+                worker = ssaBlocks[worker].idom;
             }
         }
     }
+}
 
-    // 4. Inserting Phi-nodes (Semi-Pruned SSA form)
-    std::vector<std::size_t> worklist;
+void ssa::compute_rpo(std::vector<cfg_block>& cfgBlocks,
+    std::vector<ssa_block>&                   ssaBlocks,
+    std::vector<std::size_t>&                 order) {
+    std::unordered_set<std::size_t> visited;
+    if (!cfgBlocks.empty()) rpo_dfs(visited, order, 0, cfgBlocks);
+    std::reverse(order.begin(), order.end());
+    ssaBlocks.resize(cfgBlocks.size());
+    for (std::size_t i = 0; i < order.size(); ++i) {
+        ssaBlocks[order[i]].order = i;
+    }
+}
 
-    for (std::size_t i = 0; i < registers.size(); ++i) {
+void ssa::ssaification(std::vector<ir_basic_block>& irBlocks,
+    const std::vector<cfg_block>&                   cfgBlocks,
+    const std::vector<ssa_block>&                   ssaBlocks,
+    const std::vector<register_info>&               registers,
+    const std::unordered_set<std::uint64_t>&        globals) {
+    std::vector<std::uint64_t> worklist;
+
+    for (std::uint64_t i = 0; i < registers.size(); ++i) {
         const auto& reg = registers[i];
-        if (reg.sites.size() < 2 || nonLocals.find(i) == nonLocals.end()) continue;
-
+        if (reg.sites.size() < 2 || globals.find(i) == globals.end()) continue;
         worklist.insert(worklist.end(), reg.sites.begin(), reg.sites.end());
 
-        std::unordered_set<std::size_t> done;
+        std::unordered_set<std::uint64_t> done;
         while (!worklist.empty()) {
             const auto blockIdx = worklist.back();
             worklist.pop_back();
-            for (auto frontier : blocks[blockIdx].df) {
+
+            for (auto frontier : ssaBlocks[blockIdx].df) {
                 if (done.find(frontier) != done.end()) continue;
                 done.insert(frontier);
 
-                auto& target = func.blocks[frontier];
-
-                ir_instruction instr = { ir_instruction::Phi };
-                for (const auto& pred : blocks[frontier].preds)
+                auto&          target = irBlocks[frontier];
+                ir_instruction instr  = { ir_instruction::Phi, ir_operand{ ir_operand::Register, i } };
+                for (const auto& pred : cfgBlocks[frontier].preds)
                     instr.sources.emplace_back(ir_operand::PhiPair, i, pred);
-
                 target.instructions.emplace(target.instructions.begin(), std::move(instr));
 
                 if (reg.sites.find(frontier) == reg.sites.end()) worklist.push_back(frontier);
@@ -182,13 +154,154 @@ void process_function(ir_function& func) {
     }
 }
 
-} // namespace
+void ssa::rename(std::vector<ir_basic_block>& irBlocks,
+    std::size_t                               regCount,
+    const std::vector<cfg_block>&             cfgBlocks,
+    std::vector<ssa_block>&                   ssaBlocks,
+    const std::vector<std::uint64_t>&         order) {
+    std::vector<std::uint64_t>             counters;
+    std::vector<std::stack<std::uint64_t>> stacks;
 
-void ssa::process(ir_module& mod) {
-    for (auto* func : mod.functions)
-        process_function(*func);
+    counters.resize(regCount);
+    stacks.resize(regCount);
+
+    for (auto it = order.begin() + 1; it != order.end(); ++it) {
+        std::uint64_t parent = ssaBlocks[*it].idom;
+        if (parent != std::numeric_limits<std::uint64_t>::max()) ssaBlocks[parent].children.emplace(*it);
+    }
+
+    rename_rec(counters, stacks, irBlocks, cfgBlocks, ssaBlocks, order.front());
 }
 
-void ssa::destruct(ir_module& mod) {}
+void ssa::rename_rec(std::vector<std::uint64_t>& counters,
+    std::vector<std::stack<std::uint64_t>>&      stacks,
+    std::vector<ir_basic_block>&                 irBlocks,
+    const std::vector<cfg_block>&                cfgBlocks,
+    const std::vector<ssa_block>&                ssaBlocks,
+    std::size_t                                  blockIdx) {
+    std::unordered_map<std::uint64_t, std::size_t> pushed;
+
+    auto& block = irBlocks[blockIdx];
+    for (auto& instr : block.instructions) {
+        if (instr.type == ir_instruction::Phi) {
+            auto reg = instr.destination->value.reg.name;
+            stacks[reg].push(instr.destination->value.reg.ver = counters[reg]++);
+            ++pushed[reg];
+            continue;
+        }
+
+        for (auto& op : instr.sources) {
+            if (op.type != ir_operand::Register) continue;
+            auto reg         = op.value.reg.name;
+            op.value.reg.ver = stacks[reg].top();
+        }
+
+        if (!instr.destination.has_value() || instr.destination->type != ir_operand::Register) continue;
+        auto reg = instr.destination->value.reg.name;
+        stacks[reg].push(instr.destination->value.reg.ver = counters[reg]++);
+        ++pushed[reg];
+    }
+
+    for (auto succIdx : cfgBlocks[blockIdx].sucs) {
+        auto& succ = irBlocks[succIdx];
+        for (auto& instr : succ.instructions) {
+            if (instr.type != ir_instruction::Phi) break;
+            for (auto& op : instr.sources) {
+                if (op.value.phiPair.block != blockIdx) continue;
+                op.value.phiPair.reg.ver = stacks[op.value.phiPair.reg.name].top();
+            }
+        }
+    }
+
+    for (std::uint64_t child : ssaBlocks[blockIdx].children)
+        rename_rec(counters, stacks, irBlocks, cfgBlocks, ssaBlocks, child);
+
+    for (auto [reg, count] : pushed)
+        while ((count--) > 0)
+            stacks[reg].pop();
+}
+
+void ssa::rpo_dfs(std::unordered_set<std::size_t>& visited,
+    std::vector<std::size_t>&                      order,
+    std::size_t                                    block,
+    const std::vector<cfg_block>&                  blocks) {
+    visited.insert(block);
+    for (auto succ : blocks[block].sucs) {
+        if (visited.find(succ) != visited.end()) continue;
+        rpo_dfs(visited, order, succ, blocks);
+    }
+    order.push_back(block);
+}
+
+std::size_t ssa::intersect(std::vector<ssa_block>& m_blocks, std::size_t b1, std::size_t b2) {
+    while (b1 != b2) {
+        while (m_blocks[b1].order > m_blocks[b2].order)
+            b1 = m_blocks[b1].idom;
+        while (m_blocks[b2].order > m_blocks[b1].order)
+            b2 = m_blocks[b2].idom;
+    }
+    return b1;
+}
+
+// // 5. Renaming
+// std::vector<std::uint64_t>             counters;
+// std::vector<std::stack<std::uint64_t>> stacks;
+//
+// counters.resize(func.regCount);
+// stacks.resize(func.regCount);
+//
+// for (std::size_t i = 1; i < order.size(); ++i) {
+// std::size_t parent = blocks[order[i]].idom;
+// if (parent != std::numeric_limits<std::size_t>::max()) blocks[parent].children.emplace(order[i]);
+// }
+//
+// auto rename = [&counters, &stacks, &blocks, &func](auto& self, std::size_t blockIdx) -> void {
+// std::unordered_map<std::size_t, std::size_t> pushed;
+//
+// auto& block = func.blocks[blockIdx];
+// for (auto& instr : block.instructions) {
+// if (instr.type == ir_instruction::Phi) {
+// auto reg                         = instr.destination->value.reg.name;
+// auto idx                         = counters[reg]++;
+// instr.destination->value.reg.ver = idx;
+// stacks[reg].push(idx);
+// ++pushed[reg];
+// continue;
+// }
+//
+// for (auto& op : instr.sources) {
+// if (op.type != ir_operand::Register) continue;
+// auto reg         = op.value.reg.name;
+// op.value.reg.ver = stacks[reg].top();
+// }
+//
+// if (!instr.destination.has_value() || instr.destination->type != ir_operand::Register) continue;
+// auto reg                         = instr.destination->value.reg.name;
+// auto idx                         = counters[reg]++;
+// instr.destination->value.reg.ver = idx;
+// stacks[reg].push(idx);
+// ++pushed[reg];
+// }
+//
+// for (auto succIdx : blocks[blockIdx].sucs) {
+// auto& succ = func.blocks[succIdx];
+// for (auto& instr : succ.instructions) {
+// if (instr.type != ir_instruction::Phi) break;
+// for (auto& op : instr.sources) {
+// if (op.value.phiPair.block != blockIdx) continue;
+// op.value.phiPair.reg.ver = stacks[op.value.phiPair.reg.name].top();
+// }
+// }
+// }
+//
+// for (std::size_t child : blocks[blockIdx].children)
+// self(self, child);
+//
+// for (auto [reg, count] : pushed)
+// while (count--)
+// stacks[reg].pop();
+// };
+// rename(rename, order.front());
+// }
 
 } // namespace furc
