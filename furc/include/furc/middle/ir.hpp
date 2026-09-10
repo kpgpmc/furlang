@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <optional>
 #include <stack>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -55,6 +56,9 @@ struct ir_operand {
         value_u(std::uint16_t variable)
           : variable(variable) {}
 
+        value_u(register_s reg)
+          : reg(reg) {}
+
         value_u(std::uint64_t first, std::uint64_t second)
           : blockPair({ first, second }) {}
 
@@ -65,6 +69,30 @@ struct ir_operand {
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_u, Args...>>>
     ir_operand(type_e type, Args&&... args)
       : type(type), value(std::forward<Args>(args)...) {}
+
+    static ir_operand reg(std::uint64_t name, std::uint64_t ver) {
+        return { Register, value_u::register_s{ name, ver } };
+    }
+
+    bool operator==(const ir_operand& rhs) const {
+        if (type != rhs.type) return false;
+        switch (type) {
+        case Integer: return value.integer == rhs.value.integer;
+        case Register: return value.reg.name == rhs.value.reg.name && value.reg.ver == rhs.value.reg.ver;
+        case Variable: return value.variable == rhs.value.variable;
+        case Global: return value.global == rhs.value.global;
+        case Function: return value.function == rhs.value.function;
+        case Block: return value.block == rhs.value.block;
+        case BlockPair:
+            return value.blockPair.first == rhs.value.blockPair.first &&
+                   value.blockPair.second == rhs.value.blockPair.second;
+        case PhiPair:
+            return value.phiPair.block == rhs.value.phiPair.block &&
+                   value.phiPair.reg.name == rhs.value.phiPair.reg.name &&
+                   value.phiPair.reg.ver == rhs.value.phiPair.reg.ver;
+        }
+        throw std::runtime_error("unreachable");
+    }
 };
 
 struct ir_type {
@@ -138,6 +166,10 @@ struct ir_instruction {
         case Return: return true;
         default: return false;
         }
+    }
+
+    bool operator==(const ir_instruction& rhs) const {
+        return type == rhs.type && destination == rhs.destination && sources == rhs.sources;
     }
 };
 
