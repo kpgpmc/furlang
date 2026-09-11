@@ -34,6 +34,16 @@ struct ir_operand {
         struct register_s {
             std::uint64_t name : 54;
             std::uint64_t ver : 10;
+
+            register_s() = default;
+
+            register_s(std::uint64_t id)
+              : name((id >> 10) & ((1ULL << 54) - 1)), ver((id >> 0) & ((1 << 10) - 1)) {}
+
+            register_s(std::uint64_t name, std::uint64_t ver)
+              : name(name), ver(ver) {}
+
+            operator std::uint64_t() const { return name << 10 | ver; }
         } reg;
         std::uint16_t variable;
         std::uint16_t global;

@@ -34,18 +34,18 @@ public:
     };
 public:
     ssa(ir_function& func) {
-        m_registers.resize(func.regCount);
-        compute_cfg(func.blocks, m_cfgBlocks);
-        collect_registers(func.blocks, m_registers, m_globals);
+        registers.resize(func.regCount);
+        compute_cfg(func.blocks, cfgBlocks);
+        collect_registers(func.blocks, registers, globals);
 
         std::vector<std::uint64_t> order;
-        compute_rpo(m_cfgBlocks, m_ssaBlocks, order);
+        compute_rpo(cfgBlocks, ssaBlocks, order);
 
-        build_dtree(m_cfgBlocks, m_ssaBlocks, order);
-        compute_dfrontiers(m_cfgBlocks, m_ssaBlocks);
+        build_dtree(cfgBlocks, ssaBlocks, order);
+        compute_dfrontiers(cfgBlocks, ssaBlocks);
 
-        ssaification(func.blocks, m_cfgBlocks, m_ssaBlocks, m_registers, m_globals);
-        rename(func.blocks, func.regCount, m_cfgBlocks, m_ssaBlocks, order);
+        ssaification(func.blocks, cfgBlocks, ssaBlocks, registers, globals);
+        rename(func.blocks, func.regCount, cfgBlocks, ssaBlocks, order);
     }
 public:
     static void compute_cfg(const std::vector<ir_basic_block>& irBlocks, std::vector<cfg_block>& cfgBlocks);
@@ -89,11 +89,11 @@ private:
         const std::vector<cfg_block>&                    blocks);
 
     static std::size_t intersect(std::vector<ssa_block>& m_blocks, std::size_t b1, std::size_t b2);
-private:
-    std::vector<cfg_block>            m_cfgBlocks;
-    std::vector<ssa_block>            m_ssaBlocks;
-    std::vector<register_info>        m_registers;
-    std::unordered_set<std::uint64_t> m_globals;
+public:
+    std::vector<cfg_block>            cfgBlocks;
+    std::vector<ssa_block>            ssaBlocks;
+    std::vector<register_info>        registers;
+    std::unordered_set<std::uint64_t> globals;
 };
 
 } // namespace furc

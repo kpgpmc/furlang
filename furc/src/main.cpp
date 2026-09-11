@@ -3,6 +3,7 @@
 #include "furc/front/lexer.hpp"
 #include "furc/front/parser.hpp"
 #include "furc/middle/ir.hpp"
+#include "furc/middle/reg_gen.hpp"
 #include "furc/middle/ssa.hpp"
 #include "furlang/arena.hpp"
 
@@ -20,7 +21,8 @@ int main(void) {
     furc::parser    parser   = { std::move(lexer), arena };
     furc::ir_module irModule = furc::ir_generator::generate(parser.parse());
     for (auto& func : irModule.functions) {
-        furc::ssa ssa(*func);
+        furc::ssa     ssa(*func);
+        furc::reg_gen gen(*func, ssa);
     }
 
     return 0;
