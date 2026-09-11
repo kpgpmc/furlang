@@ -1,0 +1,5 @@
+file(GLOB_RECURSE FURAS_SRCS "${CMAKE_SOURCE_DIR}/src/furas/**.cpp")
+file(GLOB_RECURSE FURAS_HDRS "${CMAKE_SOURCE_DIR}/include/furas/**.hpp")
+add_executable(furas ${FURAS_SRCS} ${FURAS_HDRS})
+target_include_directories(furas PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+target_link_libraries(furas PRIVATE furlang libfurvm)

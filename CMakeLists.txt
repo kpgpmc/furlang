@@ -11,12 +11,16 @@ find_package(Doxygen)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(furlang)
-add_subdirectory(furvm)
-add_subdirectory(furc)
-add_subdirectory(furas)
-add_subdirectory(disfuras)
-add_subdirectory(furdb)
+add_subdirectory(src/furlang)
+add_subdirectory(src/furvm)
+add_subdirectory(src/furc)
+add_subdirectory(src/furas)
+add_subdirectory(src/disfuras)
+add_subdirectory(src/furdb)
+
+# Dependencies
+set(IC_USE_CXX ON)
+add_subdirectory(${CMAKE_SOURCE_DIR}/deps/isocline)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/docs)

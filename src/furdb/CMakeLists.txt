@@ -1,0 +1,5 @@
+file(GLOB_RECURSE FURDB_SRCS "${CMAKE_SOURCE_DIR}/src/furdb/**.cpp")
+file(GLOB_RECURSE FURDB_HDRS "${CMAKE_SOURCE_DIR}/include/furdb/**.hpp")
+add_executable(furdb ${FURDB_SRCS} ${FURDB_HDRS})
+target_include_directories(furdb PRIVATE ${CMAKE_SOURCE_DIR}/include/)
+target_link_libraries(furdb PUBLIC furlang libfurc libfurvm isocline)

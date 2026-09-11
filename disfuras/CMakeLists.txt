@@ -1,5 +1,0 @@
-file(GLOB_RECURSE DISFURAS_SRCS "src/**.cpp")
-file(GLOB_RECURSE DISFURAS_HDRS "include/**.hpp")
-add_executable(disfuras ${DISFURAS_SRCS} ${DISFURAS_HDRS})
-target_include_directories(disfuras PRIVATE include/)
-target_link_libraries(disfuras PUBLIC furlang libfurc libfurvm)

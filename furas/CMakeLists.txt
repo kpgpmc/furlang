@@ -1,5 +1,0 @@
-file(GLOB_RECURSE FURAS_SRCS "src/**.cpp")
-file(GLOB_RECURSE FURAS_HDRS "include/**.hpp")
-add_executable(furas ${FURAS_SRCS} ${FURAS_HDRS})
-target_include_directories(furas PUBLIC include/)
-target_link_libraries(furas PRIVATE furlang libfurvm)
